@@ -1,6 +1,6 @@
 /* Navbar.module.css */
 .navbar {
-    background: linear-gradient(90deg, #6a0dad, #8e44ad); /* Purple to Violet gradient */
+    background: linear-gradient(90deg, #6a0dad, #8e44ad); 
     padding: 1rem;
 }
 
@@ -13,7 +13,7 @@
 .navbarBrand {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #ffffff; /* White text color for better contrast */
+    color: #ffffff; 
 }
 
 .navItems {
@@ -23,13 +23,13 @@
 }
 
 .dropdown {
-    display: none; /* Hide dropdown by default */
+    display: none;
     position: absolute;
     background-color: white;
     border: 1px solid #ccc;
-    border-radius: 0.5rem; /* Rounded edges */
+    border-radius: 0.5rem; 
     z-index: 10;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Shadow effect */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .dropdownItem {
@@ -37,11 +37,11 @@
 }
 
 .group:hover .dropdown {
-    display: block; /* Show dropdown on hover */
+    display: block; 
 }
 
 .loginButton {
-    background: linear-gradient(90deg, #4b5563, #1f2937); /* Grey to Black gradient */
+    background: linear-gradient(90deg, #4b5563, #1f2937);
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 0.375rem;
@@ -50,5 +50,5 @@
 }
 
 .loginButton:hover {
-    background: linear-gradient(90deg, #6b7280, #374151); /* Slightly lighter gradient on hover */
+    background: linear-gradient(90deg, #6b7280, #374151); 
 }

@@ -2,9 +2,9 @@
 "use client";
 import Link from 'next/link';
 import { useState } from 'react';
-import { Dialog } from '@headlessui/react'; // Assuming you're using Headless UI for the modal
-import { Input } from '@/components/ui/input'; // Import ShadCN Input
-import styles from './Navbar.module.css'; // Import the CSS module
+import { Dialog } from '@headlessui/react'; 
+import { Input } from '@/components/ui/input'; 
+import styles from './Navbar.module.css'; 
 
 const Navbar: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);

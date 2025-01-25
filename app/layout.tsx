@@ -1,8 +1,7 @@
 // app/layout.tsx
 import React from 'react';
- // Adjust the path if necessary
 import './globals.css';
-import Navbar from "@/app/components/Navbar"; // Import global styles (including Tailwind CSS)
+import Navbar from "@/app/components/Navbar"; 
 
 const RootLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
