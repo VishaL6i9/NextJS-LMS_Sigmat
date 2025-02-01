@@ -1,22 +1,10 @@
 // components/Navbar.tsx
-"use client";
+"use client"; 
 import Link from 'next/link';
-import { useState } from 'react';
-import { Dialog } from '@headlessui/react'; 
-import { Input } from '@/components/ui/input'; 
-import styles from './Navbar.module.css'; 
+import React from 'react';
+import styles from './Navbar.module.css';
 
 const Navbar: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const closeModal = () => {
-        setIsOpen(false);
-    };
-
-    const openModal = () => {
-        setIsOpen(true);
-    };
-
     return (
         <>
             <nav className={styles.navbar}>
@@ -49,7 +37,7 @@ const Navbar: React.FC = () => {
                                 <li className={styles.dropdownItem}><Link href="/reporting/attendees">Attendees</Link></li>
                                 <li className={styles.dropdownItem}><Link href="/reporting/reviews">Reviews</Link></li>
                                 <li className={styles.dropdownItem}><Link href="/reporting/quizzes">Quizzes</Link></li>
-                                <li className={styles.dropdownItem}>< Link href="/reporting/forum">Forum</Link></li>
+                                <li className={styles.dropdownItem}><Link href="/reporting/forum">Forum</Link></li>
                                 <li className={styles.dropdownItem}><Link href="/reporting/certifications">Certifications</Link></li>
                             </ul>
                         </li>
@@ -63,33 +51,13 @@ const Navbar: React.FC = () => {
                         </li>
                     </ul>
                     <div>
-                        <button onClick={openModal} className={styles.loginButton}>Login</button>
+                        {}
+                        <Link href="/select-role">
+                            <button className={styles.loginButton}>Login</button>
+                        </Link>
                     </div>
                 </div>
             </nav>
-
-            {/* Login Modal */}
-            <Dialog open={isOpen} onClose={closeModal}>
-                <div className="fixed inset-0 bg-black opacity-30" aria-hidden="true" />
-                <div className="fixed inset-0 flex items-center justify-center">
-                    <Dialog.Panel className="bg-white rounded-lg p-6 max-w-md mx-auto">
-                        <Dialog.Title className="text-lg font-bold">Login</Dialog.Title>
-                        <form className="mt-4">
-                            <div className="mb-4">
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-                                <Input type="email" id="email" className="mt-1 block w-full border border-gray-300 rounded-md p-2" required />
-                            </div>
-                            <div className="mb-4">
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-                                <Input type="password" id="password" className="mt-1 block w-full border border-gray-300 rounded-md p-2" required />
-                            </div>
-                            <div className="flex justify-end">
-                                <button type="submit" className="bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 focus:outline-none">Submit</button>
-                            </div>
-                        </form>
-                    </Dialog.Panel>
-                </div>
-            </Dialog>
         </>
     );
 };
