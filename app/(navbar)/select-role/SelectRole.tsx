@@ -13,19 +13,19 @@ const SelectRole: React.FC = () => {
             <div className="flex justify-center gap-5 mt-5 flex-wrap flex-grow">
                 <Link href="/admin" className="box-link">
                     <div className="box bg-red-100 flex flex-col items-center p-5 rounded-lg shadow-md transition-transform duration-200 transform hover:translate-y-[-5px]">
-                        <Image src="public/admin.png" alt="Admin Icon" width={150} height={150} className="rounded-lg border-2 border-gray-800 object-cover" />
+                        <Image src="/admin.png" alt="Admin Icon" width={150} height={150} className="rounded-lg border-2 border-gray-800 object-cover" />
                         <h3 className="mt-2 text-lg font-bold">Admin</h3>
                     </div>
                 </Link>
                 <Link href="/instructor" className="box-link">
                     <div className="box bg-blue-100 flex flex-col items-center p-5 rounded-lg shadow-md transition-transform duration-200 transform hover:translate-y-[-5px]">
-                        <Image src="public/instructor.png" alt="Instructor Icon" width={150} height={150} className="rounded-lg border-2 border-gray-800 object-cover" />
+                        <Image src="/instructor.png" alt="Instructor Icon" width={150} height={150} className="rounded-lg border-2 border-gray-800 object-cover" />
                         <h3 className="mt-2 text-lg font-bold">Instructor</h3>
                     </div>
                 </Link>
                 <Link href="/student" className="box-link">
                     <div className="box bg-yellow-100 flex flex-col items-center p-5 rounded-lg shadow-md transition-transform duration-200 transform hover:translate-y-[-5px]">
-                        <Image src="public/student.png" alt="Student Icon" width={150} height={150} className="rounded-lg border-2 border-gray-800 object-cover" />
+                        <Image src="/student.png" alt="Student Icon" width={150} height={150} className="rounded-lg border-2 border-gray-800 object-cover" />
                         <h3 className="mt-2 text-lg font-bold">Student</h3>
                     </div>
                 </Link>
