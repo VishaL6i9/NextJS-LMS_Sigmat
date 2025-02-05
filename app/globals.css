@@ -2,16 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Existing custom styles */
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Existing utility for text balance */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 }
 
+/* New root variables for background/foreground colors */
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+/* Existing :root and dark mode variables */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -40,6 +58,8 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
+  /* Dark mode specific overrides */
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
@@ -68,6 +88,7 @@ body {
   }
 }
 
+/* Apply global styles */
 @layer base {
   * {
     @apply border-border;

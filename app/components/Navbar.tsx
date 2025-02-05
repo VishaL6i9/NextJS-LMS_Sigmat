@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react'; 
-import { Input } from '@/components/ui/input'; 
+import { Input } from '@/components/old ui/input'; 
 import styles from './Navbar.module.css'; 
 
 const Navbar: React.FC = () => {
@@ -62,13 +62,13 @@ const Navbar: React.FC = () => {
                             </ul>
                         </li>
                     </ul>
-                    <div>
+                    {/* <div>
                         <button onClick={openModal} className={styles.loginButton}>Login</button>
-                    </div>
+                    </div> */}
                 </div>
             </nav>
 
-            {/* Login Modal */}
+            {/* Login Modal
             <Dialog open={isOpen} onClose={closeModal}>
                 <div className="fixed inset-0 bg-black opacity-30" aria-hidden="true" />
                 <div className="fixed inset-0 flex items-center justify-center">
@@ -89,7 +89,7 @@ const Navbar: React.FC = () => {
                         </form>
                     </Dialog.Panel>
                 </div>
-            </Dialog>
+            </Dialog> */}
         </>
     );
 };
