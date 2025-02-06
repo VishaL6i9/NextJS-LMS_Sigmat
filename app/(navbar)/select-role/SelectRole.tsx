@@ -17,7 +17,7 @@ const SelectRole: React.FC = () => {
                         <h3 className="mt-2 text-lg font-bold">Admin</h3>
                     </div>
                 </Link>
-                <Link href="/instructor" className="box-link">
+                <Link href="/dashboard/instructor-dashboard" className="box-link">
                     <div className="box bg-blue-100 flex flex-col items-center p-5 rounded-lg shadow-md transition-transform duration-200 transform hover:translate-y-[-5px]">
                         <Image src="/instructor.png" alt="Instructor Icon" width={150} height={150} className="rounded-lg border-2 border-gray-800 object-cover" />
                         <h3 className="mt-2 text-lg font-bold">Instructor</h3>
