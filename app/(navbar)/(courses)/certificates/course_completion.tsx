@@ -33,19 +33,19 @@ function App() {
         totalQuestions: 50,
         passingScore: 70,
     });
-    const base_url = "http://localhost:8080/api/public"; // Replace with your actual URL
+    
     const [certificate, setCertificate] = useState<Certificate | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const certificateRef = useRef<HTMLDivElement>(null);
-
+    const base_url= process.env.NEXT_PUBLIC_BASE_URL;
     useEffect(() => {
         const fetchCertificate = async () => {
             setLoading(true);
             setError(null);
 
             try {
-                const response = await fetch(`${base_url}/certificates/9999`); // Use a valid ID
+                const response = await fetch(`${base_url}/certificates/9999`);
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
