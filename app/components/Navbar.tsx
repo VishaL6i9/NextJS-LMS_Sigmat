@@ -52,7 +52,7 @@ const Navbar: React.FC = () => {
                     </ul>
                     <div>
                         {}
-                        <Link href="/select-role">
+                        <Link href="/auth">
                             <button className={styles.loginButton}>Login</button>
                         </Link>
                     </div>
