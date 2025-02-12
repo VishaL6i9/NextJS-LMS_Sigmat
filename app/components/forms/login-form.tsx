@@ -54,7 +54,6 @@ export function LoginForm() {
                 body: JSON.stringify({
                     username: values.email,
                     password: values.password,
-                    
                 }),
             });
 
@@ -62,9 +61,9 @@ export function LoginForm() {
                 throw new Error('Login failed! Invalid credentials.');
             }
 
-            const data = await response.text();
-            console.log(data);
-            //localStorage.setItem('token', data.token);
+            const token = await response.text();
+            console.log(token);
+            localStorage.setItem('token', token);
             
             router.push('/dashboard/profile');
 
