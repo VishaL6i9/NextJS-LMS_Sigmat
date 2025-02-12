@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import {useEffect, useState} from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -63,6 +63,55 @@ export function ProfileForm() {
         },
     });
 
+    useEffect(() => {
+
+        const fetchUserData = async () => {
+
+            setIsLoading(true);
+
+            try {
+
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/22`, {
+                    method: "GET", 
+                    headers: {
+
+                       // 'Authorization': `Bearer ${localStorage.getItem("token")}`,
+
+                    },
+
+                });
+
+                if (!response.ok) {
+
+                    throw new Error("Failed to fetch profile data");
+
+                }
+
+                const data = await response.json();
+
+                form.reset(data); // Set fetched data as default values
+
+                setAvatar(data.profileImage || null); // Assuming profileImage is part of the user data
+
+            } catch (error) {
+
+                console.error("Error fetching profile data:", error);
+
+            } finally {
+
+                setIsLoading(false);
+
+            }
+
+        };
+
+
+        fetchUserData();
+
+    }, [form]);
+    
+    
+    
     async function onSubmit(values: z.infer<typeof profileSchema>) {
         setIsLoading(true);
         try {
