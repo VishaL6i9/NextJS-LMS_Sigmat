@@ -70,15 +70,20 @@ export function ProfileForm() {
             setIsLoading(true);
 
             try {
-
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/22`, {
+                const getuserID:Response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                        'Access-Control-Allow-Origin': 'http://localhost:3000',
+                    },
+                });
+                const userID = await getuserID.text();
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/${userID}`, {
                     method: "GET", 
                     headers: {
-
-                       // 'Authorization': `Bearer ${localStorage.getItem("token")}`,
-
+                       'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                        'Access-Control-Allow-Origin': 'http://localhost:3000',
                     },
-
                 });
 
                 if (!response.ok) {
