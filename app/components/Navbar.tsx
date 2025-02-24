@@ -1,5 +1,5 @@
 // components/Navbar.tsx
-"use client"; 
+"use client";
 import Link from 'next/link';
 import React from 'react';
 import styles from './Navbar.module.css';
@@ -49,9 +49,13 @@ const Navbar: React.FC = () => {
                                 <li className={styles.dropdownItem}><Link href="/configuration/content-tags">Content Tags</Link></li>
                             </ul>
                         </li>
+                        <li>
+                            <Link href="/dashboard/profile">
+                                <button className="text-white hover:text-yellow-300 focus:outline-none">Profile</button>
+                            </Link>
+                        </li>
                     </ul>
                     <div>
-                        {}
                         <Link href="/auth">
                             <button className={styles.loginButton}>Login</button>
                         </Link>
