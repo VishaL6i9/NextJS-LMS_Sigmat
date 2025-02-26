@@ -78,6 +78,7 @@ export function ProfileForm() {
                     },
                 });
                 const userID = await getuserID.text();
+                localStorage.setItem('userid', userID);
                 const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/${userID}`, {
                     method: "GET", 
                     headers: {
@@ -87,16 +88,12 @@ export function ProfileForm() {
                 });
 
                 if (!response.ok) {
-
                     throw new Error("Failed to fetch profile data");
-
                 }
 
                 const data = await response.json();
-
-                form.reset(data); // Set fetched data as default values
-
-                setAvatar(data.profileImage || null); // Assuming profileImage is part of the user data
+                form.reset(data);
+                setAvatar(data.profileImage || null); 
 
             } catch (error) {
 
@@ -114,16 +111,36 @@ export function ProfileForm() {
         fetchUserData();
 
     }, [form]);
-    
-    
-    
+
+
+
     async function onSubmit(values: z.infer<typeof profileSchema>) {
         setIsLoading(true);
         try {
-            // Implement your profile update logic here
-            console.log(values);
+            const userId = localStorage.getItem("userid");
+            
+            if (!userId) {
+                throw new Error("User  ID is not available");
+            }
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile`, {
+                method: "PUT",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem("token")}`, 
+                },
+                body: JSON.stringify({ ...values, id: userId }), 
+            });
+            
+            if (!response.ok) {
+                throw new Error("Failed to update profile");
+            }
+
+            const updatedProfile = await response.json();
+            console.log('Profile updated successfully:', updatedProfile);
+            form.reset(updatedProfile); 
+
         } catch (error) {
-            console.error(error);
+            console.error("Error updating profile:", error);
         } finally {
             setIsLoading(false);
         }
