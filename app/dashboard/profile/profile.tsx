@@ -28,8 +28,8 @@ const profileSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
     lastName: z.string().min(2, "Last name must be at least 2 characters"),
     email: z.string().email("Invalid email address"),
-    phoneNumber: z.string().optional(),
-    timeZone: z.string(),
+    phone: z.string().optional(),
+    timezone: z.string(),
     language: z.string(),
     currentPassword: z.string().optional(),
     newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
@@ -56,9 +56,9 @@ export function ProfileForm() {
         defaultValues: {
             firstName: "",
             lastName: "",
-            email: "",
-            phoneNumber: "",
-            timeZone: "UTC",
+            email: "example@gmail.com",
+            phone: "",
+            timezone: "UTC",
             language: "en",
         },
     });
@@ -120,7 +120,7 @@ export function ProfileForm() {
             const userId = localStorage.getItem("userid");
             
             if (!userId) {
-                throw new Error("User  ID is not available");
+                throw new Error("User ID is not available");
             }
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile`, {
                 method: "PUT",
@@ -231,7 +231,7 @@ export function ProfileForm() {
 
                             <FormField
                                 control={form.control}
-                                name="phoneNumber"
+                                name="phone"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Phone Number</FormLabel>
@@ -246,7 +246,7 @@ export function ProfileForm() {
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                     control={form.control}
-                                    name="timeZone"
+                                    name="timezone"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Time Zone</FormLabel>
