@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -31,19 +31,14 @@ const profileSchema = z.object({
     phone: z.string().optional(),
     timezone: z.string(),
     language: z.string(),
-    currentPassword: z.string().optional(),
-    newPassword: z.string().min(8, "Password must be at least 8 characters").optional(),
-    confirmPassword: z.string().optional(),
-}).refine((data) => {
-    if (data.newPassword && !data.currentPassword) {
-        return false;
-    }
-    if (data.newPassword !== data.confirmPassword) {
-        return false;
-    }
-    return true;
-}, {
-    message: "Passwords don't match or current password is required",
+});
+
+const passwordSchema = z.object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your new password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
     path: ["confirmPassword"],
 });
 
@@ -51,7 +46,7 @@ export function ProfileForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [avatar, setAvatar] = useState<string | null>(null);
 
-    const form = useForm<z.infer<typeof profileSchema>>({
+    const profileForm = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
             firstName: "",
@@ -63,27 +58,31 @@ export function ProfileForm() {
         },
     });
 
+    const passwordForm = useForm<z.infer<typeof passwordSchema>>({
+        resolver: zodResolver(passwordSchema),
+        defaultValues: {
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+        },
+    });
+
     useEffect(() => {
-
         const fetchUserData = async () => {
-
             setIsLoading(true);
-
             try {
-                const getuserID:Response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
+                const getuserID: Response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem("token")}`,
-                        'Access-Control-Allow-Origin': 'http://localhost:3000',
                     },
                 });
                 const userID = await getuserID.text();
                 localStorage.setItem('userid', userID);
                 const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/${userID}`, {
-                    method: "GET", 
+                    method: "GET",
                     headers: {
-                       'Authorization': `Bearer ${localStorage.getItem("token")}`,
-                        'Access-Control-Allow-Origin': 'http://localhost:3000',
+                        'Authorization': `Bearer ${localStorage.getItem("token")}`,
                     },
                 });
 
@@ -92,55 +91,78 @@ export function ProfileForm() {
                 }
 
                 const data = await response.json();
-                form.reset(data);
-                setAvatar(data.profileImage || null); 
+                profileForm.reset(data);
+                setAvatar(data.profileImage || null);
 
             } catch (error) {
-
                 console.error("Error fetching profile data:", error);
-
             } finally {
-
                 setIsLoading(false);
-
             }
-
         };
-
-
         fetchUserData();
+    }, [profileForm]);
 
-    }, [form]);
-
-
-
-    async function onSubmit(values: z.infer<typeof profileSchema>) {
+    async function onSubmitProfile(values: z.infer<typeof profileSchema>) {
         setIsLoading(true);
         try {
             const userId = localStorage.getItem("userid");
-            
             if (!userId) {
-                throw new Error("User ID is not available");
+                throw new Error("User  ID is not available");
             }
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile`, {
                 method: "PUT",
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem("token")}`, 
+                    'Authorization': `Bearer ${localStorage.getItem("token")}`,
                 },
-                body: JSON.stringify({ ...values, id: userId }), 
+                body: JSON.stringify({ ...values, id: userId }),
             });
-            
+
             if (!response.ok) {
                 throw new Error("Failed to update profile");
             }
 
             const updatedProfile = await response.json();
             console.log('Profile updated successfully:', updatedProfile);
-            form.reset(updatedProfile); 
+            profileForm.reset(updatedProfile);
 
         } catch (error) {
             console.error("Error updating profile:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    async function onSubmitPassword(values: z.infer<typeof passwordSchema>) {
+        setIsLoading(true);
+        try {
+            const userId = localStorage.getItem("userid");
+            if (!userId) {
+                throw new Error("User  ID is not available");
+            }
+
+            const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/password`);
+            url.searchParams.append("userID", userId);
+            url.searchParams.append("newPassword", values.newPassword);
+
+            const response = await fetch(url.toString(), {
+                method: "PUT",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to update password");
+            }
+
+            const updatedPassword = await response.json();
+            console.log('Password updated successfully:', updatedPassword);
+
+        } catch (error) {
+            console.error("Error updating password:", error);
         } finally {
             setIsLoading(false);
         }
@@ -183,12 +205,12 @@ export function ProfileForm() {
                     <TabsTrigger value="password">Password</TabsTrigger>
                 </TabsList>
 
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <Form {...profileForm}>
+                    <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4">
                         <TabsContent value="profile">
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
-                                    control={form.control}
+                                    control={profileForm.control}
                                     name="firstName"
                                     render={({ field }) => (
                                         <FormItem>
@@ -201,7 +223,7 @@ export function ProfileForm() {
                                     )}
                                 />
                                 <FormField
-                                    control={form.control}
+                                    control={profileForm.control}
                                     name="lastName"
                                     render={({ field }) => (
                                         <FormItem>
@@ -216,7 +238,7 @@ export function ProfileForm() {
                             </div>
 
                             <FormField
-                                control={form.control}
+                                control={profileForm.control}
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
@@ -230,7 +252,7 @@ export function ProfileForm() {
                             />
 
                             <FormField
-                                control={form.control}
+                                control={profileForm.control}
                                 name="phone"
                                 render={({ field }) => (
                                     <FormItem>
@@ -245,7 +267,7 @@ export function ProfileForm() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField
-                                    control={form.control}
+                                    control={profileForm.control}
                                     name="timezone"
                                     render={({ field }) => (
                                         <FormItem>
@@ -268,7 +290,7 @@ export function ProfileForm() {
                                 />
 
                                 <FormField
-                                    control={form.control}
+                                    control={profileForm.control}
                                     name="language"
                                     render={({ field }) => (
                                         <FormItem>
@@ -292,9 +314,17 @@ export function ProfileForm() {
                             </div>
                         </TabsContent>
 
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </form>
+                </Form>
+
+                <Form {...passwordForm}>
+                    <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-4">
                         <TabsContent value="password">
                             <FormField
-                                control={form.control}
+                                control={passwordForm.control}
                                 name="currentPassword"
                                 render={({ field }) => (
                                     <FormItem>
@@ -308,7 +338,7 @@ export function ProfileForm() {
                             />
 
                             <FormField
-                                control={form.control}
+                                control={passwordForm.control}
                                 name="newPassword"
                                 render={({ field }) => (
                                     <FormItem>
@@ -322,7 +352,7 @@ export function ProfileForm() {
                             />
 
                             <FormField
-                                control={form.control}
+                                control={passwordForm.control}
                                 name="confirmPassword"
                                 render={({ field }) => (
                                     <FormItem>
@@ -334,11 +364,10 @@ export function ProfileForm() {
                                     </FormItem>
                                 )}
                             />
+                            <Button type="submit" className="w-full" disabled={isLoading}>
+                                {isLoading ? "Updating Password..." : "Update Password"}
+                            </Button>
                         </TabsContent>
-
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? "Saving..." : "Save Changes"}
-                        </Button>
                     </form>
                 </Form>
             </Tabs>
