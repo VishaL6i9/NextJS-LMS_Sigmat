@@ -1,18 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
+interface CourseData {
+    courseName: string;
+    courseCode: string;
+    courseDescription: string;
+    courseCategory: string;
+    courseInstructor: string[];
+    courseDuration: number;
+    courseMode: string;
+    maxEnrollments: number;
+    courseFee: number;
+    language: string;
+}
+
 export default function InstructorDashboard() {
-    const [courses, setCourses] = useState([]);
+    const [courses, setCourses] = useState<CourseData[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [isManaging, setIsManaging] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
+    const [formData, setFormData] = useState<Partial<CourseData>>({});
 
     const fields = [
         { label: "Course Name", id: "courseName", type: "text", required: true },
@@ -20,27 +34,27 @@ export default function InstructorDashboard() {
         { label: "Description", id: "courseDescription", type: "textarea" },
         { label: "Category", id: "courseCategory", type: "select", options: ["Science", "Math", "Arts"], required: true },
         { label: "Instructor(s)", id: "courseInstructor", type: "select-multiple", options: ["Instructor 1", "Instructor 2"], required: true },
-        { label: "Start Date", id: "courseStartDate", type: "date", required: true },
-        { label: "End Date", id: "courseEndDate", type: "date" },
         { label: "Duration", id: "courseDuration", type: "number" },
         { label: "Mode of Delivery", id: "courseMode", type: "select", options: ["Online", "Offline", "Blended"], required: true },
         { label: "Maximum Enrollments", id: "maxEnrollments", type: "number" },
         { label: "Course Fee", id: "courseFee", type: "number" },
-        { label: "Prerequisites", id: "prerequisites", type: "select-multiple", options: ["Course A", "Course B"] },
-        { label: "Course Materials", id: "courseMaterials", type: "file", accept: ".pdf,.docx,.pptx" },
-        { label: "Learning Objectives", id: "learningObjectives", type: "textarea" },
-        { label: "Assessment Type", id: "assessmentType", type: "select", options: ["Quizzes", "Assignments", "Final Exam"] },
-        { label: "Language", id: "language", type: "select", options: ["English", "French"], required: true },
-        { label: "Course Image", id: "courseImage", type: "file", accept: ".png,.jpg,.jpeg" },
-        { label: "Publish Status", id: "publishStatus", type: "select", options: ["Draft", "Published", "Archived"], required: true },
-        { label: "Tags", id: "tags", type: "text" },
-        { label: "Certificate Issuance", id: "certificateIssuance", type: "checkbox" }
+        { label: "Language", id: "language", type: "select", options: ["English",
+                "French",
+                "Spanish",
+                "German",
+                "Italian",
+                "Portuguese",
+                "Russian",
+                "Chinese (Mandarin)",
+                "Japanese",
+                "Arabic",
+                "Hindi",
+                "Korean"], required: true },
     ];
-    const API_BASE_URL = 'http://localhost:8080';
-   
+
     const fetchCourses = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/public/courses`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses`);
             const data = await response.json();
             setCourses(data);
         } catch (error) {
@@ -52,38 +66,73 @@ export default function InstructorDashboard() {
         fetchCourses();
     }, []);
 
-   
     const loadCreateForm = (index: number | null = null) => {
         setIsManaging(false);
         setIsCreating(true);
         setEditingIndex(index);
         setCurrentPage(0);
+
+        if (index !== null && courses[index]) {
+            setFormData({...courses[index]});
+        } else {
+            setFormData({});
+        }
     };
 
-   
-    const addCourse = async (event: React.FormEvent) => {
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { id, value, type } = e.target;
+
+        if (type === 'select-multiple') {
+            const selectElement = e.target as HTMLSelectElement;
+            const selectedValues = Array.from(selectElement.selectedOptions).map(option => option.value);
+            setFormData(prev => ({
+                ...prev,
+                [id]: selectedValues
+            }));
+            return;
+        }
+
+        const processedValue = type === 'number'
+            ? (value === '' ? undefined : Number(value))
+            : value;
+
+        setFormData(prev => ({
+            ...prev,
+            [id]: processedValue
+        }));
+    };
+
+    const handleSelectChange = (fieldId: string, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            [fieldId]: value
+        }));
+    };
+
+    const addCourse = async (event: FormEvent) => {
         event.preventDefault();
-        const courseData: any = {};
-        fields.forEach((field) => {
-            const element = document.getElementById(field.id) as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-            if (element) {
-                if (field.type === "select-multiple") {
-                    courseData[field.id] = Array.from((element as HTMLSelectElement).selectedOptions, (option) => option.value);
-                } else if (field.type === "checkbox") {
-                    courseData[field.id] = (element as HTMLInputElement).checked;
-                } else {
-                    courseData[field.id] = element.value;
-                }
-            }
-        });
+
+        const requiredFields = fields.filter(f => f.required).map(f => f.id);
+        const missingFields = requiredFields.filter(field =>
+            !formData[field] ||
+            (Array.isArray(formData[field]) && formData[field].length === 0)
+        );
+
+        if (missingFields.length > 0) {
+            alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+            return;
+        }
 
         try {
-            const url = editingIndex !== null ? `${API_BASE_URL}/api/public/courses/${editingIndex}` : `${API_BASE_URL}/api/public/courses`;
+            const url = editingIndex !== null
+                ? `${process.env.NEXT_PUBLIC_BASE_URL}/courses/${editingIndex}`
+                : `${process.env.NEXT_PUBLIC_BASE_URL}/courses`;
             const method = editingIndex !== null ? 'PUT' : 'POST';
+
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(courseData),
+                body: JSON.stringify(formData),
             });
 
             if (response.ok) {
@@ -96,22 +145,20 @@ export default function InstructorDashboard() {
                     setCourses([...courses, savedCourse]);
                 }
                 alert(`Course ${editingIndex !== null ? 'updated' : 'created'} successfully!`);
+                setIsCreating(false);
+                setEditingIndex(null);
             } else {
                 alert('Failed to save course.');
             }
         } catch (error) {
             console.error('Error saving course:', error);
         }
-
-        setIsCreating(false);
-        setEditingIndex(null);
     };
 
-    
     const deleteCourse = async (index: number) => {
         if (confirm("Are you sure you want to delete this course?")) {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/public/courses/${index}`, { method: 'DELETE' });
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses/${index}`, { method: 'DELETE' });
                 if (response.ok) {
                     const updatedCourses = courses.filter((_, i) => i !== index);
                     setCourses(updatedCourses);
@@ -125,14 +172,12 @@ export default function InstructorDashboard() {
         }
     };
 
-    
     const renderForm = () => {
         const start = currentPage * 5;
         const end = start + 5;
-        const course = editingIndex !== null ? courses[editingIndex] : {};
 
         return (
-            <div>
+            <form onSubmit={addCourse}>
                 <h3 className="text-2xl font-bold mb-4">{editingIndex !== null ? 'Edit' : 'Create'} Course</h3>
                 {fields.slice(start, end).map((field) => (
                     <div key={field.id} className="mb-4">
@@ -140,7 +185,25 @@ export default function InstructorDashboard() {
                             {field.label}
                         </Label>
                         {field.type === "select" ? (
-                            <Select defaultValue={course[field.id] || ''}>
+                            <Select
+                                value={formData[field.id] || ''}
+                                onValueChange={(value) => handleSelectChange(field.id, value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder={`Select ${field.label}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {field.options?.map((opt) => (
+                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : field.type === "select-multiple" ? (
+                            <Select
+                                value={(formData[field.id] as string[] || []).join(',')}
+                                onValueChange={(value) => handleSelectChange(field.id, value.split(','))}
+                                multiple
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder={`Select ${field.label}`} />
                                 </SelectTrigger>
@@ -153,31 +216,17 @@ export default function InstructorDashboard() {
                         ) : field.type === "textarea" ? (
                             <Textarea
                                 id={field.id}
-                                defaultValue={course[field.id] || ''}
+                                value={formData[field.id] || ''}
+                                onChange={handleInputChange}
                                 required={field.required}
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 sm:text-sm"
                             />
-                        ) : field.type === "checkbox" ? (
-                            <div className="mt-1 flex items-start">
-                                <div className="flex items-center h-5">
-                                    <Input
-                                        type="checkbox"
-                                        id={field.id}
-                                        defaultChecked={course[field.id] || false}
-                                        className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                                    />
-                                </div>
-                                <div className="ml-3 text-sm">
-                                    <Label htmlFor={field.id} className="font-medium text-gray-700">
-                                        {field.label}
-                                    </Label>
-                                </div>
-                            </div>
                         ) : (
                             <Input
                                 type={field.type}
                                 id={field.id}
-                                defaultValue={course[field.id] || ''}
+                                value={formData[field.id] || ''}
+                                onChange={handleInputChange}
                                 required={field.required}
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 sm:text-sm"
                             />
@@ -186,23 +235,23 @@ export default function InstructorDashboard() {
                 ))}
                 <div className="mt-4">
                     {currentPage > 0 && (
-                        <Button variant="outline" onClick={() => setCurrentPage(currentPage - 1)} className="mr-2">
+                        <Button type="button" variant="outline" onClick={() => setCurrentPage(currentPage - 1)} className="mr-2">
                             Previous
                         </Button>
                     )}
                     {end < fields.length && (
-                        <Button variant="outline" onClick={() => setCurrentPage(currentPage + 1)} className="mr-2">
+                        <Button type="button" variant="outline" onClick={() => setCurrentPage(currentPage + 1)} className="mr-2">
                             Next
                         </Button>
                     )}
-                    <Button onClick={addCourse}>
+                    <Button type="submit">
                         {editingIndex !== null ? 'Update' : 'Create'} Course
                     </Button>
                 </div>
-            </div>
+            </form>
         );
     };
-    
+
     const renderCourseList = () => (
         <div className="overflow-x-auto">
             <h3 className="text-2xl font-bold mb-4">Manage Courses</h3>
@@ -221,7 +270,7 @@ export default function InstructorDashboard() {
                 </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                {courses.map((course: any, index: number) => (
+                {courses.map((course, index) => (
                     <tr key={index}>
                         <td className="px-4 py-2 whitespace-nowrap border-b">
                             {course.courseName}
