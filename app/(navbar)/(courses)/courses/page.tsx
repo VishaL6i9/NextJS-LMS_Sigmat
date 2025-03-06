@@ -73,7 +73,7 @@ export default function InstructorDashboard() {
         setCurrentPage(0);
 
         if (index !== null && courses[index]) {
-            setFormData({...courses[index]});
+            setFormData({ ...courses[index] }); 
         } else {
             setFormData({});
         }
@@ -124,8 +124,29 @@ export default function InstructorDashboard() {
         }
 
         try {
+            let courseID: number  | null = null;
+
+            if (editingIndex !== null && formData.courseCode) {
+                const courseCode = formData.courseCode;
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses/${courseCode}/id`, {
+                    method: 'GET',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch course ID');
+                }
+
+                const data = await response.text();
+                if (data) { 
+                    courseID = parseInt(data);
+                } else {
+                    alert('No course found with the given code.');
+                    return;
+                }
+            }
+
             const url = editingIndex !== null
-                ? `${process.env.NEXT_PUBLIC_BASE_URL}/courses/${editingIndex}`
+                ? `${process.env.NEXT_PUBLIC_BASE_URL}/courses/${courseID}` 
                 : `${process.env.NEXT_PUBLIC_BASE_URL}/courses`;
             const method = editingIndex !== null ? 'PUT' : 'POST';
 
@@ -152,22 +173,43 @@ export default function InstructorDashboard() {
             }
         } catch (error) {
             console.error('Error saving course:', error);
+            alert('An error occurred while saving the course.');
         }
     };
 
     const deleteCourse = async (index: number) => {
         if (confirm("Are you sure you want to delete this course?")) {
             try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses/${index}`, { method: 'DELETE' });
-                if (response.ok) {
-                    const updatedCourses = courses.filter((_, i) => i !== index);
-                    setCourses(updatedCourses);
-                    alert('Course deleted successfully!');
+                const courseCode = courses[index].courseCode;
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses/${courseCode}/id`, {
+                    method: 'GET',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch course ID');
+                }
+
+                const data = await response.json();
+                if (data.courseID) { 
+                    const courseID:number = data.courseID;
+
+                    const deleteResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses/${courseID}`, {
+                        method: 'DELETE',
+                    });
+
+                    if (deleteResponse.ok) {
+                        const updatedCourses = courses.filter((_, i) => i !== index);
+                        setCourses(updatedCourses);
+                        alert('Course deleted successfully!');
+                    } else {
+                        alert('Failed to delete course.');
+                    }
                 } else {
-                    alert('Failed to delete course.');
+                    alert('No course found with the given code.');
                 }
             } catch (error) {
                 console.error('Error deleting course:', error);
+                alert('An error occurred while deleting the course.');
             }
         }
     };
