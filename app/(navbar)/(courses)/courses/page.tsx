@@ -189,9 +189,9 @@ export default function InstructorDashboard() {
                     throw new Error('Failed to fetch course ID');
                 }
 
-                const data = await response.json();
-                if (data.courseID) { 
-                    const courseID:number = data.courseID;
+                const data = await response.text();
+                if (data) { 
+                    const courseID:number = parseInt(data);
 
                     const deleteResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses/${courseID}`, {
                         method: 'DELETE',
