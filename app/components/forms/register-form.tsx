@@ -46,8 +46,9 @@ const formSchema = z.object({
 export function RegisterForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-    const [successMessage, setSuccessMessage] = useState(""); // New state for success message
+    const [successMessage, setSuccessMessage] = useState("");
     const base_url = process.env.NEXT_PUBLIC_BASE_URL;
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -66,8 +67,9 @@ export function RegisterForm() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
-        setErrorMessage(""); 
-        setSuccessMessage(""); 
+        setErrorMessage("");
+        setSuccessMessage("");
+
         try {
             const response = await fetch(`${base_url}/register/user`, {
                 method: 'POST',
@@ -88,13 +90,10 @@ export function RegisterForm() {
                 throw new Error(errorData.message || 'Registration failed');
             }
 
-            // Set success message on successful registration
             setSuccessMessage("🎉 Registration Successful! Check Your Mailbox for a confirmation email.");
-
         } catch (error) {
             console.error(error);
-            // @ts-ignore
-            setErrorMessage(error.message);
+            setErrorMessage(error.message || "An error occurred during registration.");
         } finally {
             setIsLoading(false);
         }
@@ -104,7 +103,8 @@ export function RegisterForm() {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-                {successMessage && <p className="text-green-500">{successMessage}</p>} {/* Display success message */}
+                {successMessage && <p className="text-green-500">{successMessage}</p>}
+
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
                         control={form.control}
