@@ -7,8 +7,8 @@ import { ForgotPasswordForm } from "@/app/components/forms/forgot-password-form"
 
 export default function AuthPage() {
     return (
-        <div className="container flex h-screen w-screen flex-col items-center justify-center">
-            <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="flex h-screen w-screen items-center justify-center">
+            <div className="flex flex-col justify-center space-y-6 w-full max-w-sm">
                 <Tabs defaultValue="login" className="w-full">
                     <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="login">Login</TabsTrigger>
