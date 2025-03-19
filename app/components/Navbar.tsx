@@ -136,6 +136,11 @@ const Navbar: React.FC = () => {
                             <button className="text-white hover:text-yellow-300 focus:outline-none">Profile</button>
                         </Link>
                     </li>
+                    <li>
+                        <Link href="/pricing">
+                            <button className="text-white hover:text-yellow-300 focus:outline-none">Pricing</button>
+                        </Link>
+                    </li>
                 </ul>
                 <div>
                     <button
