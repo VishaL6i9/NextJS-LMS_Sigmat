@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/hooks/use-toast";
 
 const profileSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -35,7 +36,13 @@ const profileSchema = z.object({
 
 const passwordSchema = z.object({
     currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    newPassword: z
+        .string()
+        .min(8, "Password must be at least 8 characters")
+        .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+        .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+        .regex(/[0-9]/, "Password must contain at least one number")
+        .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
     confirmPassword: z.string().min(1, "Please confirm your new password"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords don't match",
@@ -45,13 +52,14 @@ const passwordSchema = z.object({
 export function ProfileForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [avatar, setAvatar] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const profileForm = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
             firstName: "",
             lastName: "",
-            email: "example@gmail.com",
+            email: "",
             phone: "",
             timezone: "UTC",
             language: "en",
@@ -70,19 +78,31 @@ export function ProfileForm() {
     useEffect(() => {
         const fetchUserData = async () => {
             setIsLoading(true);
+            setError(null);
             try {
-                const getuserID: Response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    throw new Error("Authentication token not found");
+                }
+
+                const getuserID = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
                     method: "GET",
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                        'Authorization': `Bearer ${token}`,
                     },
                 });
+                
+                if (!getuserID.ok) {
+                    throw new Error("Failed to fetch user ID");
+                }
+                
                 const userID = await getuserID.text();
                 localStorage.setItem('userid', userID);
+                
                 const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/${userID}`, {
                     method: "GET",
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                        'Authorization': `Bearer ${token}`,
                     },
                 });
 
@@ -95,39 +115,62 @@ export function ProfileForm() {
                 setAvatar(data.profileImage || null);
 
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+                setError(errorMessage);
                 console.error("Error fetching profile data:", error);
             } finally {
                 setIsLoading(false);
             }
         };
+        
         fetchUserData();
     }, [profileForm]);
 
     async function onSubmitProfile(values: z.infer<typeof profileSchema>) {
         setIsLoading(true);
+        setError(null);
         try {
             const userId = localStorage.getItem("userid");
+            const token = localStorage.getItem("token");
+            
             if (!userId) {
-                throw new Error("User  ID is not available");
+                throw new Error("User ID is not available");
             }
+            
+            if (!token) {
+                throw new Error("Authentication token not found");
+            }
+            
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile`, {
                 method: "PUT",
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({ ...values, id: userId }),
             });
 
             if (!response.ok) {
-                throw new Error("Failed to update profile");
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || "Failed to update profile");
             }
 
             const updatedProfile = await response.json();
-            console.log('Profile updated successfully:', updatedProfile);
             profileForm.reset(updatedProfile);
+            toast({
+                title: "Profile Updated",
+                description: "Your profile has been updated successfully.",
+                variant: "default",
+            });
 
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            setError(errorMessage);
+            toast({
+                title: "Update Failed",
+                description: errorMessage,
+                variant: "destructive",
+            });
             console.error("Error updating profile:", error);
         } finally {
             setIsLoading(false);
@@ -136,62 +179,133 @@ export function ProfileForm() {
 
     async function onSubmitPassword(values: z.infer<typeof passwordSchema>) {
         setIsLoading(true);
+        setError(null);
         try {
             const userId = localStorage.getItem("userid");
+            const token = localStorage.getItem("token");
+            
             if (!userId) {
-                throw new Error("User  ID is not available");
+                throw new Error("User ID is not available");
+            }
+            
+            if (!token) {
+                throw new Error("Authentication token not found");
             }
 
             const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/password`);
             url.searchParams.append("userID", userId);
+            url.searchParams.append("currentPassword", values.currentPassword);
             url.searchParams.append("newPassword", values.newPassword);
 
             const response = await fetch(url.toString(), {
                 method: "PUT",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem("token")}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
             if (!response.ok) {
-                throw new Error("Failed to update password");
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || "Failed to update password");
             }
 
-            const updatedPassword = await response.json();
-            console.log('Password updated successfully:', updatedPassword);
+            passwordForm.reset({
+                currentPassword: "",
+                newPassword: "",
+                confirmPassword: "",
+            });
+            
+            toast({
+                title: "Password Updated",
+                description: "Your password has been updated successfully.",
+                variant: "default",
+            });
 
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            setError(errorMessage);
+            toast({
+                title: "Password Update Failed",
+                description: errorMessage,
+                variant: "destructive",
+            });
             console.error("Error updating password:", error);
         } finally {
             setIsLoading(false);
         }
     }
 
-    const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (file) {
+        if (!file) return;
+        
+        // Validate file size
+        if (file.size > 2 * 1024 * 1024) { // 2MB
+            toast({
+                title: "File too large",
+                description: "Image size must be less than 2MB.",
+                variant: "destructive",
+            });
+            return;
+        }
+        
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!validTypes.includes(file.type)) {
+            toast({
+                title: "Invalid file type",
+                description: "Only JPG, PNG, and GIF files are allowed.",
+                variant: "destructive",
+            });
+            return;
+        }
+        
+        try {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setAvatar(reader.result as string);
             };
             reader.readAsDataURL(file);
+            
+            // You would typically upload the avatar here
+            // This is just a placeholder for that functionality
+            toast({
+                title: "Avatar Updated",
+                description: "Your profile picture has been updated.",
+                variant: "default",
+            });
+        } catch (error) {
+            toast({
+                title: "Avatar Update Failed",
+                description: "Failed to update profile picture.",
+                variant: "destructive",
+            });
         }
     };
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-x-6">
-                <Avatar className="h-24 w-24">
-                    <AvatarImage src={avatar || ""} />
-                    <AvatarFallback>UP</AvatarFallback>
+            {error && (
+                <div className="bg-red-50 p-4 rounded-md border border-red-200 text-red-800 mb-4">
+                    <p className="text-sm font-medium">{error}</p>
+                </div>
+            )}
+            
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+                <Avatar className="h-28 w-28">
+                    <AvatarImage src={avatar || ""} alt="Profile" />
+                    <AvatarFallback>
+                        {profileForm.getValues("firstName")?.charAt(0) || ""}
+                        {profileForm.getValues("lastName")?.charAt(0) || ""}
+                    </AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="w-full sm:w-auto">
                     <Input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg, image/png, image/gif"
                         onChange={handleAvatarChange}
                         className="max-w-xs"
+                        id="avatar-upload"
                     />
                     <p className="mt-1 text-sm text-muted-foreground">
                         JPG, PNG or GIF. Max size 2MB.
@@ -202,13 +316,13 @@ export function ProfileForm() {
             <Tabs defaultValue="profile" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="profile">Profile Details</TabsTrigger>
-                    <TabsTrigger value="password">Password</TabsTrigger>
+                    <TabsTrigger value="password">Security</TabsTrigger>
                 </TabsList>
 
                 <Form {...profileForm}>
-                    <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4">
+                    <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4 py-4">
                         <TabsContent value="profile">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <FormField
                                     control={profileForm.control}
                                     name="firstName"
@@ -216,7 +330,7 @@ export function ProfileForm() {
                                         <FormItem>
                                             <FormLabel>First Name</FormLabel>
                                             <FormControl>
-                                                <Input {...field} />
+                                                <Input placeholder="First name" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -229,7 +343,7 @@ export function ProfileForm() {
                                         <FormItem>
                                             <FormLabel>Last Name</FormLabel>
                                             <FormControl>
-                                                <Input {...field} />
+                                                <Input placeholder="Last name" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -244,7 +358,11 @@ export function ProfileForm() {
                                     <FormItem>
                                         <FormLabel>Email</FormLabel>
                                         <FormControl>
-                                            <Input type="email" {...field} />
+                                            <Input 
+                                                type="email" 
+                                                placeholder="your.email@example.com" 
+                                                {...field} 
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -258,30 +376,36 @@ export function ProfileForm() {
                                     <FormItem>
                                         <FormLabel>Phone Number</FormLabel>
                                         <FormControl>
-                                            <Input {...field} />
+                                            <Input 
+                                                placeholder="e.g. +1 (555) 123-4567" 
+                                                {...field} 
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <FormField
                                     control={profileForm.control}
                                     name="timezone"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Time Zone</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select timezone" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="UTC">UTC</SelectItem>
-                                                    <SelectItem value="EST">EST</SelectItem>
-                                                    <SelectItem value="PST">PST</SelectItem>
+                                                    <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
+                                                    <SelectItem value="EST">EST (Eastern Standard Time)</SelectItem>
+                                                    <SelectItem value="CST">CST (Central Standard Time)</SelectItem>
+                                                    <SelectItem value="MST">MST (Mountain Standard Time)</SelectItem>
+                                                    <SelectItem value="PST">PST (Pacific Standard Time)</SelectItem>
+                                                    <SelectItem value="GMT">GMT (Greenwich Mean Time)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -295,7 +419,7 @@ export function ProfileForm() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Language</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select language" />
@@ -305,6 +429,9 @@ export function ProfileForm() {
                                                     <SelectItem value="en">English</SelectItem>
                                                     <SelectItem value="es">Spanish</SelectItem>
                                                     <SelectItem value="fr">French</SelectItem>
+                                                    <SelectItem value="de">German</SelectItem>
+                                                    <SelectItem value="zh">Chinese</SelectItem>
+                                                    <SelectItem value="ja">Japanese</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -312,16 +439,17 @@ export function ProfileForm() {
                                     )}
                                 />
                             </div>
+                            <div className="mt-4">
+                                <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
+                                    {isLoading ? "Saving..." : "Save Changes"}
+                                </Button>
+                            </div>
                         </TabsContent>
-
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? "Saving..." : "Save Changes"}
-                        </Button>
                     </form>
                 </Form>
 
                 <Form {...passwordForm}>
-                    <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-4">
+                    <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-4 py-4">
                         <TabsContent value="password">
                             <FormField
                                 control={passwordForm.control}
@@ -330,7 +458,11 @@ export function ProfileForm() {
                                     <FormItem>
                                         <FormLabel>Current Password</FormLabel>
                                         <FormControl>
-                                            <Input type="password" {...field} />
+                                            <Input 
+                                                type="password" 
+                                                placeholder="Enter your current password" 
+                                                {...field} 
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -344,9 +476,16 @@ export function ProfileForm() {
                                     <FormItem>
                                         <FormLabel>New Password</FormLabel>
                                         <FormControl>
-                                            <Input type="password" {...field} />
+                                            <Input 
+                                                type="password" 
+                                                placeholder="Enter new password" 
+                                                {...field} 
+                                            />
                                         </FormControl>
                                         <FormMessage />
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.
+                                        </p>
                                     </FormItem>
                                 )}
                             />
@@ -358,15 +497,21 @@ export function ProfileForm() {
                                     <FormItem>
                                         <FormLabel>Confirm New Password</FormLabel>
                                         <FormControl>
-                                            <Input type="password" {...field} />
+                                            <Input 
+                                                type="password" 
+                                                placeholder="Confirm new password" 
+                                                {...field} 
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" className="w-full" disabled={isLoading}>
-                                {isLoading ? "Updating Password..." : "Update Password"}
-                            </Button>
+                            <div className="mt-4">
+                                <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
+                                    {isLoading ? "Updating Password..." : "Update Password"}
+                                </Button>
+                            </div>
                         </TabsContent>
                     </form>
                 </Form>
