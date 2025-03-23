@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import axios from 'axios';
+import {useRouter} from "next/navigation";
 
 const profileSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -54,6 +55,7 @@ export function ProfileForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [avatar, setAvatar] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
 
     const profileForm = useForm<z.infer<typeof profileSchema>>({
         resolver: zodResolver(profileSchema),
@@ -85,7 +87,12 @@ export function ProfileForm() {
             try {
                 const token = localStorage.getItem("token");
                 if (!token) {
+                    router.push('/auth');
+                    toast({title: "Invalid Session",
+                        description: "Please Login Before Proceeding.",
+                        variant: "default"});
                     throw new Error("Authentication token not found");
+                    
                 }
 
                 const getuserID = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
