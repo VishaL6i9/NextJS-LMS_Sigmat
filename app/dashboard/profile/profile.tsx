@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import axios from 'axios';
 
 const profileSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -79,6 +80,8 @@ export function ProfileForm() {
         const fetchUserData = async () => {
             setIsLoading(true);
             setError(null);
+            let imageUrlToRevoke = null;
+
             try {
                 const token = localStorage.getItem("token");
                 if (!token) {
@@ -91,14 +94,14 @@ export function ProfileForm() {
                         'Authorization': `Bearer ${token}`,
                     },
                 });
-                
+
                 if (!getuserID.ok) {
                     throw new Error("Failed to fetch user ID");
                 }
-                
+
                 const userID = await getuserID.text();
                 localStorage.setItem('userid', userID);
-                
+
                 const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/${userID}`, {
                     method: "GET",
                     headers: {
@@ -112,7 +115,47 @@ export function ProfileForm() {
 
                 const data = await response.json();
                 profileForm.reset(data);
-                setAvatar(data.profileImage || null);
+               
+                try {
+                    const getProfileImageID= await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getProfileImageID/${userID}`,{
+                        method: "GET",
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+
+                    const profileImageID = await getProfileImageID.text();
+                    localStorage.setItem('profileImageID',profileImageID);
+                    const imageResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/get-image/${profileImageID}`, {
+                        method: "GET",
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+
+                    if (imageResponse.ok) {
+                        
+                        //standard is null check is not working for some reason.
+                        const contentType = imageResponse.headers.get('content-type');
+                        if (contentType && contentType.startsWith('image/')) {
+                            const imageBlob = await imageResponse.blob();
+                            const imageUrl = URL.createObjectURL(imageBlob);
+                            setAvatar(imageUrl);
+                            imageUrlToRevoke = imageUrl;
+                        } else {
+                            console.warn("Invalid content type received:", contentType);
+                            setAvatar(null);
+                        }
+                    } else {
+                        if (imageResponse.status !== 404) {
+                            console.warn(`Image fetch returned status: ${imageResponse.status}`);
+                        }
+                        setAvatar(null);
+                    }
+                } catch (imageError) {
+                    console.error("Error fetching profile image:", imageError);
+                    setAvatar(null);
+                }
 
             } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
@@ -121,9 +164,19 @@ export function ProfileForm() {
             } finally {
                 setIsLoading(false);
             }
+
+            return () => {
+                if (imageUrlToRevoke) {
+                    URL.revokeObjectURL(imageUrlToRevoke);
+                }
+            };
         };
-        
-        fetchUserData();
+
+        const cleanup = fetchUserData();
+
+        return () => {
+            cleanup.then(cleanupFn => cleanupFn && cleanupFn());
+        };
     }, [profileForm]);
 
     async function onSubmitProfile(values: z.infer<typeof profileSchema>) {
@@ -154,9 +207,8 @@ export function ProfileForm() {
                 const errorData = await response.json().catch(() => null);
                 throw new Error(errorData?.message || "Failed to update profile");
             }
-
-            const updatedProfile = await response.json();
-            profileForm.reset(updatedProfile);
+            
+            profileForm.reset();
             toast({
                 title: "Profile Updated",
                 description: "Your profile has been updated successfully.",
@@ -234,22 +286,22 @@ export function ProfileForm() {
             setIsLoading(false);
         }
     }
-
+    
     const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
+
+        localStorage.setItem('file',file);
         if (!file) return;
-        
-        // Validate file size
-        if (file.size > 2 * 1024 * 1024) { // 2MB
+
+        if (file.size > 5 * 1024 * 1024) { 
             toast({
                 title: "File too large",
-                description: "Image size must be less than 2MB.",
+                description: "Image size must be less than 5MB.",
                 variant: "destructive",
             });
             return;
         }
-        
-        // Validate file type
+
         const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
         if (!validTypes.includes(file.type)) {
             toast({
@@ -259,21 +311,33 @@ export function ProfileForm() {
             });
             return;
         }
-        
+
         try {
             const reader = new FileReader();
             reader.onloadend = () => {
                 setAvatar(reader.result as string);
             };
             reader.readAsDataURL(file);
-            
-            // You would typically upload the avatar here
-            // This is just a placeholder for that functionality
-            toast({
-                title: "Avatar Updated",
-                description: "Your profile picture has been updated.",
-                variant: "default",
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const userId = localStorage.getItem("userid");
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/pic/upload/${userId}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
+
+            if (response.status === 200) {
+                toast({
+                    title: "Avatar Updated",
+                    description: "Your profile picture has been updated.",
+                    variant: "default",
+                });
+            } else {
+                throw new Error("Failed to update profile picture.");
+            }
         } catch (error) {
             toast({
                 title: "Avatar Update Failed",
@@ -308,7 +372,7 @@ export function ProfileForm() {
                         id="avatar-upload"
                     />
                     <p className="mt-1 text-sm text-muted-foreground">
-                        JPG, PNG or GIF. Max size 2MB.
+                        JPG, PNG or GIF. Max size 5MB.
                     </p>
                 </div>
             </div>
