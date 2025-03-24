@@ -17,6 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { LockIcon, MailIcon, UserIcon } from "lucide-react";
 
 const formSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -75,79 +77,128 @@ export function LoginForm() {
         }
     }
 
-    const FormItemComponent = ({ label, children }: { label: string; children: React.ReactNode }) => (
-        <FormItem>
-            <FormLabel aria-label={label}>{label}</FormLabel>
-            <FormControl>
-                {children}
-            </FormControl>
-            <FormMessage />
-        </FormItem>
-    );
-
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {errorMessage && (
-                    <div className="text-red-500">{errorMessage}</div>
-                )}
-                <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItemComponent label="Email">
-                            <Input placeholder="email@example.com" {...field} />
-                        </FormItemComponent>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                        <FormItemComponent label="Password">
-                            <Input type="password" {...field} />
-                        </FormItemComponent>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                        <FormItemComponent label="Role">
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a role" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="learner">Learner</SelectItem>
-                                    <SelectItem value="instructor">Instructor</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </FormItemComponent>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="rememberMe"
-                    render={({ field }) => (
-                        <FormItem className="flex flex-row items-center space-x-2">
-                            <FormControl>
-                                <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                />
-                            </FormControl>
-                            <FormLabel>Remember me</FormLabel>
-                        </FormItem>
-                    )}
-                />
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Logging in..." : "Login"}
-                </Button>
-            </form>
-        </Form>
+        <Card className="w-full max-w-md mx-auto shadow-lg">
+            <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold text-center">Sign In</CardTitle>
+                <CardDescription className="text-center">
+                    Enter your credentials to access your account
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        {errorMessage && (
+                            <div className="p-3 text-sm bg-red-50 border border-red-200 text-red-600 rounded-md">
+                                {errorMessage}
+                            </div>
+                        )}
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Email</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <MailIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input 
+                                                placeholder="email@example.com" 
+                                                className="pl-10" 
+                                                {...field} 
+                                            />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Password</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <LockIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input 
+                                                type="password" 
+                                                className="pl-10" 
+                                                {...field} 
+                                            />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="role"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Role</FormLabel>
+                                    <FormControl>
+                                        <div className="relative">
+                                            <UserIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger className="pl-10">
+                                                        <SelectValue placeholder="Select a role" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="learner">Learner</SelectItem>
+                                                    <SelectItem value="instructor">Instructor</SelectItem>
+                                                    <SelectItem value="admin">Admin</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="rememberMe"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-2">
+                                    <FormControl>
+                                        <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    <FormLabel className="text-sm font-normal">Remember me</FormLabel>
+                                </FormItem>
+                            )}
+                        />
+                        <Button 
+                            type="submit" 
+                            className="w-full" 
+                            disabled={isLoading}
+                            size="lg"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Logging in...
+                                </>
+                            ) : "Sign In"}
+                        </Button>
+                    </form>
+                </Form>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+                <p className="text-sm text-muted-foreground">
+                    Don't have an account? <a href="#" className="text-primary hover:underline">Sign up</a>
+                </p>
+            </CardFooter>
+        </Card>
     );
 }

@@ -5,6 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { User, Lock, Upload } from "lucide-react";
 import {
     Form,
     FormControl,
@@ -296,7 +300,8 @@ export function ProfileForm() {
     
     const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-
+        
+        // @ts-ignore
         localStorage.setItem('file',file);
         if (!file) return;
 
@@ -355,238 +360,283 @@ export function ProfileForm() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 max-w-4xl mx-auto">
             {error && (
-                <div className="bg-red-50 p-4 rounded-md border border-red-200 text-red-800 mb-4">
+                <div className="bg-destructive/10 p-4 rounded-md border border-destructive/20 text-destructive mb-4">
                     <p className="text-sm font-medium">{error}</p>
                 </div>
             )}
             
-            <div className="flex flex-col sm:flex-row items-center gap-6">
-                <Avatar className="h-28 w-28">
-                    <AvatarImage src={avatar || ""} alt="Profile" />
-                    <AvatarFallback>
-                        {profileForm.getValues("firstName")?.charAt(0) || ""}
-                        {profileForm.getValues("lastName")?.charAt(0) || ""}
-                    </AvatarFallback>
-                </Avatar>
-                <div className="w-full sm:w-auto">
-                    <Input
-                        type="file"
-                        accept="image/jpeg, image/png, image/gif"
-                        onChange={handleAvatarChange}
-                        className="max-w-xs"
-                        id="avatar-upload"
-                    />
-                    <p className="mt-1 text-sm text-muted-foreground">
-                        JPG, PNG or GIF. Max size 5MB.
-                    </p>
-                </div>
-            </div>
-
-            <Tabs defaultValue="profile" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="profile">Profile Details</TabsTrigger>
-                    <TabsTrigger value="password">Security</TabsTrigger>
-                </TabsList>
-
-                <Form {...profileForm}>
-                    <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4 py-4">
-                        <TabsContent value="profile">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <FormField
-                                    control={profileForm.control}
-                                    name="firstName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>First Name</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="First name" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={profileForm.control}
-                                    name="lastName"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Last Name</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Last name" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                            <FormField
-                                control={profileForm.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Email</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="email" 
-                                                placeholder="your.email@example.com" 
-                                                {...field} 
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row justify-between items-center">
+                        <div>
+                            <CardTitle className="text-2xl font-bold">Your Profile</CardTitle>
+                            <CardDescription>Manage your personal information and account settings</CardDescription>
+                        </div>
+                        <Badge variant="outline" className="mt-2 sm:mt-0">
+                            User Account
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col sm:flex-row items-center gap-8 mb-6">
+                        <Avatar className="h-32 w-32 border-4 border-primary/10">
+                            <AvatarImage src={avatar || ""} alt="Profile" />
+                            <AvatarFallback className="bg-primary/5 text-primary text-xl">
+                                {profileForm.getValues("firstName")?.charAt(0) || ""}
+                                {profileForm.getValues("lastName")?.charAt(0) || ""}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="w-full sm:w-auto space-y-2">
+                            <label 
+                                htmlFor="avatar-upload" 
+                                className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary transition-colors"
+                            >
+                                <Upload size={16} />
+                                Upload new picture
+                            </label>
+                            <Input
+                                type="file"
+                                accept="image/jpeg, image/png, image/gif"
+                                onChange={handleAvatarChange}
+                                className="max-w-xs hidden"
+                                id="avatar-upload"
                             />
+                            <p className="text-sm text-muted-foreground">
+                                JPG, PNG or GIF. Max size 5MB.
+                            </p>
+                        </div>
+                    </div>
 
-                            <FormField
-                                control={profileForm.control}
-                                name="phone"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Phone Number</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                placeholder="e.g. +1 (555) 123-4567" 
-                                                {...field} 
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                    <Separator className="my-6" />
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <FormField
-                                    control={profileForm.control}
-                                    name="timezone"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Time Zone</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                    <Tabs defaultValue="profile" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-8">
+                            <TabsTrigger value="profile" className="flex items-center gap-2">
+                                <User size={16} />
+                                Profile Details
+                            </TabsTrigger>
+                            <TabsTrigger value="password" className="flex items-center gap-2">
+                                <Lock size={16} />
+                                Security
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <Form {...profileForm}>
+                            <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-6 py-4">
+                                <TabsContent value="profile">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="firstName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>First Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="First name" {...field} className="bg-background" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="lastName"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Last Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Last name" {...field} className="bg-background" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem className="mt-6">
+                                                <FormLabel>Email</FormLabel>
                                                 <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select timezone" />
-                                                    </SelectTrigger>
+                                                    <Input 
+                                                        type="email" 
+                                                        placeholder="your.email@example.com" 
+                                                        {...field} 
+                                                        className="bg-background"
+                                                    />
                                                 </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
-                                                    <SelectItem value="EST">EST (Eastern Standard Time)</SelectItem>
-                                                    <SelectItem value="CST">CST (Central Standard Time)</SelectItem>
-                                                    <SelectItem value="MST">MST (Mountain Standard Time)</SelectItem>
-                                                    <SelectItem value="PST">PST (Pacific Standard Time)</SelectItem>
-                                                    <SelectItem value="GMT">GMT (Greenwich Mean Time)</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
 
-                                <FormField
-                                    control={profileForm.control}
-                                    name="language"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Language</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormField
+                                        control={profileForm.control}
+                                        name="phone"
+                                        render={({ field }) => (
+                                            <FormItem className="mt-6">
+                                                <FormLabel>Phone Number</FormLabel>
                                                 <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select language" />
-                                                    </SelectTrigger>
+                                                    <Input 
+                                                        placeholder="e.g. +1 (555) 123-4567" 
+                                                        {...field} 
+                                                        className="bg-background"
+                                                    />
                                                 </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="en">English</SelectItem>
-                                                    <SelectItem value="es">Spanish</SelectItem>
-                                                    <SelectItem value="fr">French</SelectItem>
-                                                    <SelectItem value="de">German</SelectItem>
-                                                    <SelectItem value="zh">Chinese</SelectItem>
-                                                    <SelectItem value="ja">Japanese</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                            <div className="mt-4">
-                                <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
-                                    {isLoading ? "Saving..." : "Save Changes"}
-                                </Button>
-                            </div>
-                        </TabsContent>
-                    </form>
-                </Form>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
 
-                <Form {...passwordForm}>
-                    <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-4 py-4">
-                        <TabsContent value="password">
-                            <FormField
-                                control={passwordForm.control}
-                                name="currentPassword"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Current Password</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="password" 
-                                                placeholder="Enter your current password" 
-                                                {...field} 
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="timezone"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Time Zone</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="bg-background">
+                                                                <SelectValue placeholder="Select timezone" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
+                                                            <SelectItem value="EST">EST (Eastern Standard Time)</SelectItem>
+                                                            <SelectItem value="CST">CST (Central Standard Time)</SelectItem>
+                                                            <SelectItem value="MST">MST (Mountain Standard Time)</SelectItem>
+                                                            <SelectItem value="PST">PST (Pacific Standard Time)</SelectItem>
+                                                            <SelectItem value="GMT">GMT (Greenwich Mean Time)</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                            <FormField
-                                control={passwordForm.control}
-                                name="newPassword"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>New Password</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="password" 
-                                                placeholder="Enter new password" 
-                                                {...field} 
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.
-                                        </p>
-                                    </FormItem>
-                                )}
-                            />
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="language"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Language</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="bg-background">
+                                                                <SelectValue placeholder="Select language" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="en">English</SelectItem>
+                                                            <SelectItem value="es">Spanish</SelectItem>
+                                                            <SelectItem value="fr">French</SelectItem>
+                                                            <SelectItem value="de">German</SelectItem>
+                                                            <SelectItem value="zh">Chinese</SelectItem>
+                                                            <SelectItem value="ja">Japanese</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                    <div className="mt-8">
+                                        <Button 
+                                            type="submit" 
+                                            className="w-full sm:w-auto" 
+                                            disabled={isLoading}
+                                            size="lg"
+                                        >
+                                            {isLoading ? "Saving..." : "Save Changes"}
+                                        </Button>
+                                    </div>
+                                </TabsContent>
+                            </form>
+                        </Form>
 
-                            <FormField
-                                control={passwordForm.control}
-                                name="confirmPassword"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Confirm New Password</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                type="password" 
-                                                placeholder="Confirm new password" 
-                                                {...field} 
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="mt-4">
-                                <Button type="submit" className="w-full sm:w-auto" disabled={isLoading}>
-                                    {isLoading ? "Updating Password..." : "Update Password"}
-                                </Button>
-                            </div>
-                        </TabsContent>
-                    </form>
-                </Form>
-            </Tabs>
+                        <Form {...passwordForm}>
+                            <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-6 py-4">
+                                <TabsContent value="password">
+                                    <FormField
+                                        control={passwordForm.control}
+                                        name="currentPassword"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Current Password</FormLabel>
+                                                <FormControl>
+                                                    <Input 
+                                                        type="password" 
+                                                        placeholder="Enter your current password" 
+                                                        {...field} 
+                                                        className="bg-background"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={passwordForm.control}
+                                        name="newPassword"
+                                        render={({ field }) => (
+                                            <FormItem className="mt-6">
+                                                <FormLabel>New Password</FormLabel>
+                                                <FormControl>
+                                                    <Input 
+                                                        type="password" 
+                                                        placeholder="Enter new password" 
+                                                        {...field} 
+                                                        className="bg-background"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.
+                                                </p>
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={passwordForm.control}
+                                        name="confirmPassword"
+                                        render={({ field }) => (
+                                            <FormItem className="mt-6">
+                                                <FormLabel>Confirm New Password</FormLabel>
+                                                <FormControl>
+                                                    <Input 
+                                                        type="password" 
+                                                        placeholder="Confirm new password" 
+                                                        {...field} 
+                                                        className="bg-background"
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="mt-8">
+                                        <Button 
+                                            type="submit" 
+                                            className="w-full sm:w-auto" 
+                                            disabled={isLoading}
+                                            size="lg"
+                                        >
+                                            {isLoading ? "Updating Password..." : "Update Password"}
+                                        </Button>
+                                    </div>
+                                </TabsContent>
+                            </form>
+                        </Form>
+                    </Tabs>
+                </CardContent>
+            </Card>
         </div>
     );
 }

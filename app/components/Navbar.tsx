@@ -2,11 +2,24 @@
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from './Navbar.module.css';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
 
 const Navbar: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const router = useRouter();
+    const [isOpen, setIsOpen] = useState(false);
 
     const logAuthState = () => {
         const token = localStorage.getItem("authToken");
@@ -23,6 +36,7 @@ const Navbar: React.FC = () => {
 
         checkAuthToken();
 
+        // @ts-ignore
         const handleStorageChange = (e) => {
             console.log("Storage change detected:", e);
             if (e.key === "authToken") {
@@ -88,67 +102,96 @@ const Navbar: React.FC = () => {
         }
     };
 
+    const NavItems = () => (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-white hover:text-primary hover:bg-primary/10">Courses</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link href="/courses">Courses</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/contents">Contents</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/reviews">Reviews</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/certificates">Certificates</Link></DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button variant="ghost" asChild className="text-white hover:text-primary hover:bg-primary/10">
+                <Link href="/forum">Forum</Link>
+            </Button>
+
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-white hover:text-primary hover:bg-primary/10">Reporting</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link href="/reporting/courses">Courses</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/reporting/contents">Contents</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/reporting/attendees">Attendees</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/reporting/reviews">Reviews</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/reporting/quizzes">Quizzes</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/reporting/forum">Forum</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/reporting/certifications">Certifications</Link></DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-white hover:text-primary hover:bg-primary/10">Configuration</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild><Link href="/configuration/settings">Settings</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/configuration/course-groups">Course Groups</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/configuration/content-tags">Content Tags</Link></DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button variant="ghost" asChild className="text-white hover:text-primary hover:bg-primary/10">
+                <Link href="/dashboard/profile">Profile</Link>
+            </Button>
+
+            <Button variant="ghost" asChild className="text-white hover:text-primary hover:bg-primary/10">
+                <Link href="/pricing">Pricing</Link>
+            </Button>
+        </>
+    );
+
     return (
-        <nav className={styles.navbar}>
-            <div className={styles.navbarContainer}>
-                <div className={styles.navbarBrand}>
-                    <Link href="/">
+        <nav className="bg-gradient-to-r from-indigo-600 to-purple-600 sticky top-0 z-40 w-full border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="container mx-auto flex h-16 items-center justify-between px-4">
+                <div className="flex items-center gap-2">
+                    <Link href="/" className="flex items-center">
                         <span className="text-white text-2xl font-bold">eLearning</span>
                     </Link>
                 </div>
-                <ul className={styles.navItems}>
-                    <li className="relative group">
-                        <button className="text-white hover:text-yellow-300 focus:outline-none">Courses</button>
-                        <ul className={`${styles.dropdown} group-hover:block`}>
-                            <li className={styles.dropdownItem}><Link href="/courses">Courses</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/contents">Contents</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/reviews">Reviews</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/certificates">Certificates</Link></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <Link href="/forum">
-                            <button className="text-white hover:text-yellow-300 focus:outline-none">Forum</button>
-                        </Link>
-                    </li>
-                    <li className="relative group">
-                        <button className="text-white hover:text-yellow-300 focus:outline-none">Reporting</button>
-                        <ul className={`${styles.dropdown} group-hover:block`}>
-                            <li className={styles.dropdownItem}><Link href="/reporting/courses">Courses</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/reporting/contents">Contents</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/reporting/attendees">Attendees</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/reporting/reviews">Reviews</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/reporting/quizzes">Quizzes</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/reporting/forum">Forum</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/reporting/certifications">Certifications</Link></li>
-                        </ul>
-                    </li>
-                    <li className="relative group">
-                        <button className="text-white hover:text-yellow-300 focus:outline-none">Configuration</button>
-                        <ul className={`${styles.dropdown} group-hover:block`}>
-                            <li className={styles.dropdownItem}><Link href="/configuration/settings">Settings</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/configuration/course-groups">Course Groups</Link></li>
-                            <li className={styles.dropdownItem}><Link href="/configuration/content-tags">Content Tags</Link></li>
-                        </ul>
-                    </li>
-                    <li>
-                        <Link href="/dashboard/profile">
-                            <button className="text-white hover:text-yellow-300 focus:outline-none">Profile</button>
-                        </Link>
-                    </li>
-                    <li>
-                        <Link href="/pricing">
-                            <button className="text-white hover:text-yellow-300 focus:outline-none">Pricing</button>
-                        </Link>
-                    </li>
-                </ul>
+                
+                {/* Desktop Navigation */}
+                <div className="hidden md:flex items-center gap-1">
+                    <NavItems />
+                </div>
+                
+                {/* Mobile Navigation */}
+                <div className="md:hidden">
+                    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-white">
+                                <Menu className="h-6 w-6" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="right" className="flex flex-col gap-4 pt-10">
+                            <NavItems />
+                        </SheetContent>
+                    </Sheet>
+                </div>
+                
                 <div>
-                    <button
-                        className={styles.loginButton}
+                    <Button 
+                        variant={isLoggedIn ? "destructive" : "default"}
+                        className="font-semibold"
                         onClick={handleLoginButtonClick}
                     >
                         {isLoggedIn ? "LOGOUT" : "LOGIN"}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </nav>
