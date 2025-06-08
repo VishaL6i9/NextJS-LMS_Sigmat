@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Bell, User, Search, Menu } from 'lucide-react';
-import { useNotifications } from '@/app/components/contexts/NotificationContext';
+import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
 import { NotificationDropdown } from '@/app/components/user-home-dashboard/NotificationDropdown';
 
 export const Header = () => {

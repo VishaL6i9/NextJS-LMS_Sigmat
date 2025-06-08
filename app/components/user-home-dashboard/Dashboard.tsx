@@ -15,7 +15,7 @@ import {
     Target,
     BarChart3
 } from 'lucide-react';
-import { useNotifications } from '@/app/components/contexts/NotificationContext';
+import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
 import { NotificationCenter } from '@/app/components/user-home-dashboard/NotificationCenter';
 
 export const Dashboard = () => {

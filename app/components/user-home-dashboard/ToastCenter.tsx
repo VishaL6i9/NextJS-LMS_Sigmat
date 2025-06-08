@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect } from 'react';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
 
 export const ToastCenter: React.FC = () => {
     const { toasts, dismissToast } = useNotifications();

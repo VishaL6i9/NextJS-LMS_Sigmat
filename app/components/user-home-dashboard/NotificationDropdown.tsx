@@ -2,7 +2,7 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { CheckCircle, Clock, X, ExternalLink } from 'lucide-react';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
 import { getNotificationIcon, getNotificationColor } from '../utils/notificationUtils';
 
 interface NotificationDropdownProps {

@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { Notification, Toast, NotificationContextType } from '@/app/components/types/notification';
+import { Notification, Toast, NotificationContextType } from '@/app/components/user-home-dashboard/types/notification';
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 

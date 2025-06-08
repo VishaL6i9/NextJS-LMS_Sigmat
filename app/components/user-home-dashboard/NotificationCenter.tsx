@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { CheckCircle, Circle, Trash2, Filter, MoreVertical, ExternalLink } from 'lucide-react';
-import { useNotifications } from '@/app/components/contexts/NotificationContext';
+import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
 import { getNotificationIcon, getNotificationColor } from '@/app/components/utils/notificationUtils';
-import { Notification } from '@/app/components/types/notification';
+import { Notification } from '@/app/components/user-home-dashboard/types/notification';
 
 export const NotificationCenter = () => {
     const {

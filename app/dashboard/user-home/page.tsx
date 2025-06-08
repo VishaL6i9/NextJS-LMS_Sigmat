@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { NotificationProvider } from '@/app/components/contexts/NotificationContext'
+import { NotificationProvider } from '@/app/components/user-home-dashboard/contexts/NotificationContext'
 import { Header } from '@/app/components/user-home-dashboard/Header'
 import { Dashboard } from '@/app/components/user-home-dashboard/Dashboard'
 import { ToastCenter } from '@/app/components/user-home-dashboard/ToastCenter'
