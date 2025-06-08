@@ -104,6 +104,10 @@ const Navbar: React.FC = () => {
 
     const NavItems = () => (
         <>
+            <Button variant="ghost" asChild className="text-white hover:text-primary hover:bg-primary/10">
+                <Link href="/dashboard/home">Home</Link>
+            </Button>
+            
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="text-white hover:text-primary hover:bg-primary/10">Courses</Button>

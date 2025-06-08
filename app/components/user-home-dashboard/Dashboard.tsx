@@ -16,7 +16,7 @@ import {
     BarChart3
 } from 'lucide-react';
 import { useNotifications } from '@/app/components/contexts/NotificationContext';
-import { NotificationCenter } from '@/app/components/home-dashboard/NotificationCenter';
+import { NotificationCenter } from '@/app/components/user-home-dashboard/NotificationCenter';
 
 export const Dashboard = () => {
     const { notifications, unreadCount, showToast } = useNotifications();
