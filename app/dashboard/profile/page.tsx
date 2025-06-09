@@ -14,7 +14,7 @@ export default function ProfilePage() {
                     <ArrowLeft className="mr-1 h-4 w-4" />
                     Back to Dashboard
                 </Link>
-                
+
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
@@ -29,15 +29,15 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
-            
+
             <Separator className="my-6" />
-            
+
             <Card>
                 <CardContent className="pt-6">
                     <ProfileForm />
                 </CardContent>
             </Card>
-            
+
             <footer className="mt-8 text-center text-sm text-muted-foreground">
                 <p>Need help? Contact <Link href="/support" className="underline hover:text-foreground">support</Link></p>
             </footer>
