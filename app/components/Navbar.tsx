@@ -66,6 +66,7 @@ const Navbar: React.FC = () => {
         const token = localStorage.getItem("authToken");
         if (!token) {
             console.log("No token found for logout");
+            router.push("/auth");
             return;
         }
 
@@ -93,12 +94,11 @@ const Navbar: React.FC = () => {
     };
 
     const handleLoginButtonClick = () => {
-        console.log("Login/Logout button clicked. Current state:", isLoggedIn);
-        if (isLoggedIn) {
+        const token = localStorage.getItem('token'); // Check directly
+        if (token) {
             handleLogout();
         } else {
-            console.log("Redirecting to auth page");
-            router.push("/auth");
+            router.push('/auth');
         }
     };
 
@@ -195,9 +195,8 @@ const Navbar: React.FC = () => {
                 </div>
                 
                 <div>
-                    <Button 
+                    <Button
                         variant={isLoggedIn ? "destructive" : "default"}
-                        className="font-semibold"
                         onClick={handleLoginButtonClick}
                     >
                         {isLoggedIn ? "LOGOUT" : "LOGIN"}
