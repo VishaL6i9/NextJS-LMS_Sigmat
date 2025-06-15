@@ -5,50 +5,32 @@ import { useNotifications } from './contexts/NotificationContext';
 const Dashboard: React.FC = () => {
   const { state, addNotification, addToast } = useNotifications();
 
-  const handleAddSampleNotification = () => {
-    const sampleNotifications = [
-      {
+  const handleAddSampleNotification = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const notification = {
         title: 'New Course Available',
         message: 'Advanced React Patterns course is now available for enrollment.',
         type: 'info' as const,
         category: 'announcement' as const,
         priority: 'medium' as const,
         isRead: false
-      },
-      {
-        title: 'Assignment Submitted',
-        message: 'Your Node.js project has been successfully submitted.',
-        type: 'success' as const,
-        category: 'assignment' as const,
-        priority: 'low' as const,
-        isRead: false
-      },
-      {
-        title: 'Grade Updated',
-        message: 'Your Database Design exam grade has been updated to A+.',
-        type: 'success' as const,
-        category: 'grade' as const,
-        priority: 'high' as const,
-        isRead: false
-      },
-      {
-        title: 'Payment Due',
-        message: 'Your semester fee payment is due in 3 days.',
-        type: 'warning' as const,
-        category: 'reminder' as const,
-        priority: 'high' as const,
-        isRead: false
-      }
-    ];
+      };
 
-    const randomNotification = sampleNotifications[Math.floor(Math.random() * sampleNotifications.length)];
-    addNotification(randomNotification);
-    
-    addToast({
-      title: 'New Notification',
-      message: 'A sample notification has been added!',
-      type: 'success'
-    });
+      await addNotification(notification);
+      
+      addToast({
+        title: 'Success',
+        message: 'New notification has been added!',
+        type: 'success'
+      });
+    } catch (error) {
+      addToast({
+        title: 'Error',
+        message: 'Failed to add notification',
+        type: 'error'
+      });
+    }
   };
 
   const getCategoryStats = () => {
