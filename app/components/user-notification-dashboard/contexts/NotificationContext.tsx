@@ -37,9 +37,12 @@ interface NotificationContextType {
   fetchNotifications: () => Promise<void>;
   fetchUnreadNotifications: () => Promise<void>;
 }
+useEffect(() => {
+      const token = localStorage.getItem('userToken');
+      setUserToken(token);
+  }, []);
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-const token = localStorage.getItem("token");
 const getuserID = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
   method: "GET",
   headers: {
