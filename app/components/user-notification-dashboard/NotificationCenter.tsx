@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+'use client';
+import React, { useEffect, useState } from 'react';
 import { Check, Trash2, MoreHorizontal, Clock, BookOpen, Trophy, Megaphone, Settings as SettingsIcon, Bell } from 'lucide-react';
 import { useNotifications } from './contexts/NotificationContext';
 import { Notification } from './types/notification';
@@ -8,8 +9,32 @@ interface NotificationCenterProps {
 }
 
 const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
-  const { state, markAsRead, markAsUnread, deleteNotification, markAllAsRead } = useNotifications();
+  const { state, markAsRead, markAsUnread, deleteNotification, markAllAsRead, fetchNotifications, fetchUnreadNotifications } = useNotifications();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+
+  useEffect(() => {
+    if (filter === 'unread') {
+      fetchUnreadNotifications();
+    } else {
+      fetchNotifications();
+    }
+  }, [filter, fetchNotifications, fetchUnreadNotifications]);
+
+  if (state.loading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  if (state.error) {
+    return (
+      <div className="p-4 text-red-500 text-center">
+        {state.error}
+      </div>
+    );
+  }
 
   const filteredNotifications = state.notifications.filter(notification => {
     if (filter === 'unread') return !notification.isRead;
