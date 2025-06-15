@@ -4,10 +4,13 @@ import { useNotifications } from './contexts/NotificationContext';
 
 const Dashboard: React.FC = () => {
   const { state, addNotification, addToast } = useNotifications();
+useEffect(() => {
+      const token = localStorage.getItem('userToken');
+      setUserToken(token);
+  }, []);
 
   const handleAddSampleNotification = async () => {
     try {
-      const token = localStorage.getItem("token");
       const notification = {
         title: 'New Course Available',
         message: 'Advanced React Patterns course is now available for enrollment.',
