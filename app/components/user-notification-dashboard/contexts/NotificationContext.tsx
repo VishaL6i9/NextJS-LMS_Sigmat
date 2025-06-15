@@ -1,3 +1,4 @@
+'use client';
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { Notification, ToastNotification, NotificationStats } from '../types/notification';
 
