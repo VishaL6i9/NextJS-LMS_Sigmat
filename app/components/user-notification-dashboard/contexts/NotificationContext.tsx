@@ -4,10 +4,17 @@ import { Notification, ToastNotification, NotificationStats } from '../types/not
 interface NotificationState {
   notifications: Notification[];
   toasts: ToastNotification[];
-  stats: NotificationStats;
+  stats: NotificationStats ;
+  loading: boolean;
+  error: string | null;
+  userId: number;
 }
 
 type NotificationAction =
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
+  | { type: 'SET_STATS'; payload: NotificationStats }
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
   | { type: 'ADD_TOAST'; payload: ToastNotification }
   | { type: 'REMOVE_TOAST'; payload: string }
@@ -15,91 +22,79 @@ type NotificationAction =
   | { type: 'MARK_AS_UNREAD'; payload: string }
   | { type: 'MARK_ALL_AS_READ' }
   | { type: 'DELETE_NOTIFICATION'; payload: string }
-  | { type: 'CLEAR_ALL_NOTIFICATIONS' }
-  | { type: 'UPDATE_STATS' };
+  | { type: 'CLEAR_ALL_NOTIFICATIONS' };
 
 interface NotificationContextType {
   state: NotificationState;
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => Promise<void>;
   addToast: (toast: Omit<ToastNotification, 'id' | 'timestamp'>) => void;
   removeToast: (id: string) => void;
-  markAsRead: (id: string) => void;
+  markAsRead: (id: string) => Promise<void>;
   markAsUnread: (id: string) => void;
-  markAllAsRead: () => void;
+  markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => void;
   clearAllNotifications: () => void;
+  fetchNotifications: () => Promise<void>;
+  fetchUnreadNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const token = localStorage.getItem("token");
+const getuserID = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
+  method: "GET",
+  headers: {
+      'Authorization': `Bearer ${token}`,
+  },
+});
+
+if (!getuserID.ok) {
+  throw new Error("Failed to fetch user ID");
+}
+
+const userID = await getuserID.text();
 
 const initialState: NotificationState = {
-  notifications: [
-    {
-      id: '1',
-      title: 'Assignment Due Soon',
-      message: 'Your JavaScript Fundamentals assignment is due in 2 hours.',
-      type: 'warning',
-      timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      isRead: false,
-      category: 'assignment',
-      priority: 'high'
-    },
-    {
-      id: '2',
-      title: 'Grade Posted',
-      message: 'Your grade for React Components Quiz has been posted.',
-      type: 'success',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      isRead: false,
-      category: 'grade',
-      priority: 'medium'
-    },
-    {
-      id: '3',
-      title: 'New Announcement',
-      message: 'Class schedule has been updated for next week.',
-      type: 'info',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
-      isRead: true,
-      category: 'announcement',
-      priority: 'low'
-    },
-    {
-      id: '4',
-      title: 'System Maintenance',
-      message: 'The LMS will be under maintenance tonight from 2-4 AM.',
-      type: 'error',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8),
-      isRead: true,
-      category: 'system',
-      priority: 'medium'
-    }
-  ],
+  notifications: [],
   toasts: [],
-  stats: { total: 0, unread: 0, today: 0, thisWeek: 0 }
+  stats: { total: 0, unread: 0, today: 0, thisWeek: 0 },
+  loading: false,
+  error: null,
+  userId: Number(userID),
 };
+const API_BASE_URL = 'http://localhost:8080/api/public/notifications';
 
-const calculateStats = (notifications: Notification[]): NotificationStats => {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  return {
-    total: notifications.length,
-    unread: notifications.filter(n => !n.isRead).length,
-    today: notifications.filter(n => n.timestamp >= today).length,
-    thisWeek: notifications.filter(n => n.timestamp >= weekAgo).length
-  };
+const fetchStats = async (userId: number): Promise<NotificationStats> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user/${userId}/stats`);
+    if (!response.ok) throw new Error('Failed to fetch notification stats');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    return { total: 0, unread: 0, today: 0, thisWeek: 0 };
+  }
 };
 
 function notificationReducer(state: NotificationState, action: NotificationAction): NotificationState {
   switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    case 'SET_NOTIFICATIONS':
+      return {
+        ...state,
+        notifications: action.payload
+      };
+    case 'SET_STATS':
+      return {
+        ...state,
+        stats: action.payload
+      };
     case 'ADD_NOTIFICATION': {
       const newNotifications = [action.payload, ...state.notifications];
       return {
         ...state,
-        notifications: newNotifications,
-        stats: calculateStats(newNotifications)
+        notifications: newNotifications
       };
     }
     case 'ADD_TOAST':
@@ -120,8 +115,7 @@ function notificationReducer(state: NotificationState, action: NotificationActio
       );
       return {
         ...state,
-        notifications: updatedNotifications,
-        stats: calculateStats(updatedNotifications)
+        notifications: updatedNotifications
       };
     }
     case 'MARK_AS_UNREAD': {
@@ -132,8 +126,7 @@ function notificationReducer(state: NotificationState, action: NotificationActio
       );
       return {
         ...state,
-        notifications: updatedNotifications,
-        stats: calculateStats(updatedNotifications)
+        notifications: updatedNotifications
       };
     }
     case 'MARK_ALL_AS_READ': {
@@ -143,8 +136,7 @@ function notificationReducer(state: NotificationState, action: NotificationActio
       }));
       return {
         ...state,
-        notifications: updatedNotifications,
-        stats: calculateStats(updatedNotifications)
+        notifications: updatedNotifications
       };
     }
     case 'DELETE_NOTIFICATION': {
@@ -153,20 +145,13 @@ function notificationReducer(state: NotificationState, action: NotificationActio
       );
       return {
         ...state,
-        notifications: filteredNotifications,
-        stats: calculateStats(filteredNotifications)
+        notifications: filteredNotifications
       };
     }
     case 'CLEAR_ALL_NOTIFICATIONS':
       return {
         ...state,
-        notifications: [],
-        stats: { total: 0, unread: 0, today: 0, thisWeek: 0 }
-      };
-    case 'UPDATE_STATS':
-      return {
-        ...state,
-        stats: calculateStats(state.notifications)
+        notifications: []
       };
     default:
       return state;
@@ -176,17 +161,72 @@ function notificationReducer(state: NotificationState, action: NotificationActio
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(notificationReducer, {
     ...initialState,
-    stats: calculateStats(initialState.notifications)
+    stats: { total: 0, unread: 0, today: 0, thisWeek: 0 }
   });
 
-  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'>) => {
-    const newNotification: Notification = {
-      ...notification,
-      id: Date.now().toString(),
-      timestamp: new Date(),
-    };
-    dispatch({ type: 'ADD_NOTIFICATION', payload: newNotification });
-  }, []);
+  const updateStats = useCallback(async () => {
+    try {
+      const stats = await fetchStats(state.userId);
+      dispatch({ type: 'SET_STATS', payload: stats });
+    } catch (error) {
+      console.error('Error updating stats:', error);
+    }
+  }, [state.userId]);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await fetch(`${API_BASE_URL}/user/${state.userId}`);
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+      const data = await response.json();
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: data });
+      await updateStats();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'An error occurred' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.userId, updateStats]);
+
+  const fetchUnreadNotifications = useCallback(async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await fetch(`${API_BASE_URL}/user/${state.userId}/unread`);
+      if (!response.ok) throw new Error('Failed to fetch unread notifications');
+      const data = await response.json();
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: data });
+      await updateStats();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'An error occurred' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.userId, updateStats]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp'>) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await fetch(`${API_BASE_URL}?userId=${state.userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notification)
+      });
+      if (!response.ok) throw new Error('Failed to create notification');
+      const newNotification = await response.json();
+      dispatch({ type: 'ADD_NOTIFICATION', payload: newNotification });
+      await updateStats();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'An error occurred' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.userId, updateStats]);
+
+
 
   const addToast = useCallback((toast: Omit<ToastNotification, 'id' | 'timestamp'>) => {
     const newToast: ToastNotification = {
@@ -203,25 +243,85 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     dispatch({ type: 'REMOVE_TOAST', payload: id });
   }, []);
 
-  const markAsRead = useCallback((id: string) => {
-    dispatch({ type: 'MARK_AS_READ', payload: id });
-  }, []);
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await fetch(`${API_BASE_URL}/${id}/read`, {
+        method: 'PUT'
+      });
+      if (!response.ok) throw new Error('Failed to mark notification as read');
+      dispatch({ type: 'MARK_AS_READ', payload: id });
+      await updateStats();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'An error occurred' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [updateStats]);
 
-  const markAsUnread = useCallback((id: string) => {
-    dispatch({ type: 'MARK_AS_UNREAD', payload: id });
-  }, []);
+  const markAsUnread = useCallback(async (id: string) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await fetch(`${API_BASE_URL}/${id}/unread`, {
+        method: 'PUT'
+      });
+      if (!response.ok) throw new Error('Failed to mark notification as unread');
+      dispatch({ type: 'MARK_AS_UNREAD', payload: id });
+      await updateStats();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'An error occurred' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [updateStats]);
 
-  const markAllAsRead = useCallback(() => {
-    dispatch({ type: 'MARK_ALL_AS_READ' });
-  }, []);
+  const markAllAsRead = useCallback(async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await fetch(`${API_BASE_URL}/user/${state.userId}/read-all`, {
+        method: 'PUT'
+      });
+      if (!response.ok) throw new Error('Failed to mark all notifications as read');
+      dispatch({ type: 'MARK_ALL_AS_READ' });
+      await updateStats();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'An error occurred' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.userId, updateStats]);
 
-  const deleteNotification = useCallback((id: string) => {
-    dispatch({ type: 'DELETE_NOTIFICATION', payload: id });
-  }, []);
+  const deleteNotification = useCallback(async (id: string) => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete notification');
+      dispatch({ type: 'DELETE_NOTIFICATION', payload: id });
+      await updateStats();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'An error occurred' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [updateStats]);
 
-  const clearAllNotifications = useCallback(() => {
-    dispatch({ type: 'CLEAR_ALL_NOTIFICATIONS' });
-  }, []);
+  const clearAllNotifications = useCallback(async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const response = await fetch(`${API_BASE_URL}/user/${state.userId}/clear`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to clear all notifications');
+      dispatch({ type: 'CLEAR_ALL_NOTIFICATIONS' });
+      await updateStats();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'An error occurred' });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.userId, updateStats]);
 
   const value: NotificationContextType = {
     state,
@@ -233,6 +333,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     markAllAsRead,
     deleteNotification,
     clearAllNotifications,
+    fetchNotifications,
+    fetchUnreadNotifications,
   };
 
   return (
