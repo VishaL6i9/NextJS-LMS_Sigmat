@@ -5,7 +5,7 @@ import Header from '@/app/components/user-notification-dashboard/Header';
 import Dashboard from '@/app/components/user-notification-dashboard/Dashboard';
 import ToastCenter from '@/app/components/user-notification-dashboard/ToastCenter';
 
-function App() {
+export default function UserNotificationPage() {
     return (
         <NotificationProvider>
             <div className="min-h-screen bg-gray-50">
@@ -18,5 +18,3 @@ function App() {
         </NotificationProvider>
     );
 }
-
-export default App;
