@@ -1,19 +1,36 @@
 'use client';
 import React, { useEffect } from 'react';
 import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
-import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
+import { useHomeNotifications } from '../user-home-dashboard/contexts/HomeNotificationContext';
 
-export const ToastCenter: React.FC = () => {
-    const { toasts, dismissToast } = useNotifications();
+export const ToastCenter = () => {
+    const { toasts, dismissToast } = useHomeNotifications();
 
     return (
-        <div className="fixed top-4 right-4 z-50 space-y-2">
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
             {toasts.map((toast) => (
-                <Toast
+                <div
                     key={toast.id}
-                    toast={toast}
-                    onDismiss={dismissToast}
-                />
+                    className={`
+                        relative flex items-center justify-between
+                        min-w-[300px] p-4 rounded-lg shadow-lg
+                        ${toast.type === 'success' ? 'bg-green-100 text-green-800' : ''}
+                        ${toast.type === 'error' ? 'bg-red-100 text-red-800' : ''}
+                        ${toast.type === 'info' ? 'bg-blue-100 text-blue-800' : ''}
+                        ${toast.type === 'warning' ? 'bg-yellow-100 text-yellow-800' : ''}
+                    `}
+                >
+                    <div>
+                        {toast.title && <h4 className="font-semibold">{toast.title}</h4>}
+                        <p>{toast.message}</p>
+                    </div>
+                    <button
+                        onClick={() => dismissToast(toast.id)}
+                        className="ml-4 p-1 hover:bg-black/10 rounded"
+                    >
+                        <X size={16} />
+                    </button>
+                </div>
             ))}
         </div>
     );
