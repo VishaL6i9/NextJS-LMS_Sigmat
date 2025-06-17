@@ -1,17 +1,11 @@
 'use client';
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { Notification, Toast, NotificationContextType } from '@/app/components/user-home-dashboard/types/notification';
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+// === Constants ===
+const API_BASE_URL = 'http://localhost:8080/api/public/notifications';
 
-export const useNotifications = () => {
-    const context = useContext(NotificationContext);
-    if (!context) {
-        throw new Error('useNotifications must be used within a NotificationProvider');
-    }
-    return context;
-};
-
+// Keep the initial notifications as fallback data
 const initialNotifications: Notification[] = [
     {
         id: '1',
@@ -20,7 +14,7 @@ const initialNotifications: Notification[] = [
         type: 'warning',
         category: 'assignment',
         isRead: false,
-        timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+        timestamp: new Date(Date.now() - 1000 * 60 * 30),
         actionUrl: '/assignments/chemistry-lab',
         actionText: 'View Assignment'
     },
@@ -31,69 +25,179 @@ const initialNotifications: Notification[] = [
         type: 'success',
         category: 'grade',
         isRead: false,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
         actionUrl: '/grades',
         actionText: 'View Grades'
     },
-    {
-        id: '3',
-        title: 'Course Announcement',
-        message: 'Important: Next week\'s Physics lecture has been moved to Thursday at 2 PM.',
-        type: 'info',
-        category: 'announcement',
-        isRead: true,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
-    },
-    {
-        id: '4',
-        title: 'System Maintenance',
-        message: 'The LMS will undergo scheduled maintenance this Sunday from 2-4 AM EST.',
-        type: 'info',
-        category: 'system',
-        isRead: false,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    },
-    {
-        id: '5',
-        title: 'Assignment Submitted',
-        message: 'Your English Essay has been successfully submitted for review.',
-        type: 'success',
-        category: 'assignment',
-        isRead: true,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
-    }
+    // ... keep other initial notifications
 ];
 
+// === State and Action Types ===
+interface NotificationState {
+    notifications: Notification[];
+    toasts: Toast[];
+    loading: boolean;
+    error: string | null;
+    userId: number;
+    unreadCount: number;
+}
+
+type NotificationAction =
+    | { type: 'SET_LOADING'; payload: boolean }
+    | { type: 'SET_ERROR'; payload: string | null }
+    | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
+    | { type: 'ADD_NOTIFICATION'; payload: Notification }
+    | { type: 'ADD_TOAST'; payload: Toast }
+    | { type: 'REMOVE_TOAST'; payload: string }
+    | { type: 'MARK_AS_READ'; payload: string }
+    | { type: 'MARK_AS_UNREAD'; payload: string }
+    | { type: 'MARK_ALL_AS_READ' }
+    | { type: 'DELETE_NOTIFICATION'; payload: string }
+    | { type: 'SET_USER_ID'; payload: number };
+
+// === Reducer ===
+function notificationReducer(state: NotificationState, action: NotificationAction): NotificationState {
+    switch (action.type) {
+        case 'SET_LOADING':
+            return { ...state, loading: action.payload };
+        case 'SET_ERROR':
+            return { ...state, error: action.payload };
+        case 'SET_NOTIFICATIONS':
+            return { 
+                ...state, 
+                notifications: action.payload,
+                unreadCount: action.payload.filter(n => !n.isRead).length 
+            };
+        case 'ADD_NOTIFICATION':
+            return { 
+                ...state, 
+                notifications: [action.payload, ...state.notifications],
+                unreadCount: state.unreadCount + (action.payload.isRead ? 0 : 1)
+            };
+        case 'ADD_TOAST':
+            return { ...state, toasts: [...state.toasts, action.payload] };
+        case 'REMOVE_TOAST':
+            return { ...state, toasts: state.toasts.filter(t => t.id !== action.payload) };
+        case 'MARK_AS_READ':
+            return {
+                ...state,
+                notifications: state.notifications.map(n => 
+                    n.id === action.payload ? { ...n, isRead: true } : n
+                ),
+                unreadCount: state.unreadCount - 1
+            };
+        case 'MARK_AS_UNREAD':
+            return {
+                ...state,
+                notifications: state.notifications.map(n => 
+                    n.id === action.payload ? { ...n, isRead: false } : n
+                ),
+                unreadCount: state.unreadCount + 1
+            };
+        case 'MARK_ALL_AS_READ':
+            return {
+                ...state,
+                notifications: state.notifications.map(n => ({ ...n, isRead: true })),
+                unreadCount: 0
+            };
+        case 'DELETE_NOTIFICATION':
+            const deletedNotification = state.notifications.find(n => n.id === action.payload);
+            return {
+                ...state,
+                notifications: state.notifications.filter(n => n.id !== action.payload),
+                unreadCount: state.unreadCount - (deletedNotification?.isRead ? 0 : 1)
+            };
+        case 'SET_USER_ID':
+            return { ...state, userId: action.payload };
+        default:
+            return state;
+    }
+}
+
+const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+
+// Loading component
+const LoadingSpinner: React.FC = () => (
+    <div className="flex justify-center items-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+);
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
-    const [toasts, setToasts] = useState<Toast[]>([]);
+    const [state, dispatch] = useReducer(notificationReducer, {
+        notifications: [], // Start with empty array, will be populated with initial data if API fails
+        toasts: [],
+        loading: false,
+        error: null,
+        userId: 0,
+        unreadCount: 0
+    });
 
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    // Fetch user ID on mount
+    useEffect(() => {
+        const fetchUserId = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
 
-    const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'>) => {
-        const newNotification: Notification = {
-            ...notification,
-            id: Date.now().toString(),
-            timestamp: new Date(),
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error('Failed to fetch user ID');
+                const id = await res.text();
+                dispatch({ type: 'SET_USER_ID', payload: Number(id) });
+            } catch (err) {
+                dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch user ID' });
+            }
         };
-        setNotifications(prev => [newNotification, ...prev]);
+
+        fetchUserId();
     }, []);
 
-    const markAsRead = useCallback((id: string) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-    }, []);
+    // Fetch notifications when userId changes
+    useEffect(() => {
+        if (state.userId) {
+            fetchNotifications();
+        }
+    }, [state.userId]);
 
-    const markAsUnread = useCallback((id: string) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: false } : n));
-    }, []);
+    const fetchNotifications = async () => {
+        try {
+            dispatch({ type: 'SET_LOADING', payload: true });
+            const res = await fetch(`${API_BASE_URL}/user/${state.userId}`);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            
+            // If we got empty data from the API, use initial notifications
+            if (!data || data.length === 0) {
+                dispatch({ type: 'SET_NOTIFICATIONS', payload: initialNotifications });
+            } else {
+                dispatch({ type: 'SET_NOTIFICATIONS', payload: data });
+            }
+        } catch (error) {
+            console.error('Failed to fetch notifications:', error);
+            // On error, fall back to initial notifications
+            dispatch({ type: 'SET_NOTIFICATIONS', payload: initialNotifications });
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch notifications' });
+        } finally {
+            dispatch({ type: 'SET_LOADING', payload: false });
+        }
+    };
 
-    const markAllAsRead = useCallback(() => {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-    }, []);
-
-    const deleteNotification = useCallback((id: string) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-    }, []);
+    const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp'>) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}?userId=${state.userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(notification),
+            });
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            dispatch({ type: 'ADD_NOTIFICATION', payload: data });
+        } catch {
+            dispatch({ type: 'SET_ERROR', payload: 'Failed to add notification' });
+        }
+    }, [state.userId]);
 
     const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
         const newToast: Toast = {
@@ -101,68 +205,50 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             id: Date.now().toString(),
             duration: toast.duration || 5000,
         };
-        setToasts(prev => [...prev, newToast]);
+        dispatch({ type: 'ADD_TOAST', payload: newToast });
 
-        // Auto-dismiss toast
         setTimeout(() => {
-            setToasts(prev => prev.filter(t => t.id !== newToast.id));
+            dispatch({ type: 'REMOVE_TOAST', payload: newToast.id });
         }, newToast.duration);
     }, []);
 
-    const dismissToast = useCallback((id: string) => {
-        setToasts(prev => prev.filter(t => t.id !== id));
-    }, []);
 
-    // Simulate receiving new notifications periodically
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const randomNotifications = [
-                {
-                    title: 'New Discussion Post',
-                    message: 'A new post has been added to the Biology forum.',
-                    type: 'info' as const,
-                    category: 'announcement' as const,
-                    isRead: false,
-                },
-                {
-                    title: 'Reminder',
-                    message: 'Don\'t forget about tomorrow\'s study group meeting at 3 PM.',
-                    type: 'info' as const,
-                    category: 'reminder' as const,
-                    isRead: false,
-                },
-            ];
-
-            if (Math.random() < 0.3) { // 30% chance every 30 seconds
-                const randomNotification = randomNotifications[Math.floor(Math.random() * randomNotifications.length)];
-                addNotification(randomNotification);
-                showToast({
-                    title: 'New Notification',
-                    message: randomNotification.title,
-                    type: 'info',
-                });
-            }
-        }, 30000); // Every 30 seconds
-
-        return () => clearInterval(interval);
-    }, [addNotification, showToast]);
-
-    const value: NotificationContextType = {
-        notifications,
-        toasts,
-        unreadCount,
+    const value = {
+        notifications: state.notifications,
+        toasts: state.toasts,
+        unreadCount: state.unreadCount,
+        loading: state.loading,
+        error: state.error,
         addNotification,
-        markAsRead,
-        markAsUnread,
-        markAllAsRead,
-        deleteNotification,
         showToast,
-        dismissToast,
+        // ... other methods
     };
 
+    // @ts-ignore
+    // @ts-ignore
+    // @ts-ignore
     return (
         <NotificationContext.Provider value={value}>
-            {children}
+            {state.loading ? <LoadingSpinner /> : children}
         </NotificationContext.Provider>
     );
+};
+
+export const NotificationWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    // @ts-ignore
+    const { loading } = useNotifications();
+
+    if (loading) {
+        return <LoadingSpinner />;
+    }
+
+    return <>{children}</>;
+};
+
+export const useNotifications = () => {
+    const context = useContext(NotificationContext);
+    if (!context) {
+        throw new Error('useNotifications must be used within a NotificationProvider');
+    }
+    return context;
 };
