@@ -96,7 +96,7 @@ export function ProfileForm() {
                         description: "Please Login Before Proceeding.",
                         variant: "default"});
                     throw new Error("Authentication token not found");
-                    
+
                 }
 
                 const getuserID = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
@@ -126,7 +126,7 @@ export function ProfileForm() {
 
                 const data = await response.json();
                 profileForm.reset(data);
-               
+
                 try {
                     const getProfileImageID= await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getProfileImageID/${userID}`,{
                         method: "GET",
@@ -145,7 +145,7 @@ export function ProfileForm() {
                     });
 
                     if (imageResponse.ok) {
-                        
+
                         //standard is null check is not working for some reason.
                         const contentType = imageResponse.headers.get('content-type');
                         if (contentType && contentType.startsWith('image/')) {
@@ -196,15 +196,15 @@ export function ProfileForm() {
         try {
             const userId = localStorage.getItem("userid");
             const token = localStorage.getItem("token");
-            
+
             if (!userId) {
                 throw new Error("User ID is not available");
             }
-            
+
             if (!token) {
                 throw new Error("Authentication token not found");
             }
-            
+
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile`, {
                 method: "PUT",
                 headers: {
@@ -218,7 +218,7 @@ export function ProfileForm() {
                 const errorData = await response.json().catch(() => null);
                 throw new Error(errorData?.message || "Failed to update profile");
             }
-            
+
             profileForm.reset();
             toast({
                 title: "Profile Updated",
@@ -246,11 +246,11 @@ export function ProfileForm() {
         try {
             const userId = localStorage.getItem("userid");
             const token = localStorage.getItem("token");
-            
+
             if (!userId) {
                 throw new Error("User ID is not available");
             }
-            
+
             if (!token) {
                 throw new Error("Authentication token not found");
             }
@@ -277,7 +277,7 @@ export function ProfileForm() {
                 newPassword: "",
                 confirmPassword: "",
             });
-            
+
             toast({
                 title: "Password Updated",
                 description: "Your password has been updated successfully.",
@@ -297,15 +297,15 @@ export function ProfileForm() {
             setIsLoading(false);
         }
     }
-    
+
     const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        
+
         // @ts-ignore
         localStorage.setItem('file',file);
         if (!file) return;
 
-        if (file.size > 5 * 1024 * 1024) { 
+        if (file.size > 5 * 1024 * 1024) {
             toast({
                 title: "File too large",
                 description: "Image size must be less than 5MB.",
@@ -366,7 +366,7 @@ export function ProfileForm() {
                     <p className="text-sm font-medium">{error}</p>
                 </div>
             )}
-            
+
             <Card>
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row justify-between items-center">
@@ -389,8 +389,8 @@ export function ProfileForm() {
                             </AvatarFallback>
                         </Avatar>
                         <div className="w-full sm:w-auto space-y-2">
-                            <label 
-                                htmlFor="avatar-upload" 
+                            <label
+                                htmlFor="avatar-upload"
                                 className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary transition-colors"
                             >
                                 <Upload size={16} />
@@ -462,10 +462,10 @@ export function ProfileForm() {
                                             <FormItem className="mt-6">
                                                 <FormLabel>Email</FormLabel>
                                                 <FormControl>
-                                                    <Input 
-                                                        type="email" 
-                                                        placeholder="your.email@example.com" 
-                                                        {...field} 
+                                                    <Input
+                                                        type="email"
+                                                        placeholder="your.email@example.com"
+                                                        {...field}
                                                         className="bg-background"
                                                     />
                                                 </FormControl>
@@ -481,9 +481,9 @@ export function ProfileForm() {
                                             <FormItem className="mt-6">
                                                 <FormLabel>Phone Number</FormLabel>
                                                 <FormControl>
-                                                    <Input 
-                                                        placeholder="e.g. +1 (555) 123-4567" 
-                                                        {...field} 
+                                                    <Input
+                                                        placeholder="e.g. +1 (555) 123-4567"
+                                                        {...field}
                                                         className="bg-background"
                                                     />
                                                 </FormControl>
@@ -546,9 +546,9 @@ export function ProfileForm() {
                                         />
                                     </div>
                                     <div className="mt-8">
-                                        <Button 
-                                            type="submit" 
-                                            className="w-full sm:w-auto" 
+                                        <Button
+                                            type="submit"
+                                            className="w-full sm:w-auto"
                                             disabled={isLoading}
                                             size="lg"
                                         >
@@ -569,10 +569,10 @@ export function ProfileForm() {
                                             <FormItem>
                                                 <FormLabel>Current Password</FormLabel>
                                                 <FormControl>
-                                                    <Input 
-                                                        type="password" 
-                                                        placeholder="Enter your current password" 
-                                                        {...field} 
+                                                    <Input
+                                                        type="password"
+                                                        placeholder="Enter your current password"
+                                                        {...field}
                                                         className="bg-background"
                                                     />
                                                 </FormControl>
@@ -588,10 +588,10 @@ export function ProfileForm() {
                                             <FormItem className="mt-6">
                                                 <FormLabel>New Password</FormLabel>
                                                 <FormControl>
-                                                    <Input 
-                                                        type="password" 
-                                                        placeholder="Enter new password" 
-                                                        {...field} 
+                                                    <Input
+                                                        type="password"
+                                                        placeholder="Enter new password"
+                                                        {...field}
                                                         className="bg-background"
                                                     />
                                                 </FormControl>
@@ -610,10 +610,10 @@ export function ProfileForm() {
                                             <FormItem className="mt-6">
                                                 <FormLabel>Confirm New Password</FormLabel>
                                                 <FormControl>
-                                                    <Input 
-                                                        type="password" 
-                                                        placeholder="Confirm new password" 
-                                                        {...field} 
+                                                    <Input
+                                                        type="password"
+                                                        placeholder="Confirm new password"
+                                                        {...field}
                                                         className="bg-background"
                                                     />
                                                 </FormControl>
@@ -622,9 +622,9 @@ export function ProfileForm() {
                                         )}
                                     />
                                     <div className="mt-8">
-                                        <Button 
-                                            type="submit" 
-                                            className="w-full sm:w-auto" 
+                                        <Button
+                                            type="submit"
+                                            className="w-full sm:w-auto"
                                             disabled={isLoading}
                                             size="lg"
                                         >
