@@ -4,11 +4,7 @@ import { useNotifications } from './contexts/NotificationContext';
 
 const Dashboard: React.FC = () => {
   const { state, addNotification, addToast } = useNotifications();
-useEffect(() => {
-      const token = localStorage.getItem('userToken');
-      setUserToken(token);
-  }, []);
-
+  
   const handleAddSampleNotification = async () => {
     try {
       const notification = {
