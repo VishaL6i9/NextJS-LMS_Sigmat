@@ -1,186 +1,46 @@
-'use client'; // Required for client-side interactivity in Next.js 13+
+'use client';
 
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { CheckCircle, Circle, Trash2, Filter, MoreVertical, ExternalLink } from 'lucide-react';
-import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
+import { useHomeNotifications, HomeNotificationWrapper } from './contexts/HomeNotificationContext';
 import { getNotificationIcon, getNotificationColor } from '@/app/components/utils/notificationUtils';
 import { Notification } from '@/app/components/user-home-dashboard/types/notification';
 
-export const NotificationCenter = () => {
-    const {
-        notifications,
-        markAsRead,
-        markAsUnread,
-        markAllAsRead,
-        deleteNotification,
-    } = useNotifications();
+function NotificationItem(props: {
+    notification: Notification,
+    onMarkAsRead: (id: string) => void,
+    onDelete: (id: string) => void
+}) {
+    return null;
+}
 
-    const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
-    const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
+export const NotificationCenter: React.FC = () => {
+    const { 
+        notifications, 
+        addNotification, 
+        markAsRead, 
+        deleteNotification 
+    } = useHomeNotifications();
 
-    const filteredNotifications = notifications.filter(notification => {
-        const statusMatch = filter === 'all' ||
-            (filter === 'read' && notification.isRead) ||
-            (filter === 'unread' && !notification.isRead);
-
-        const categoryMatch = categoryFilter === 'all' || notification.category === categoryFilter;
-
-        return statusMatch && categoryMatch;
-    });
-
-    const handleSelectNotification = (id: string) => {
-        setSelectedNotifications(prev =>
-            prev.includes(id)
-                ? prev.filter(nId => nId !== id)
-                : [...prev, id]
-        );
+    const handleMarkAsRead = (id: string) => {
+        markAsRead(id);
     };
 
-    const handleSelectAll = () => {
-        if (selectedNotifications.length === filteredNotifications.length) {
-            setSelectedNotifications([]);
-        } else {
-            setSelectedNotifications(filteredNotifications.map(n => n.id));
-        }
-    };
-
-    const handleBulkMarkAsRead = () => {
-        selectedNotifications.forEach(id => markAsRead(id));
-        setSelectedNotifications([]);
-    };
-
-    const handleBulkDelete = () => {
-        selectedNotifications.forEach(id => deleteNotification(id));
-        setSelectedNotifications([]);
-    };
-
-    const categories = ['all', 'assignment', 'announcement', 'grade', 'system', 'reminder'];
-
+    // @ts-ignore
     return (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-lg font-semibold text-gray-900">Notification Center</h2>
-                        <p className="text-sm text-gray-600 mt-1">
-                            {notifications.filter(n => !n.isRead).length} unread notifications
-                        </p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        {selectedNotifications.length > 0 && (
-                            <div className="flex items-center space-x-2">
-                                <button
-                                    onClick={handleBulkMarkAsRead}
-                                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-                                >
-                                    Mark as Read
-                                </button>
-                                <button
-                                    onClick={handleBulkDelete}
-                                    className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        )}
-                        <button
-                            onClick={markAllAsRead}
-                            className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-                        >
-                            Mark All Read
-                        </button>
-                    </div>
-                </div>
+        <HomeNotificationWrapper>
+            <div className="notifications-container">
+                {notifications.map((notification) => (
+                    <NotificationItem 
+                        key={notification.id} 
+                        notification={notification}
+                        onMarkAsRead={handleMarkAsRead}
+                        onDelete={deleteNotification}
+                    />
+                ))}
             </div>
-
-            {/* Filters */}
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex items-center space-x-2">
-                        <Filter className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-700">Filter by:</span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                        {/* Status Filter */}
-                        <select
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value as 'all' | 'unread' | 'read')}
-                            className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="unread">Unread</option>
-                            <option value="read">Read</option>
-                        </select>
-
-                        {/* Category Filter */}
-                        <select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                            className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            {categories.map(category => (
-                                <option key={category} value={category}>
-                                    {category === 'all' ? 'All Categories' : category.charAt(0).toUpperCase() + category.slice(1)}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bulk Actions */}
-            {filteredNotifications.length > 0 && (
-                <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
-                    <div className="flex items-center space-x-4">
-                        <label className="flex items-center space-x-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={selectedNotifications.length === filteredNotifications.length}
-                                onChange={handleSelectAll}
-                                className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                            />
-                            <span className="text-sm text-gray-700">
-                Select all ({filteredNotifications.length})
-              </span>
-                        </label>
-                        {selectedNotifications.length > 0 && (
-                            <span className="text-sm text-gray-600">
-                {selectedNotifications.length} selected
-              </span>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Notifications List */}
-            <div className="divide-y divide-gray-200">
-                {filteredNotifications.length > 0 ? (
-                    filteredNotifications.map((notification) => (
-                        <NotificationCard
-                            key={notification.id}
-                            notification={notification}
-                            isSelected={selectedNotifications.includes(notification.id)}
-                            onSelect={handleSelectNotification}
-                            onMarkAsRead={markAsRead}
-                            onMarkAsUnread={markAsUnread}
-                            onDelete={deleteNotification}
-                        />
-                    ))
-                ) : (
-                    <div className="px-6 py-12 text-center">
-                        <CheckCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <h3 className="text-sm font-medium text-gray-900 mb-1">No notifications found</h3>
-                        <p className="text-sm text-gray-500">
-                            {filter === 'all' ? 'You have no notifications.' : `You have no ${filter} notifications.`}
-                        </p>
-                    </div>
-                )}
-            </div>
-        </div>
+        </HomeNotificationWrapper>
     );
 };
 
