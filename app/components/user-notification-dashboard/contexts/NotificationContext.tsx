@@ -132,7 +132,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     userId: 0,
   });
 
-  // === Fetch user ID on mount ===
+  // Fetch user ID on mount
   useEffect(() => {
     const fetchUserId = async () => {
       const token = localStorage.getItem('token');
@@ -150,28 +150,46 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const id = await res.text();
         dispatch({ type: 'SET_USER_ID', payload: Number(id) });
       } catch (err) {
-        console.error('Failed to fetch user ID', err);
+        console.error('Failed to fetch user ID:', err);
       }
     };
 
     fetchUserId();
   }, []);
 
+  // Fetch notifications and stats when userId changes
+  useEffect(() => {
+    if (state.userId) {
+      fetchNotifications();
+      updateStats();
+    }
+  }, [state.userId]);
+
   const updateStats = useCallback(async () => {
     if (!state.userId) return;
-    const stats = await fetchStats(state.userId);
-    dispatch({ type: 'SET_STATS', payload: stats });
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/${state.userId}/stats`);
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      const stats = await response.json();
+      dispatch({ type: 'SET_STATS', payload: stats });
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
   }, [state.userId]);
 
   const fetchNotifications = useCallback(async () => {
+    if (!state.userId) return;
+
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const res = await fetch(`${API_BASE_URL}/user/${state.userId}`);
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error('Failed to fetch notifications');
       const data = await res.json();
       dispatch({ type: 'SET_NOTIFICATIONS', payload: data });
-      await updateStats();
+      await updateStats(); // Update stats after fetching notifications
     } catch (err) {
+      console.error('Failed to fetch notifications:', err);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch notifications' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
@@ -193,8 +211,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [state.userId, updateStats]);
 
-  // @ts-ignore
-  const addNotification = useCallback(async (notification) => {
+  const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp'>) => {
+    if (!state.userId) return;
+
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const res = await fetch(`${API_BASE_URL}?userId=${state.userId}`, {
@@ -202,11 +221,22 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notification),
       });
-      if (!res.ok) throw new Error();
+      
+      if (!res.ok) throw new Error('Failed to add notification');
       const data = await res.json();
+      
       dispatch({ type: 'ADD_NOTIFICATION', payload: data });
-      await updateStats();
-    } catch {
+      await updateStats(); // Update stats after adding notification
+      
+      // Show toast for new notification
+       /* showToast({
+          title: 'New Notification',
+          message: notification.title,
+          type: 'info',
+        });
+        */
+    } catch (error) {
+      console.error('Failed to add notification:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to add notification' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
@@ -234,11 +264,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const markAsRead = useCallback(async (id: string) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/${id}/read`, { method: 'PUT' });
-      if (!res.ok) throw new Error();
+      const res = await fetch(`${API_BASE_URL}/${id}/read`, { 
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!res.ok) throw new Error('Failed to mark as read');
       dispatch({ type: 'MARK_AS_READ', payload: id });
-      await updateStats();
-    } catch {
+      await updateStats(); // Update stats after marking as read
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to mark as read' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
@@ -260,13 +295,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [updateStats]);
 
   const markAllAsRead = useCallback(async () => {
+    if (!state.userId) return;
+
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/user/${state.userId}/read-all`, { method: 'PUT' });
-      if (!res.ok) throw new Error();
+      const res = await fetch(`${API_BASE_URL}/user/${state.userId}/read-all`, { 
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      if (!res.ok) throw new Error('Failed to mark all as read');
       dispatch({ type: 'MARK_ALL_AS_READ' });
-      await updateStats();
-    } catch {
+      await updateStats(); // Update stats after marking all as read
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to mark all as read' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
@@ -300,6 +342,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [state.userId, updateStats]);
+
+  // Add console logs for debugging
+  useEffect(() => {
+    console.log('Current state:', state);
+  }, [state]);
 
   const value: NotificationContextType = {
     state,
