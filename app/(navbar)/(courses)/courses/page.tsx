@@ -6,10 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { CourseSearch } from "@/app/components/CourseSearch";
 
 interface CourseData {
     courseName: string;
-    courseCode: string; 
+    courseCode: string;
     courseDescription: string;
     courseCategory: string;
     courseInstructor: string[];
@@ -18,15 +24,20 @@ interface CourseData {
     maxEnrollments: number;
     courseFee: number;
     language: string;
+    [key: string]: any; 
 }
 
-export default function InstructorDashboard() {
+export default function CoursesManagement() {
     const [courses, setCourses] = useState<CourseData[]>([]);
     const [isCreating, setIsCreating] = useState(false);
-    const [isManaging, setIsManaging] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(0);
     const [formData, setFormData] = useState<Partial<CourseData>>({});
+    const [activeTab, setActiveTab] = useState('list');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [filteredCourses, setFilteredCourses] = useState<CourseData[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
 
     const fields = [
         { label: "Course Name", id: "courseName", type: "text", required: true },
@@ -40,12 +51,18 @@ export default function InstructorDashboard() {
     ];
 
     const fetchCourses = async () => {
+        setIsLoading(true);
+        setError(null);
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses`);
+            if (!response.ok) throw new Error('Failed to fetch courses');
             const data = await response.json();
             setCourses(data);
         } catch (error) {
+            setError('Failed to load courses. Please try again later.');
             console.error('Error fetching courses:', error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -53,11 +70,34 @@ export default function InstructorDashboard() {
         fetchCourses();
     }, []);
 
+    useEffect(() => {
+        if (!isSearching) {
+            setFilteredCourses(courses);
+        }
+    }, [courses, isSearching]);
+
+    const handleSearch = async (query: string) => {
+        setIsSearching(!!query);
+        if (!query) {
+            setFilteredCourses(courses);
+            return;
+        }
+
+        const searchResults = courses.filter(course => 
+            course.courseName.toLowerCase().includes(query.toLowerCase()) ||
+            course.courseDescription?.toLowerCase().includes(query.toLowerCase()) ||
+            course.courseCategory?.toLowerCase().includes(query.toLowerCase()) ||
+            course.courseCode.toLowerCase().includes(query.toLowerCase())
+        );
+
+        setFilteredCourses(searchResults);
+    };
+
     const loadCreateForm = (index: number | null = null) => {
-        setIsManaging(false);
         setIsCreating(true);
         setEditingIndex(index);
         setCurrentPage(0);
+        setActiveTab('form');
 
         if (index !== null && courses[index]) {
             setFormData({ ...courses[index] });
@@ -177,177 +217,213 @@ export default function InstructorDashboard() {
         const end = start + 5;
 
         return (
-            <form onSubmit={addCourse}>
-                <h3 className="text-2xl font-bold mb-4">{editingIndex !== null ? 'Edit' : 'Create'} Course</h3>
-
-                <div className="mb-4">
-                    <Label htmlFor="courseCategory" className="block text-sm font-medium text-gray-700">
-                        Course Category
-                    </Label>
-                    <Input
-                        type="text"
-                        id="courseCategory"
-                        value={formData.courseCategory || ''}
-                        onChange={handleInputChange}
-                        required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 sm:text-sm"
-                    />
-                </div>
-
-                {/* Add the courseName field below courseCategory */}
-                <div className="mb-4">
-                    <Label htmlFor="courseName" className="block text-sm font-medium text-gray-700">
-                        Course Name
-                    </Label>
-                    <Input
-                        type="text"
-                        id="courseName"
-                        value={formData.courseName || ''}
-                        onChange={handleInputChange}
-                        required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 sm:text-sm"
-                    />
-                </div>
-
-                {fields.slice(1, end).map((field) => {
-                    return (
-                        <div key={field.id} className="mb-4">
-                            <Label htmlFor={field.id} className="block text-sm font-medium text-gray-700">
-                                {field.label}
-                            </Label>
-                            {field.type === "select" ? (
-                                <Select
-                                    value={formData[field.id] || ''}
-                                    onValueChange={(value) => handleSelectChange(field.id, value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={`Select ${field.label}`} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {field.options?.map((opt) => (
-                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            ) : field.type === "select-multiple" ? (
-                                <Select
-                                    value={(formData[field.id] as string[] || []).join(',')}
-                                    onValueChange={(value) => handleSelectChange(field.id, value.split(','))}
-                                    multiple
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={`Select ${field.label}`} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {field.options?.map((opt) => (
-                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            ) : field.type === "textarea" ? (
-                                <Textarea
-                                    id={field.id}
-                                    value={formData[field.id] || ''}
-                                    onChange={handleInputChange}
-                                    required={field.required }
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 sm:text-sm"
-                                />
-                            ) : (
+            <Card className="w-full max-w-2xl mx-auto">
+                <CardHeader>
+                    <CardTitle className="text-2xl font-semibold">
+                        {editingIndex !== null ? 'Edit Course' : 'Create New Course'}
+                    </CardTitle>
+                    <Separator className="my-2" />
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={addCourse} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <Label htmlFor="courseCategory">Course Category</Label>
                                 <Input
-                                    type={field.type}
-                                    id={field.id}
-                                    value={formData[field.id] || ''}
+                                    type="text"
+                                    id="courseCategory"
+                                    value={formData.courseCategory || ''}
                                     onChange={handleInputChange}
-                                    required={field.required}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 sm:text-sm"
+                                    required
+                                    placeholder="Enter course category"
                                 />
-                            )}
-                        </div>
-                    );
-                })}
+                            </div>
 
-                <div className="mt-4">
-                    {currentPage > 0 && (
-                        <Button type="button" variant="outline" onClick={() => setCurrentPage(currentPage - 1)} className="mr-2">
-                            Previous
-                        </Button>
-                    )}
-                    {end < fields.length && (
-                        <Button type="button" variant="outline" onClick={() => setCurrentPage(currentPage + 1)} className="mr-2">
-                            Next
-                        </Button>
-                    )}
-                    <Button type="submit">
-                        {editingIndex !== null ? 'Update' : 'Create'} Course
-                    </Button>
-                </div>
-            </form>
+                            <div className="space-y-4">
+                                <Label htmlFor="courseName">Course Name</Label>
+                                <Input
+                                    type="text"
+                                    id="courseName"
+                                    value={formData.courseName || ''}
+                                    onChange={handleInputChange}
+                                    required
+                                    placeholder="Enter course name"
+                                />
+                            </div>
+                        </div>
+
+                        {fields.slice(1, end).map((field) => (
+                            <div key={field.id} className="space-y-2">
+                                <Label htmlFor={field.id}>{field.label}</Label>
+                                {field.type === "select" ? (
+                                    <Select
+                                        value={formData[field.id]?.toString() || ''}
+                                        onValueChange={(value) => handleSelectChange(field.id, value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={`Select ${field.label}`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {field.options?.map((opt) => (
+                                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : field.type === "textarea" ? (
+                                    <Textarea
+                                        id={field.id}
+                                        value={formData[field.id] || ''}
+                                        onChange={handleInputChange}
+                                        required={field.required}
+                                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                                        className="min-h-[100px]"
+                                    />
+                                ) : (
+                                    <Input
+                                        type={field.type}
+                                        id={field.id}
+                                        value={formData[field.id] || ''}
+                                        onChange={handleInputChange}
+                                        required={field.required}
+                                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                                    />
+                                )}
+                            </div>
+                        ))}
+
+                        <div className="flex justify-between items-center pt-4">
+                            {currentPage > 0 && (
+                                <Button type="button" variant="outline" onClick={() => setCurrentPage(currentPage - 1)}>
+                                    Previous
+                                </Button>
+                            )}
+                            <div className="flex gap-2">
+                                {end < fields.length && (
+                                    <Button type="button" variant="outline" onClick={() => setCurrentPage(currentPage + 1)}>
+                                        Next
+                                    </Button>
+                                )}
+                                <Button type="submit" variant="default">
+                                    {editingIndex !== null ? 'Update' : 'Create'} Course
+                                </Button>
+                            </div>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
         );
     };
 
     const renderCourseList = () => (
-        <div className="overflow-x-auto">
-            <h3 className="text-2xl font-bold mb-4">Manage Courses</h3>
-            <table className="min-w-full divide-y divide-gray-200 border">
-                <thead>
-                <tr>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border-b">
-                        Course Name
-                    </th>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border-b">
-                        Course Code
-                    </th>
-                    <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider border-b">
-                        Actions
-                    </th>
-                </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                {courses.map((course, index) => (
-                    <tr key={index}>
-                        <td className="px-4 py-2 whitespace-nowrap border-b">
-                            {course.courseName}
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap border-b">
-                            {course.courseCode}
-                        </td>
-                        <td className="px-4 py-2 whitespace-nowrap border-b">
-                            <Button variant="outline" size="icon" onClick={() => loadCreateForm(index)} className="mr-2">
-                                Edit
-                            </Button>
-                            <Button variant="destructive" size="icon" onClick={() => deleteCourse(index)}>
-                                Delete
-                            </Button>
-                        </td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
-            {courses.length === 0 && <p className="mt-4 text-center text-gray-500">No courses added yet.</p>}
-        </div>
+        <Card className="w-full">
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <CardTitle className="text-2xl font-semibold">Course Management</CardTitle>
+                    <CourseSearch 
+                        onSearch={handleSearch}
+                        placeholder="Search by name, category, or code..."
+                    />
+                </div>
+                <Separator className="my-2" />
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                ) : error ? (
+                    <Alert variant="destructive">
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b">
+                                    <th className="px-4 py-3 text-left font-medium">Course Name</th>
+                                    <th className="px-4 py-3 text-left font-medium">Course Code</th>
+                                    <th className="px-4 py-3 text-left font-medium">Status</th>
+                                    <th className="px-4 py-3 text-left font-medium">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredCourses.map((course, index) => (
+                                    <tr key={index} className="border-b hover:bg-muted/50">
+                                        <td className="px-4 py-3">{course.courseName}</td>
+                                        <td className="px-4 py-3">
+                                            <Badge variant="outline">{course.courseCode}</Badge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Badge>{course.courseMode}</Badge>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex gap-2">
+                                                <Button variant="outline" size="sm" onClick={() => loadCreateForm(index)}>
+                                                    Edit
+                                                </Button>
+                                                <Button variant="destructive" size="sm" onClick={() => deleteCourse(index)}>
+                                                    Delete
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {filteredCourses.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                                {isSearching 
+                                    ? "No courses found matching your search criteria."
+                                    : "No courses available. Create your first course to get started."}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 
-    return (
-        <div className="container mx-auto p-4 bg-card rounded-lg shadow-md">
-            <header className="mb-8 text-center">
-                <h1 className="text-3xl font-bold text-foreground">Welcome Instructor</h1>
-            </header>
+    const handleTabChange = (value: string) => {
+        setActiveTab(value);
+        if (value === 'list') {
+            setIsCreating(false);
+            setEditingIndex(null);
+            setFormData({});
+        }
+    };
 
-            <div className="mb-8 flex justify-center">
-                <Button onClick={() => loadCreateForm(null)} className="mr-4">
-                    Create New Course
-                </Button>
-                <Button onClick={() => setIsManaging(true)}>
-                    Manage Courses
+    return (
+        <div className="container mx-auto p-6 space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold">Course Management</h1>
+                <Button onClick={() => loadCreateForm(null)} className="gap-2">
+                    <span>Create New Course</span>
                 </Button>
             </div>
 
-            {isCreating && renderForm()}
-            {isManaging && renderCourseList()}
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                <TabsList className="grid w-full max-w-[200px] grid-cols-1">
+                    <TabsTrigger value="list">Course List</TabsTrigger>
+                </TabsList>
 
-            <footer className="fixed bottom-0 w-full bg-secondary text-center p-2 text-secondary-foreground">
-                @2025 LMS All rights reserved
-            </footer>
+                {activeTab === 'list' && (
+                    <div className="mt-6">
+                        {renderCourseList()}
+                    </div>
+                )}
+
+                {activeTab === 'form' && (
+                    <div className="mt-6">
+                        {renderForm()}
+                    </div>
+                )}
+            </Tabs>
+
+            {error && (
+                <Alert variant="destructive" className="mt-4">
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
         </div>
     );
 }
