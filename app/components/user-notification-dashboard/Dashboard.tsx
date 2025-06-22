@@ -1,12 +1,55 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, TrendingUp, Clock, CheckCircle, AlertTriangle, BookOpen, Trophy, Megaphone, Plus } from 'lucide-react';
 import { useNotifications } from './contexts/NotificationContext';
 
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 const Dashboard: React.FC = () => {
-  const { state, addNotification, addToast } = useNotifications();
+  const { state, addBulkNotifications, addToast } = useNotifications();
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/public/users');
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      addToast({
+        title: 'Error',
+        message: 'Failed to fetch users',
+        type: 'error'
+      });
+    }
+  };
   
   const handleAddSampleNotification = async () => {
+    if (users.length === 0) {
+      addToast({
+        title: 'Error',
+        message: 'No users available to send notifications to',
+        type: 'error'
+      });
+      return;
+    }
+
     try {
+      setIsLoading(true);
+      // Sample notification for all users
       const notification = {
         title: 'New Course Available',
         message: 'Advanced React Patterns course is now available for enrollment.',
@@ -16,19 +59,24 @@ const Dashboard: React.FC = () => {
         isRead: false
       };
 
-      await addNotification(notification);
+      // Get all user IDs
+      const userIds = users.map(user => user.id);
+      
+      await addBulkNotifications(notification, userIds);
       
       addToast({
         title: 'Success',
-        message: 'New notification has been added!',
+        message: `Sample notifications have been sent to ${userIds.length} users!`,
         type: 'success'
       });
     } catch (error) {
       addToast({
         title: 'Error',
-        message: 'Failed to add notification',
+        message: 'Failed to send notifications',
         type: 'error'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -100,10 +148,17 @@ const Dashboard: React.FC = () => {
           </div>
           <button
             onClick={handleAddSampleNotification}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200"
+            disabled={isLoading || users.length === 0}
+            className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${
+              (isLoading || users.length === 0) ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            <Plus className="w-4 h-4" />
-            <span>Add Sample</span>
+            {isLoading ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )}
+            <span>{isLoading ? 'Sending...' : 'Add Sample'}</span>
           </button>
         </div>
       </div>

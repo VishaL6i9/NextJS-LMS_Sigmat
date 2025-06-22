@@ -42,6 +42,7 @@ type NotificationAction =
 interface NotificationContextType {
   state: NotificationState;
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => Promise<void>;
+  addBulkNotifications: (notification: Omit<Notification, 'id' | 'timestamp'>, userIds: number[]) => Promise<void>;
   addToast: (toast: Omit<ToastNotification, 'id' | 'timestamp'>) => void;
   removeToast: (id: string) => void;
   markAsRead: (id: string) => Promise<void>;
@@ -243,6 +244,46 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [state.userId, updateStats]);
 
+  const addBulkNotifications = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp'>, userIds: number[]) => {
+    if (!state.userId) return;
+
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      const res = await fetch(`${API_BASE_URL}/bulk?userIds=${userIds.join(',')}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notification),
+      });
+      
+      if (!res.ok) throw new Error('Failed to send bulk notifications');
+      const data = await res.json();
+      
+      // Add all notifications to the state
+      data.forEach((notification: Notification) => {
+        dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+      });
+      
+      await updateStats();
+      
+      addToast({
+        title: 'Success',
+        message: `Sent notifications to ${userIds.length} users`,
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Failed to send bulk notifications:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to send bulk notifications' });
+      
+      addToast({
+        title: 'Error',
+        message: 'Failed to send bulk notifications',
+        type: 'error'
+      });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  }, [state.userId, updateStats, addToast]);
+
   // @ts-ignore
   const addToast = useCallback((toast) => {
     dispatch({
@@ -351,6 +392,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const value: NotificationContextType = {
     state,
     addNotification,
+    addBulkNotifications,
     addToast,
     removeToast,
     markAsRead,

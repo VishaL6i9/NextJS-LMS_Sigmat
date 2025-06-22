@@ -50,6 +50,19 @@ export default function CoursesManagement() {
         { label: "Language", id: "language", type: "select", options: ["English", "French", "Spanish", "German", "Italian", "Portuguese", "Russian", "Chinese (Mandarin)", "Japanese", "Arabic", "Hindi", "Korean"], required: true },
     ];
 
+    const courseCategories = [
+        "Development & Programming",
+        "Business & Entrepreneurship",
+        "IT & Software",
+        "Design & Creative",
+        "Marketing & Digital Marketing",
+        "Personal Development",
+        "Finance & Accounting",
+        "Health & Fitness",
+        "Music & Arts",
+        "Data Science & Analytics"
+    ];
+
     const fetchCourses = async () => {
         setIsLoading(true);
         setError(null);
@@ -229,14 +242,21 @@ export default function CoursesManagement() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <Label htmlFor="courseCategory">Course Category</Label>
-                                <Input
-                                    type="text"
-                                    id="courseCategory"
+                                <Select
                                     value={formData.courseCategory || ''}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="Enter course category"
-                                />
+                                    onValueChange={(value) => handleSelectChange('courseCategory', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select course category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {courseCategories.map((category) => (
+                                            <SelectItem key={category} value={category}>
+                                                {category}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="space-y-4">
