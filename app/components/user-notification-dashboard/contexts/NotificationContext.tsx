@@ -133,6 +133,23 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     userId: 0,
   });
 
+  const addToast = useCallback((toast: Omit<ToastNotification, 'id' | 'timestamp'>) => {
+    dispatch({
+      type: 'ADD_TOAST',
+      payload: {
+        ...toast,
+        id: Date.now().toString(),
+        timestamp: new Date(),
+        duration: toast.duration || 5000,
+        autoClose: toast.autoClose !== false,
+      },
+    });
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    dispatch({ type: 'REMOVE_TOAST', payload: id });
+  }, []);
+
   // Fetch user ID on mount
   useEffect(() => {
     const fetchUserId = async () => {
@@ -283,24 +300,6 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, [state.userId, updateStats, addToast]);
-
-  // @ts-ignore
-  const addToast = useCallback((toast) => {
-    dispatch({
-      type: 'ADD_TOAST',
-      payload: {
-        ...toast,
-        id: Date.now().toString(),
-        timestamp: new Date(),
-        duration: toast.duration || 5000,
-        autoClose: toast.autoClose !== false,
-      },
-    });
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    dispatch({ type: 'REMOVE_TOAST', payload: id });
-  }, []);
 
   const markAsRead = useCallback(async (id: string) => {
     try {
