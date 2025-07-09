@@ -10,7 +10,10 @@ export default function ProfilePage() {
     return (
         <div className="container max-w-3xl py-8">
             <div className="mb-6">
-                <Link href="/dashboard" className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
+                <Link
+                    href="/dashboard"
+                    className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
+                    legacyBehavior>
                     <ArrowLeft className="mr-1 h-4 w-4" />
                     Back to Dashboard
                 </Link>
@@ -29,15 +32,12 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
-
             <Separator className="my-6" />
-
             <Card>
                 <CardContent className="pt-6">
                     <ProfileForm />
                 </CardContent>
             </Card>
-
             <footer className="mt-8 text-center text-sm text-muted-foreground">
                 <p>Need help? Contact <Link href="/support" className="underline hover:text-foreground">support</Link></p>
             </footer>

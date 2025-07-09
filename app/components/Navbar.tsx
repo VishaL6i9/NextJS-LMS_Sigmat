@@ -170,7 +170,7 @@ const Navbar: React.FC = () => {
         <nav className="bg-gradient-to-r from-indigo-600 to-purple-600 sticky top-0 z-40 w-full border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container mx-auto flex h-16 items-center justify-between px-4">
                 <div className="flex items-center gap-2">
-                    <Link href="/" className="flex items-center">
+                    <Link href="/" className="flex items-center" legacyBehavior>
                         <span className="text-white text-xl md:text-2xl font-bold">eLearning</span>
                     </Link>
                 </div>
