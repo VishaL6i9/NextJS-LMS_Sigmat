@@ -13,7 +13,7 @@ export default function ProfilePage() {
                 <Link
                     href="/dashboard"
                     className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
-                    legacyBehavior>
+                >
                     <ArrowLeft className="mr-1 h-4 w-4" />
                     Back to Dashboard
                 </Link>
