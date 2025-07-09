@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
   useEffect(() => {
     fetchUsers();
@@ -23,7 +24,7 @@ const Dashboard: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/public/users');
+      const response = await fetch(`${base_url}/users`);
       if (!response.ok) {
         throw new Error('Failed to fetch users');
       }
