@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, TrendingUp, Clock, CheckCircle, AlertTriangle, BookOpen, Trophy, Megaphone, Plus } from 'lucide-react';
 import { useNotifications } from './contexts/NotificationContext';
+import SendNotificationForm from './SendNotificationForm';
 
 interface User {
   id: number;
@@ -14,6 +15,7 @@ const Dashboard: React.FC = () => {
   const { state, addBulkNotifications, addToast } = useNotifications();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -139,6 +141,25 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Toggle Button */}
+      <div className="flex justify-end mb-4">
+        <button
+          onClick={() => setShowForm((prev) => !prev)}
+          className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${showForm ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+        >
+          {showForm ? (
+            <>
+              <span className="mr-2">✖️</span> Close Notification Form
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4 mr-2" /> Create Notification
+            </>
+          )}
+        </button>
+      </div>
+      {/* Notification Form */}
+      {showForm && <SendNotificationForm users={users} />}
       {/* Dashboard Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -146,20 +167,6 @@ const Dashboard: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">Notification Dashboard</h1>
             <p className="text-gray-600 mt-1">Manage your learning notifications and stay updated</p>
           </div>
-          <button
-            onClick={handleAddSampleNotification}
-            disabled={isLoading || users.length === 0}
-            className={`bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200 ${
-              (isLoading || users.length === 0) ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            {isLoading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Plus className="w-4 h-4" />
-            )}
-            <span>{isLoading ? 'Sending...' : 'Add Sample'}</span>
-          </button>
         </div>
       </div>
 
