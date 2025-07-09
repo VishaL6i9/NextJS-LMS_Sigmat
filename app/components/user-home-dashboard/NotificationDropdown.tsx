@@ -5,6 +5,7 @@ import { useNotifications } from './contexts/NotificationContext';
 import { Bell } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Link from 'next/link';
 
 export const NotificationDropdown = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -73,6 +74,12 @@ export const NotificationDropdown = () => {
                                 No notifications
                             </div>
                         )}
+                    </div>
+                    {/* View All Notifications Button */}
+                    <div className="p-4 border-t flex justify-center">
+                        <Link href="/user-notification" legacyBehavior>
+                            <a className="w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">View All Notifications</a>
+                        </Link>
                     </div>
                 </div>
             )}
