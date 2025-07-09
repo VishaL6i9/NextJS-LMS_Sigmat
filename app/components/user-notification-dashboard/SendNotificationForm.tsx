@@ -11,17 +11,33 @@ interface User {
 }
 
 const typeOptions = [
-  { value: 'info', label: 'Information', color: 'bg-blue-100 text-blue-800', icon: '💡' },
-  { value: 'success', label: 'Success', color: 'bg-green-100 text-green-800', icon: '✅' },
-  { value: 'warning', label: 'Warning', color: 'bg-yellow-100 text-yellow-800', icon: '⚠️' },
-  { value: 'error', label: 'Error', color: 'bg-red-100 text-red-800', icon: '❌' }
+  { value: 'INFO', label: 'Information', color: 'bg-blue-100 text-blue-800', icon: '💡' },
+  { value: 'SUCCESS', label: 'Success', color: 'bg-green-100 text-green-800', icon: '✅' },
+  { value: 'WARNING', label: 'Warning', color: 'bg-yellow-100 text-yellow-800', icon: '⚠️' },
+  { value: 'ERROR', label: 'Error', color: 'bg-red-100 text-red-800', icon: '❌' }
+];
+
+const categoryOptions = [
+  { value: 'ANNOUNCEMENT', label: 'Announcement' },
+  { value: 'ASSIGNMENT', label: 'Assignment' },
+  { value: 'GRADE', label: 'Grade' },
+  { value: 'SYSTEM', label: 'System' },
+  { value: 'REMINDER', label: 'Reminder' }
+];
+
+const priorityOptions = [
+  { value: 'LOW', label: 'Low' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HIGH', label: 'High' }
 ];
 
 const SendNotificationForm: React.FC<{ users: User[] }> = ({ users }) => {
   const { addNotification, addBulkNotifications, addToast, state } = useNotifications();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-  const [type, setType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
+  const [type, setType] = useState<'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR'>('INFO');
+  const [category, setCategory] = useState<'ANNOUNCEMENT' | 'ASSIGNMENT' | 'GRADE' | 'SYSTEM' | 'REMINDER'>('ANNOUNCEMENT');
+  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
   const [isGlobal, setIsGlobal] = useState(true);
   const [targetUserId, setTargetUserId] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -31,15 +47,18 @@ const SendNotificationForm: React.FC<{ users: User[] }> = ({ users }) => {
     e.preventDefault();
     setIsSending(true);
     try {
+      const notificationPayload = {
+        title,
+        message,
+        type: type.toUpperCase(),
+        category: category.toUpperCase(),
+        priority: priority.toUpperCase(),
+        isRead: false,
+      };
       if (isGlobal) {
         // Send to all users
         const userIds = users.map(u => u.id);
-        await addBulkNotifications({
-          title,
-          message,
-          type,
-          isRead: false,
-        }, userIds);
+        await addBulkNotifications(notificationPayload, userIds);
         addToast({
           title: 'Success',
           message: `Notification sent to all users!`,
@@ -47,12 +66,7 @@ const SendNotificationForm: React.FC<{ users: User[] }> = ({ users }) => {
         });
       } else {
         if (!targetUserId) throw new Error('User ID required');
-        await addBulkNotifications({
-          title,
-          message,
-          type,
-          isRead: false,
-        }, [Number(targetUserId)]);
+        await addBulkNotifications(notificationPayload, [Number(targetUserId)]);
         addToast({
           title: 'Success',
           message: `Notification sent to user ${targetUserId}!`,
@@ -61,7 +75,9 @@ const SendNotificationForm: React.FC<{ users: User[] }> = ({ users }) => {
       }
       setTitle('');
       setMessage('');
-      setType('info');
+      setType('INFO');
+      setCategory('ANNOUNCEMENT');
+      setPriority('MEDIUM');
       setIsGlobal(true);
       setTargetUserId('');
       setSendSuccess(true);
@@ -156,12 +172,44 @@ const SendNotificationForm: React.FC<{ users: User[] }> = ({ users }) => {
                   <div>
                     <div className="font-medium">{option.label}</div>
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${option.color} mt-1`}>
-                      {option.value.toUpperCase()}
+                      {option.value}
                     </span>
                   </div>
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Category Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category
+            </label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value as any)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {categoryOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Priority Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Priority
+            </label>
+            <select
+              value={priority}
+              onChange={e => setPriority(e.target.value as any)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {priorityOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Audience Selection */}
@@ -219,9 +267,9 @@ const SendNotificationForm: React.FC<{ users: User[] }> = ({ users }) => {
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="font-medium text-gray-700 mb-3">Preview</h3>
             <div className={`p-3 rounded-lg border-l-4 ${
-              type === 'info' ? 'bg-blue-50 border-blue-500' :
-              type === 'success' ? 'bg-green-50 border-green-500' :
-              type === 'warning' ? 'bg-yellow-50 border-yellow-500' :
+              type === 'INFO' ? 'bg-blue-50 border-blue-500' :
+              type === 'SUCCESS' ? 'bg-green-50 border-green-500' :
+              type === 'WARNING' ? 'bg-yellow-50 border-yellow-500' :
               'bg-red-50 border-red-500'
             }`}>
               <div className="font-medium text-gray-900">
@@ -231,7 +279,9 @@ const SendNotificationForm: React.FC<{ users: User[] }> = ({ users }) => {
                 {message || 'Your message will appear here...'}
               </div>
               <div className="text-xs text-gray-500 mt-2">
-                {isGlobal ? 'Sent to all users' : `Sent to user: ${targetUserId || 'N/A'}`}
+                Category: {category}
+                <br />Priority: {priority}
+                <br />{isGlobal ? 'Sent to all users' : `Sent to user: ${targetUserId || 'N/A'}`}
               </div>
             </div>
           </div>
