@@ -88,9 +88,9 @@ export const ApiTestPage: React.FC = () => {
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
           <h2 className="text-lg font-semibold mb-3">Available Endpoints:</h2>
           <ul className="space-y-2 text-sm text-gray-700">
-            <li>• <code className="bg-gray-200 px-2 py-1 rounded">GET /api/public/courses</code> - Get all courses</li>
-            <li>• <code className="bg-gray-200 px-2 py-1 rounded">GET /api/public/courses/{'{courseId}'}</code> - Get course by ID</li>
-            <li>• <code className="bg-gray-200 px-2 py-1 rounded">GET /api/public/courses/{'{courseCode}'}/id</code> - Get course ID by course code</li>
+            <li>• <code className="bg-gray-200 px-2 py-1 rounded">GET /api/courses</code> - Get all courses</li>
+            <li>• <code className="bg-gray-200 px-2 py-1 rounded">GET /api/courses/{'{courseId}'}</code> - Get course by ID</li>
+            <li>• <code className="bg-gray-200 px-2 py-1 rounded">GET /api/courses/{'{courseCode}'}/id</code> - Get course ID by course code</li>
           </ul>
         </div>
 

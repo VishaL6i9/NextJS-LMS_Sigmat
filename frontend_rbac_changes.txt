@@ -1,0 +1,8 @@
+Updated API endpoints:
+- Changed `/api/public/courses` to `/api/courses` in `api.ts` and `ApiTestPage.tsx`.
+- Changed `/api/public/notifications` to `/api/notifications` in `NotificationContext.tsx` (both instances).
+- Changed `user/profile` to `api/user/profile` in `NotificationContext.tsx` (both instances), `profile.tsx`, and `useUserProfile.ts`.
+
+Updated Role Names:
+- Changed default role from `learner` to `user` in `login-form.tsx`.
+- Updated role selection options in `login-form.tsx` and `register-form.tsx` to include `User` and `Instructor` (removed `Learner` and `Manager`).

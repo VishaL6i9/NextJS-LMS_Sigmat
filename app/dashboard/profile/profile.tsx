@@ -99,7 +99,7 @@ export function ProfileForm() {
 
                 }
 
-                const getuserID = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
+                const getuserID = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/getuserID`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -113,7 +113,7 @@ export function ProfileForm() {
                 const userID = await getuserID.text();
                 localStorage.setItem('userid', userID);
 
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/${userID}`, {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/${userID}`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -128,7 +128,7 @@ export function ProfileForm() {
                 profileForm.reset(data);
 
                 try {
-                    const getProfileImageID= await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getProfileImageID/${userID}`,{
+                    const getProfileImageID= await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/getProfileImageID/${userID}`,{
                         method: "GET",
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -205,7 +205,7 @@ export function ProfileForm() {
                 throw new Error("Authentication token not found");
             }
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile`, {
                 method: "PUT",
                 headers: {
                     'Content-Type': 'application/json',
@@ -255,7 +255,7 @@ export function ProfileForm() {
                 throw new Error("Authentication token not found");
             }
 
-            const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/password`);
+            const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/password`);
             url.searchParams.append("userID", userId);
             url.searchParams.append("currentPassword", values.currentPassword);
             url.searchParams.append("newPassword", values.newPassword);
@@ -335,7 +335,7 @@ export function ProfileForm() {
             formData.append('file', file);
 
             const userId = localStorage.getItem("userid");
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/pic/upload/${userId}`, formData, {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/pic/upload/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

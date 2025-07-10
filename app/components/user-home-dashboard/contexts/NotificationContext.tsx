@@ -3,7 +3,7 @@ import React, { createContext, useContext, useReducer, useCallback, useEffect } 
 import { Notification, Toast, NotificationContextType } from '@/app/components/user-home-dashboard/types/notification';
 
 // === Constants ===
-const API_BASE_URL = 'http://localhost:8080/api/public/notifications';
+const API_BASE_URL = 'http://localhost:8080/api/notifications';
 
 // Keep the initial notifications as fallback data
 const initialNotifications: Notification[] = [
@@ -140,7 +140,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             if (!token) return;
 
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/getuserID`, {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/getuserID`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 if (!res.ok) throw new Error('Failed to fetch user ID');

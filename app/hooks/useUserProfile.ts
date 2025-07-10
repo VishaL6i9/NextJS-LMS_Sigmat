@@ -25,7 +25,7 @@ export function useUserProfile() {
                 return;
             }
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -54,7 +54,7 @@ export function useUserProfile() {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/user/profile/update`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/update`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,

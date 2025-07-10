@@ -201,7 +201,8 @@ export function RegisterForm() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="USERS">Learner</SelectItem>
+                                            <SelectItem value="USER">User</SelectItem>
+            <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
                                             <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
                                             <SelectItem value="ADMIN">Admin</SelectItem>
                                             <SelectItem value="organization_admin">Organization Admin</SelectItem>

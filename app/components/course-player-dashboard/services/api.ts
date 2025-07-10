@@ -106,7 +106,7 @@ class ApiService {
 
   /**
    * Get all courses
-   * Endpoint: GET localhost:8000/api/public/courses
+   * Endpoint: GET localhost:8000/api/courses
    */
   async getAllCourses(): Promise<ApiCourse[]> {
     try {
@@ -122,7 +122,7 @@ class ApiService {
 
   /**
    * Get course by ID
-   * Endpoint: GET localhost:8000/api/public/courses/{courseId}
+   * Endpoint: GET localhost:8000/api/courses/{courseId}
    */
   async getCourseById(courseId: string): Promise<ApiCourse> {
     if (!courseId) {
@@ -142,7 +142,7 @@ class ApiService {
 
   /**
    * Get course ID by course code
-   * Endpoint: GET localhost:8000/api/public/courses/{coursecode}/id
+   * Endpoint: GET localhost:8000/api/courses/{coursecode}/id
    */
   async getCourseIdByCourseCode(courseCode: string): Promise<CourseIdResponse> {
     if (!courseCode) {

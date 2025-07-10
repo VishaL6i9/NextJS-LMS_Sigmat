@@ -24,7 +24,7 @@ const formSchema = z.object({
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     rememberMe: z.boolean().default(false),
-    role: z.string().nonempty("Role is required").default("learner"),
+    role: z.string().nonempty("Role is required").default("user"),
 });
 
 export function LoginForm() {
@@ -149,7 +149,8 @@ export function LoginForm() {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="learner">Learner</SelectItem>
+                                                    <SelectItem value="user">User</SelectItem>
+              <SelectItem value="instructor">Instructor</SelectItem>
                                                     <SelectItem value="instructor">Instructor</SelectItem>
                                                     <SelectItem value="admin">Admin</SelectItem>
                                                 </SelectContent>
