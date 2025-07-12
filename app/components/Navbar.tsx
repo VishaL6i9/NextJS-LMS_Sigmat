@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
@@ -14,92 +14,31 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Menu, LogOut, User } from "lucide-react";
+import { useUser } from '@/app/contexts/UserContext';
+import Link from 'next/link';
 
 const Navbar: React.FC = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const { userProfile, setUserProfile } = useUser();
     const router = useRouter();
-    const [isOpen, setIsOpen] = useState(false);
-
-    const logAuthState = () => {
-        const token = localStorage.getItem("authToken");
-        console.log("Auth token:", token);
-        console.log("isLoggedIn state:", isLoggedIn);
-    };
 
     useEffect(() => {
-        const checkAuthToken = () => {
-            const token = localStorage.getItem("authToken");
-            console.log("Checking auth token:", token);
-            setIsLoggedIn(!!token);
-        };
-
-        checkAuthToken();
-
-        // @ts-ignore
-        const handleStorageChange = (e) => {
-            console.log("Storage change detected:", e);
-            if (e.key === "authToken") {
-                checkAuthToken();
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-
-        const intervalId = setInterval(checkAuthToken, 1000);
-
-        window.addEventListener('authChange', checkAuthToken);
-
-        return () => {
-            clearInterval(intervalId);
-            window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('authChange', checkAuthToken);
-        };
-    }, []);
-
-    useEffect(() => {
-        logAuthState();
-    });
+        // This effect will run whenever userProfile changes
+        // No need for localStorage polling or custom events if UserContext is the source of truth
+    }, [userProfile]);
 
     const handleLogout = async () => {
         console.log("Logout initiated");
-        const token = localStorage.getItem("authToken");
-        if (!token) {
-            console.log("No token found for logout");
-            router.push("/auth");
-            return;
-        }
-
-        try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/logout`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": token,
-                },
-            });
-
-            if (response.ok) {
-                console.log("Logout successful, removing token");
-                localStorage.removeItem("authToken");
-                setIsLoggedIn(false);
-                window.dispatchEvent(new Event('authChange'));
-                router.push("/");
-            } else {
-                console.error("Logout failed with status:", response.status);
-            }
-        } catch (error) {
-            console.error("Error logging out:", error);
-        }
+        // In a real application, you would call your backend logout endpoint here
+        // For now, we just clear the local storage and context
+        localStorage.removeItem("token"); // Assuming the token is stored as 'token'
+        setUserProfile(null);
+        router.push("/");
     };
 
     const handleLoginButtonClick = () => {
-        const token = localStorage.getItem('token'); // Check directly
-        if (token) {
-            handleLogout();
-        } else {
-            router.push('/auth');
-        }
+        router.push('/auth');
     };
 
     const NavItems = () => (
@@ -225,13 +164,38 @@ const Navbar: React.FC = () => {
                 </div>
 
                 <div>
-                    <Button
-                        variant={isLoggedIn ? "destructive" : "default"}
-                        onClick={handleLoginButtonClick}
-                        className="text-sm md:text-base"
-                    >
-                        {isLoggedIn ? "LOGOUT" : "LOGIN"}
-                    </Button>
+                    {userProfile ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                                    <Avatar className="h-9 w-9">
+                                        <AvatarImage src={userProfile.profileImage || "/placeholder-avatar.jpg"} alt="User Avatar" />
+                                        <AvatarFallback>{userProfile.firstName[0]}{userProfile.lastName[0]}</AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                                <DropdownMenuItem>
+                                    <Link href="/dashboard/profile" className="flex items-center w-full">
+                                        <User className="mr-2 h-4 w-4" />
+                                        <span>Profile</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleLogout}>
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Log out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : (
+                        <Button
+                            variant="default"
+                            onClick={handleLoginButtonClick}
+                            className="text-sm md:text-base"
+                        >
+                            LOGIN
+                        </Button>
+                    )}
                 </div>
             </div>
         </nav>

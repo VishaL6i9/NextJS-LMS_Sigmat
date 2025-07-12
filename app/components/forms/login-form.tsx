@@ -18,10 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { LockIcon, MailIcon, UserIcon } from "lucide-react";
+import { LockIcon, UserIcon } from "lucide-react";
+import { useUser } from '@/app/contexts/UserContext';
+import { useUserProfile } from '@/app/hooks/useUserProfile';
 
 const formSchema = z.object({
-    email: z.string().email("Invalid email address"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     rememberMe: z.boolean().default(false),
     role: z.string().nonempty("Role is required").default("user"),
@@ -31,12 +33,14 @@ export function LoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const base_url = process.env.NEXT_PUBLIC_BASE_URL;
-    const router = useRouter(); 
+    const router = useRouter();
+    const { setUserProfile } = useUser();
+    const { fetchProfile } = useUserProfile();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            email: "",
+            username: "",
             password: "",
             rememberMe: false,
             role: "",
@@ -48,13 +52,13 @@ export function LoginForm() {
         setErrorMessage(null);
 
         try {
-            const response = await fetch(`${base_url}/login`, {
+            const response = await fetch(`${base_url}/api/public/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    username: values.email,
+                    username: values.username,
                     password: values.password,
                 }),
             });
@@ -66,8 +70,14 @@ export function LoginForm() {
             const token = await response.text();
             console.log(token);
             localStorage.setItem('token', token);
-            
-            router.push('/dashboard/profile');
+
+            // Fetch user profile and update context
+            const userProfileData = await fetchProfile();
+            if (userProfileData) {
+                setUserProfile(userProfileData);
+            }
+
+            router.push('/dashboard/user-home'); // Redirect to user dashboard or home
 
         } catch (error: any) {
             console.error(error);
@@ -95,17 +105,17 @@ export function LoginForm() {
                         )}
                         <FormField
                             control={form.control}
-                            name="email"
+                            name="username"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Email</FormLabel>
+                                    <FormLabel>Username</FormLabel>
                                     <FormControl>
                                         <div className="relative">
-                                            <MailIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input 
-                                                placeholder="email@example.com" 
-                                                className="pl-10" 
-                                                {...field} 
+                                            <UserIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="username"
+                                                className="pl-10"
+                                                {...field}
                                             />
                                         </div>
                                     </FormControl>
@@ -122,10 +132,10 @@ export function LoginForm() {
                                     <FormControl>
                                         <div className="relative">
                                             <LockIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input 
-                                                type="password" 
-                                                className="pl-10" 
-                                                {...field} 
+                                            <Input
+                                                type="password"
+                                                className="pl-10"
+                                                {...field}
                                             />
                                         </div>
                                     </FormControl>
@@ -150,7 +160,6 @@ export function LoginForm() {
                                                 </FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="user">User</SelectItem>
-              <SelectItem value="instructor">Instructor</SelectItem>
                                                     <SelectItem value="instructor">Instructor</SelectItem>
                                                     <SelectItem value="admin">Admin</SelectItem>
                                                 </SelectContent>
@@ -176,9 +185,9 @@ export function LoginForm() {
                                 </FormItem>
                             )}
                         />
-                        <Button 
-                            type="submit" 
-                            className="w-full" 
+                        <Button
+                            type="submit"
+                            className="w-full"
                             disabled={isLoading}
                             size="lg"
                         >
