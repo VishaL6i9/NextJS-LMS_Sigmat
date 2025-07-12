@@ -15,13 +15,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LogOut, User } from "lucide-react";
+import { Menu, LogOut, User } from "__barrel_optimize__?names=LogOut,Menu,User!=!lucide-react";
 import { useUser } from '@/app/contexts/UserContext';
-import Link from 'next/link';
 
 const Navbar: React.FC = () => {
     const { userProfile, setUserProfile } = useUser();
     const router = useRouter();
+    const [isOpen, setIsOpen] = React.useState(false);
 
     useEffect(() => {
         // This effect will run whenever userProfile changes
