@@ -1,6 +1,7 @@
 'use client';
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { Course, Student, Assignment, InstructorStats, RecentActivity } from '../types/instructor';
+import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import { Course, Student, Assignment, InstructorStats, RecentActivity, Instructor } from '../types/instructor';
+import { apiService, createCourse as apiCreateCourse, updateCourse as apiUpdateCourse, getAllCourses as apiGetAllCourses, ApiCourseRequest } from '../../course-player-dashboard/services/api';
 
 interface InstructorState {
     courses: Course[];
@@ -9,6 +10,8 @@ interface InstructorState {
     stats: InstructorStats;
     recentActivity: RecentActivity[];
     selectedCourse: string | null;
+    loading: boolean;
+    error: string | null;
 }
 
 type InstructorAction =
@@ -19,190 +22,43 @@ type InstructorAction =
     | { type: 'ADD_ASSIGNMENT'; payload: Assignment }
     | { type: 'UPDATE_ASSIGNMENT'; payload: Assignment }
     | { type: 'DELETE_ASSIGNMENT'; payload: string }
-    | { type: 'UPDATE_STATS' };
+    | { type: 'UPDATE_STATS' }
+    | { type: 'SET_COURSES'; payload: Course[] }
+    | { type: 'SET_LOADING'; payload: boolean }
+    | { type: 'SET_ERROR'; payload: string | null };
 
 interface InstructorContextType {
     state: InstructorState;
     setSelectedCourse: (courseId: string | null) => void;
-    addCourse: (course: Omit<Course, 'id'>) => void;
-    updateCourse: (course: Course) => void;
+    addCourse: (course: Omit<ApiCourseRequest, 'instructors'> & { instructors: { instructorId: number }[] }) => Promise<void>;
+    updateCourse: (courseId: string, course: Omit<ApiCourseRequest, 'instructors'> & { instructors: { instructorId: number }[] }) => Promise<void>;
     deleteCourse: (courseId: string) => void;
     addAssignment: (assignment: Omit<Assignment, 'id'>) => void;
     updateAssignment: (assignment: Assignment) => void;
     deleteAssignment: (assignmentId: string) => void;
+    fetchCourses: () => Promise<void>;
 }
 
 const InstructorContext = createContext<InstructorContextType | undefined>(undefined);
 
 const initialState: InstructorState = {
-    courses: [
-        {
-            id: '1',
-            title: 'Advanced React Development',
-            code: 'CS-401',
-            description: 'Master advanced React patterns, hooks, and state management',
-            enrolledStudents: 45,
-            totalAssignments: 12,
-            completedAssignments: 8,
-            averageGrade: 87.5,
-            status: 'active',
-            startDate: new Date('2024-01-15'),
-            endDate: new Date('2024-05-15'),
-            category: 'Programming',
-            thumbnail: 'https://images.pexels.com/photos/11035380/pexels-photo-11035380.jpeg?auto=compress&cs=tinysrgb&w=400'
-        },
-        {
-            id: '2',
-            title: 'Database Design & Management',
-            code: 'CS-302',
-            description: 'Comprehensive database design, SQL, and NoSQL fundamentals',
-            enrolledStudents: 38,
-            totalAssignments: 10,
-            completedAssignments: 6,
-            averageGrade: 82.3,
-            status: 'active',
-            startDate: new Date('2024-01-20'),
-            endDate: new Date('2024-05-20'),
-            category: 'Database',
-            thumbnail: 'https://images.pexels.com/photos/1181677/pexels-photo-1181677.jpeg?auto=compress&cs=tinysrgb&w=400'
-        },
-        {
-            id: '3',
-            title: 'Web Security Fundamentals',
-            code: 'CS-450',
-            description: 'Learn essential web security practices and vulnerability assessment',
-            enrolledStudents: 29,
-            totalAssignments: 8,
-            completedAssignments: 5,
-            averageGrade: 91.2,
-            status: 'active',
-            startDate: new Date('2024-02-01'),
-            endDate: new Date('2024-06-01'),
-            category: 'Security',
-            thumbnail: 'https://images.pexels.com/photos/60504/security-protection-anti-virus-software-60504.jpeg?auto=compress&cs=tinysrgb&w=400'
-        }
-    ],
-    students: [
-        {
-            id: '1',
-            name: 'Alice Johnson',
-            email: 'alice.johnson@university.edu',
-            enrolledCourses: ['1', '2'],
-            totalAssignments: 22,
-            completedAssignments: 18,
-            averageGrade: 92.5,
-            lastActive: new Date(Date.now() - 1000 * 60 * 30),
-            status: 'active'
-        },
-        {
-            id: '2',
-            name: 'Bob Smith',
-            email: 'bob.smith@university.edu',
-            enrolledCourses: ['1', '3'],
-            totalAssignments: 20,
-            completedAssignments: 15,
-            averageGrade: 85.7,
-            lastActive: new Date(Date.now() - 1000 * 60 * 60 * 2),
-            status: 'active'
-        },
-        {
-            id: '3',
-            name: 'Carol Davis',
-            email: 'carol.davis@university.edu',
-            enrolledCourses: ['2', '3'],
-            totalAssignments: 18,
-            completedAssignments: 16,
-            averageGrade: 88.9,
-            lastActive: new Date(Date.now() - 1000 * 60 * 60 * 4),
-            status: 'active'
-        }
-    ],
-    assignments: [
-        {
-            id: '1',
-            title: 'React Hooks Implementation',
-            courseId: '1',
-            courseName: 'Advanced React Development',
-            description: 'Build a complex application using custom hooks',
-            dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
-            totalPoints: 100,
-            submissions: 42,
-            graded: 38,
-            averageScore: 87.5,
-            status: 'published',
-            type: 'project'
-        },
-        {
-            id: '2',
-            title: 'SQL Query Optimization',
-            courseId: '2',
-            courseName: 'Database Design & Management',
-            description: 'Optimize complex database queries for performance',
-            dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-            totalPoints: 75,
-            submissions: 35,
-            graded: 30,
-            averageScore: 82.1,
-            status: 'published',
-            type: 'quiz'
-        },
-        {
-            id: '3',
-            title: 'Security Vulnerability Assessment',
-            courseId: '3',
-            courseName: 'Web Security Fundamentals',
-            description: 'Conduct a comprehensive security audit of a web application',
-            dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10),
-            totalPoints: 150,
-            submissions: 25,
-            graded: 20,
-            averageScore: 91.3,
-            status: 'published',
-            type: 'project'
-        }
-    ],
+    courses: [],
+    students: [],
+    assignments: [],
     stats: {
-        totalStudents: 112,
-        activeCourses: 3,
-        pendingGrades: 24,
-        totalAssignments: 30,
-        averageGrade: 87.2,
-        completionRate: 78.5,
-        thisWeekSubmissions: 47,
-        monthlyGrowth: 12.5
+        totalStudents: 0,
+        activeCourses: 0,
+        pendingGrades: 0,
+        totalAssignments: 0,
+        averageGrade: 0,
+        completionRate: 0,
+        thisWeekSubmissions: 0,
+        monthlyGrowth: 0
     },
-    recentActivity: [
-        {
-            id: '1',
-            type: 'submission',
-            title: 'New Assignment Submission',
-            description: 'Alice Johnson submitted React Hooks Implementation',
-            timestamp: new Date(Date.now() - 1000 * 60 * 15),
-            studentName: 'Alice Johnson',
-            courseName: 'Advanced React Development',
-            priority: 'medium'
-        },
-        {
-            id: '2',
-            type: 'enrollment',
-            title: 'New Student Enrollment',
-            description: 'David Wilson enrolled in Web Security Fundamentals',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60),
-            studentName: 'David Wilson',
-            courseName: 'Web Security Fundamentals',
-            priority: 'low'
-        },
-        {
-            id: '3',
-            type: 'grade',
-            title: 'Grade Update Required',
-            description: 'SQL Query Optimization quiz needs grading',
-            timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-            courseName: 'Database Design & Management',
-            priority: 'high'
-        }
-    ],
-    selectedCourse: null
+    recentActivity: [],
+    selectedCourse: null,
+    loading: false,
+    error: null
 };
 
 function instructorReducer(state: InstructorState, action: InstructorAction): InstructorState {
@@ -212,7 +68,7 @@ function instructorReducer(state: InstructorState, action: InstructorAction): In
         case 'ADD_COURSE':
             return {
                 ...state,
-                courses: [...state.courses, { ...action.payload, id: Date.now().toString() }]
+                courses: [...state.courses, action.payload]
             };
         case 'UPDATE_COURSE':
             return {
@@ -243,6 +99,12 @@ function instructorReducer(state: InstructorState, action: InstructorAction): In
                 ...state,
                 assignments: state.assignments.filter(assignment => assignment.id !== action.payload)
             };
+        case 'SET_COURSES':
+            return { ...state, courses: action.payload };
+        case 'SET_LOADING':
+            return { ...state, loading: action.payload };
+        case 'SET_ERROR':
+            return { ...state, error: action.payload };
         default:
             return state;
     }
@@ -255,15 +117,128 @@ export const InstructorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         dispatch({ type: 'SET_SELECTED_COURSE', payload: courseId });
     }, []);
 
-    const addCourse = useCallback((course: Omit<Course, 'id'>) => {
-        dispatch({ type: 'ADD_COURSE', payload: course as Course });
+    const fetchCourses = useCallback(async () => {
+        dispatch({ type: 'SET_LOADING', payload: true });
+        dispatch({ type: 'SET_ERROR', payload: null });
+        try {
+            const courses = await apiGetAllCourses();
+            dispatch({ type: 'SET_COURSES', payload: courses.map(c => ({
+                id: c.id,
+                courseName: c.courseName,
+                courseCode: c.courseCode,
+                courseDescription: c.courseDescription,
+                courseDuration: c.courseDuration,
+                courseMode: c.courseMode,
+                maxEnrollments: c.maxEnrollments,
+                courseFee: c.courseFee,
+                language: c.language,
+                courseCategory: c.courseCategory,
+                instructors: c.instructors.map(inst => ({
+                    instructorId: inst.instructorId,
+                    firstName: inst.firstName,
+                    lastName: inst.lastName,
+                    email: inst.email,
+                    phoneNo: inst.phoneNo,
+                    dateOfJoining: inst.dateOfJoining
+                })),
+                enrolledStudents: c.studentsEnrolled,
+                totalAssignments: 0, // Assuming this will be fetched or calculated elsewhere
+                completedAssignments: 0, // Assuming this will be fetched or calculated elsewhere
+                averageGrade: c.rating,
+                status: 'active', // Assuming all fetched courses are active for now
+                startDate: new Date(c.createdAt), // Using createdAt as startDate for now
+                endDate: new Date(c.updatedAt), // Using updatedAt as endDate for now
+                thumbnail: '' // Placeholder, needs to be added to API or derived
+            }))});
+        } catch (err: any) {
+            dispatch({ type: 'SET_ERROR', payload: err.message || 'Failed to fetch courses' });
+        } finally {
+            dispatch({ type: 'SET_LOADING', payload: false });
+        }
     }, []);
 
-    const updateCourse = useCallback((course: Course) => {
-        dispatch({ type: 'UPDATE_COURSE', payload: course });
+    const addCourse = useCallback(async (courseData: Omit<ApiCourseRequest, 'instructors'> & { instructors: { instructorId: number }[] }) => {
+        dispatch({ type: 'SET_LOADING', payload: true });
+        dispatch({ type: 'SET_ERROR', payload: null });
+        try {
+            const newCourse = await apiCreateCourse(courseData);
+            dispatch({ type: 'ADD_COURSE', payload: {
+                id: newCourse.id,
+                courseName: newCourse.courseName,
+                courseCode: newCourse.courseCode,
+                courseDescription: newCourse.courseDescription,
+                courseDuration: newCourse.courseDuration,
+                courseMode: newCourse.courseMode,
+                maxEnrollments: newCourse.maxEnrollments,
+                courseFee: newCourse.courseFee,
+                language: newCourse.language,
+                courseCategory: newCourse.courseCategory,
+                instructors: newCourse.instructors.map(inst => ({
+                    instructorId: inst.instructorId,
+                    firstName: inst.firstName,
+                    lastName: inst.lastName,
+                    email: inst.email,
+                    phoneNo: inst.phoneNo,
+                    dateOfJoining: inst.dateOfJoining
+                })),
+                enrolledStudents: newCourse.studentsEnrolled,
+                totalAssignments: 0,
+                completedAssignments: 0,
+                averageGrade: newCourse.rating,
+                status: 'active',
+                startDate: new Date(newCourse.createdAt),
+                endDate: new Date(newCourse.updatedAt),
+                thumbnail: ''
+            } });
+        } catch (err: any) {
+            dispatch({ type: 'SET_ERROR', payload: err.message || 'Failed to add course' });
+        } finally {
+            dispatch({ type: 'SET_LOADING', payload: false });
+        }
+    }, []);
+
+    const updateCourse = useCallback(async (courseId: string, courseData: Omit<ApiCourseRequest, 'instructors'> & { instructors: { instructorId: number }[] }) => {
+        dispatch({ type: 'SET_LOADING', payload: true });
+        dispatch({ type: 'SET_ERROR', payload: null });
+        try {
+            const updatedCourse = await apiUpdateCourse(courseId, courseData);
+            dispatch({ type: 'UPDATE_COURSE', payload: {
+                id: updatedCourse.id,
+                courseName: updatedCourse.courseName,
+                courseCode: updatedCourse.courseCode,
+                courseDescription: updatedCourse.courseDescription,
+                courseDuration: updatedCourse.courseDuration,
+                courseMode: updatedCourse.courseMode,
+                maxEnrollments: updatedCourse.maxEnrollments,
+                courseFee: updatedCourse.courseFee,
+                language: updatedCourse.language,
+                courseCategory: updatedCourse.courseCategory,
+                instructors: updatedCourse.instructors.map(inst => ({
+                    instructorId: inst.instructorId,
+                    firstName: inst.firstName,
+                    lastName: inst.lastName,
+                    email: inst.email,
+                    phoneNo: inst.phoneNo,
+                    dateOfJoining: inst.dateOfJoining
+                })),
+                enrolledStudents: updatedCourse.studentsEnrolled,
+                totalAssignments: 0,
+                completedAssignments: 0,
+                averageGrade: updatedCourse.rating,
+                status: 'active',
+                startDate: new Date(updatedCourse.createdAt),
+                endDate: new Date(updatedCourse.updatedAt),
+                thumbnail: ''
+            } });
+        } catch (err: any) {
+            dispatch({ type: 'SET_ERROR', payload: err.message || 'Failed to update course' });
+        } finally {
+            dispatch({ type: 'SET_LOADING', payload: false });
+        }
     }, []);
 
     const deleteCourse = useCallback((courseId: string) => {
+        // TODO: Implement API call for deleting a course
         dispatch({ type: 'DELETE_COURSE', payload: courseId });
     }, []);
 
@@ -279,6 +254,10 @@ export const InstructorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         dispatch({ type: 'DELETE_ASSIGNMENT', payload: assignmentId });
     }, []);
 
+    useEffect(() => {
+        fetchCourses();
+    }, [fetchCourses]);
+
     const value: InstructorContextType = {
         state,
         setSelectedCourse,
@@ -287,7 +266,8 @@ export const InstructorProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         deleteCourse,
         addAssignment,
         updateAssignment,
-        deleteAssignment
+        deleteAssignment,
+        fetchCourses
     };
 
     return (

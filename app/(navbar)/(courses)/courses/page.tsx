@@ -12,19 +12,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { CourseSearch } from "@/app/components/CourseSearch";
+import { apiService, createCourse as apiCreateCourse, updateCourse as apiUpdateCourse, getAllCourses as apiGetAllCourses, deleteCourse as apiDeleteCourse, getAllInstructors, ApiCourseRequest, ApiInstructor } from "@/app/components/course-player-dashboard/services/api";
 
 interface CourseData {
+    id?: string;
     courseName: string;
     courseCode: string;
     courseDescription: string;
     courseCategory: string;
-    courseInstructor: string[];
+    instructors: { instructorId: number }[];
     courseDuration: number;
     courseMode: string;
     maxEnrollments: number;
     courseFee: number;
     language: string;
-    [key: string]: any; 
+    enrolledStudents?: number;
+    totalAssignments?: number;
+    completedAssignments?: number;
+    averageGrade?: number;
+    status?: 'active' | 'draft' | 'archived';
+    startDate?: Date;
+    endDate?: Date;
+    thumbnail?: string;
 }
 
 export default function CoursesManagement() {
@@ -38,11 +47,12 @@ export default function CoursesManagement() {
     const [error, setError] = useState<string | null>(null);
     const [filteredCourses, setFilteredCourses] = useState<CourseData[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [availableInstructors, setAvailableInstructors] = useState<ApiInstructor[]>([]);
 
     const fields = [
         { label: "Course Name", id: "courseName", type: "text", required: true },
         { label: "Description", id: "courseDescription", type: "textarea" },
-        { label: "Instructor(s)", id: "courseInstructor", type: "select-multiple", options: ["Instructor 1", "Instructor 2"], required: true },
+        { label: "Instructor(s)", id: "instructors", type: "select-multiple", options: availableInstructors.map(inst => ({ label: `${inst.firstName} ${inst.lastName}`, value: inst.instructorId.toString() })), required: true },
         { label: "Duration", id: "courseDuration", type: "number" },
         { label: "Mode of Delivery", id: "courseMode", type: "select", options: ["Online", "Offline", "Blended"], required: true },
         { label: "Maximum Enrollments", id: "maxEnrollments", type: "number" },
@@ -63,16 +73,42 @@ export default function CoursesManagement() {
         "Data Science & Analytics"
     ];
 
+    const fetchInstructors = async () => {
+        try {
+            const instructors = await getAllInstructors();
+            setAvailableInstructors(instructors);
+        } catch (error) {
+            console.error('Failed to fetch instructors:', error);
+            setError('Failed to load instructors.');
+        }
+    };
+
     const fetchCourses = async () => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses`);
-            if (!response.ok) throw new Error('Failed to fetch courses');
-            const data = await response.json();
-            setCourses(data);
-        } catch (error) {
-            setError('Failed to load courses. Please try again later.');
+            const data = await apiGetAllCourses();
+            setCourses(data.map(course => ({
+                id: course.id,
+                courseName: course.courseName,
+                courseCode: course.courseCode,
+                courseDescription: course.courseDescription,
+                courseCategory: course.courseCategory,
+                instructors: course.instructors.map(inst => ({ instructorId: inst.instructorId })),
+                courseDuration: course.courseDuration,
+                courseMode: course.courseMode,
+                maxEnrollments: course.maxEnrollments,
+                courseFee: course.courseFee,
+                language: course.language,
+                enrolledStudents: course.studentsEnrolled,
+                averageGrade: course.rating,
+                status: 'active', // Assuming all fetched courses are active for now
+                startDate: new Date(course.createdAt),
+                endDate: new Date(course.updatedAt),
+                thumbnail: '' // Placeholder
+            })));
+        } catch (error: any) {
+            setError(error.message || 'Failed to load courses. Please try again later.');
             console.error('Error fetching courses:', error);
         } finally {
             setIsLoading(false);
@@ -81,6 +117,7 @@ export default function CoursesManagement() {
 
     useEffect(() => {
         fetchCourses();
+        fetchInstructors();
     }, []);
 
     useEffect(() => {
@@ -119,18 +156,8 @@ export default function CoursesManagement() {
         }
     };
 
-    const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value, type } = e.target;
-
-        if (type === 'select-multiple') {
-            const selectElement = e.target as HTMLSelectElement;
-            const selectedValues = Array.from(selectElement.selectedOptions).map(option => option.value);
-            setFormData(prev => ({
-                ...prev,
-                [id]: selectedValues
-            }));
-            return;
-        }
 
         const processedValue = type === 'number'
             ? (value === '' ? undefined : Number(value))
@@ -142,11 +169,18 @@ export default function CoursesManagement() {
         }));
     };
 
-    const handleSelectChange = (fieldId: string, value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            [fieldId]: value
-        }));
+    const handleSelectChange = (fieldId: string, value: string | string[]) => {
+        if (fieldId === 'instructors') {
+            setFormData(prev => ({
+                ...prev,
+                instructors: (value as string[]).map(id => ({ instructorId: Number(id) }))
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [fieldId]: value
+            }));
+        }
     };
 
     const generateRandomCourseCode = () => {
@@ -167,60 +201,86 @@ export default function CoursesManagement() {
             return;
         }
 
+        setIsLoading(true);
+        setError(null);
+
         try {
-            const courseCode = generateRandomCourseCode(); 
-            const newCourseData = { ...formData, courseCode }; 
+            const courseCode = formData.courseCode || generateRandomCourseCode();
+            const courseToSave: ApiCourseRequest = {
+                courseName: formData.courseName || '',
+                courseCode: courseCode,
+                courseDescription: formData.courseDescription || '',
+                courseCategory: formData.courseCategory || '',
+                instructors: formData.instructors || [],
+                courseDuration: formData.courseDuration || 0,
+                courseMode: formData.courseMode || '',
+                maxEnrollments: formData.maxEnrollments || 0,
+                courseFee: formData.courseFee || 0,
+                language: formData.language || '',
+            };
 
-            const url = editingIndex !== null
-                ? `${process.env.NEXT_PUBLIC_BASE_URL}/courses/${courseCode}`
-                : `${process.env.NEXT_PUBLIC_BASE_URL}/courses`;
-            const method = editingIndex !== null ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newCourseData),
-            });
-
-            if (response.ok) {
-                const savedCourse = await response.json();
-                if (editingIndex !== null) {
-                    const updatedCourses = [...courses];
-                    updatedCourses[editingIndex] = savedCourse;
-                    setCourses(updatedCourses);
-                } else {
-                    setCourses([...courses, savedCourse]);
-                }
-                alert(`Course ${editingIndex !== null ? 'updated' : 'created'} successfully!`);
-                setIsCreating(false);
-                setEditingIndex(null);
+            let savedCourse;
+            if (editingIndex !== null && courses[editingIndex]?.id) {
+                savedCourse = await apiUpdateCourse(courses[editingIndex].id!, courseToSave);
             } else {
-                alert('Failed to save course.');
+                savedCourse = await apiCreateCourse(courseToSave);
             }
-        } catch (error) {
+
+            if (editingIndex !== null) {
+                const updatedCourses = [...courses];
+                updatedCourses[editingIndex] = {
+                    ...savedCourse,
+                    startDate: new Date(savedCourse.createdAt),
+                    endDate: new Date(savedCourse.updatedAt),
+                    status: 'active',
+                    totalAssignments: 0,
+                    completedAssignments: 0,
+                    thumbnail: ''
+                };
+                setCourses(updatedCourses);
+            } else {
+                setCourses([...courses, {
+                    ...savedCourse,
+                    startDate: new Date(savedCourse.createdAt),
+                    endDate: new Date(savedCourse.updatedAt),
+                    status: 'active',
+                    totalAssignments: 0,
+                    completedAssignments: 0,
+                    thumbnail: ''
+                }]);
+            }
+            alert(`Course ${editingIndex !== null ? 'updated' : 'created'} successfully!`);
+            setIsCreating(false);
+            setEditingIndex(null);
+            setFormData({});
+            fetchCourses(); // Re-fetch courses to ensure data consistency
+        } catch (error: any) {
             console.error('Error saving course:', error);
-            alert('An error occurred while saving the course.');
+            setError(error.message || 'An error occurred while saving the course.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const deleteCourse = async (index: number) => {
         if (confirm("Are you sure you want to delete this course?")) {
+            setIsLoading(true);
+            setError(null);
             try {
-                const courseCode = courses[index].courseCode;
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/courses/${courseCode}`, {
-                    method: 'DELETE',
-                });
-
-                if (response.ok) {
+                const courseIdToDelete = courses[index].id;
+                if (courseIdToDelete) {
+                    await apiDeleteCourse(courseIdToDelete);
                     const updatedCourses = courses.filter((_, i) => i !== index);
                     setCourses(updatedCourses);
                     alert('Course deleted successfully!');
                 } else {
-                    alert('Failed to delete course.');
+                    throw new Error('Course ID not found for deletion.');
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error deleting course:', error);
-                alert('An error occurred while deleting the course.');
+                setError(error.message || 'An error occurred while deleting the course.');
+            } finally {
+                setIsLoading(false);
             }
         }
     };
@@ -286,6 +346,21 @@ export default function CoursesManagement() {
                                         <SelectContent>
                                             {field.options?.map((opt) => (
                                                 <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : field.type === "select-multiple" ? (
+                                    <Select
+                                        value={formData.instructors?.map(inst => inst.instructorId.toString()) || []}
+                                        onValueChange={(values) => handleSelectChange(field.id, values)}
+                                        multiple // Enable multi-select
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={`Select ${field.label}`} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {field.options?.map((opt: any) => (
+                                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>

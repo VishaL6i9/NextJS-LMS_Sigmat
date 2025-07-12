@@ -1,8 +1,15 @@
 export interface Course {
   id: string;
-  title: string;
-  code: string;
-  description: string;
+  courseName: string;
+  courseCode: string;
+  courseDescription: string;
+  courseDuration: number;
+  courseMode: string;
+  maxEnrollments: number;
+  courseFee: number;
+  language: string;
+  courseCategory: string;
+  instructors: Instructor[];
   enrolledStudents: number;
   totalAssignments: number;
   completedAssignments: number;
@@ -11,7 +18,15 @@ export interface Course {
   startDate: Date;
   endDate: Date;
   thumbnail?: string;
-  category: string;
+}
+
+export interface Instructor {
+  instructorId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNo: string;
+  dateOfJoining: string;
 }
 
 export interface Student {

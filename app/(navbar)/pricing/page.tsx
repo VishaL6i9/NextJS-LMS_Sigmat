@@ -1,6 +1,19 @@
 "use client";
 import React, { useState } from 'react';
 import { Check, Sparkles, Book, Users, Cpu } from 'lucide-react';
+import { useUser } from '../../contexts/UserContext';
+
+interface PricingCardProps {
+  tier: string;
+  price: number;
+  features: string[];
+  bgColor: string;
+  description: string;
+  icon: React.ElementType;
+  isPopular?: boolean;
+  courseId?: string; // New prop for course ID
+  instructorId?: number; // New prop for instructor ID
+}
 
 const PricingCard = ({
                        tier,
@@ -9,32 +22,41 @@ const PricingCard = ({
                        bgColor,
                        description,
                        icon: Icon,
-                       isPopular
-                     }: {
-  tier: string;
-  price: number;
-  features: string[];
-  bgColor: string;
-  description: string;
-  icon: React.ElementType;
-  isPopular?: boolean;
-}) => {
+                       isPopular,
+                       courseId, // Destructure new prop
+                       instructorId // Destructure new prop
+                     }: PricingCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { userProfile } = useUser();
 
   const handleCheckout = async () => {
+    if (!userProfile || !userProfile.id) {
+      alert("Please log in to proceed with checkout.");
+      return;
+    }
+
+    // TODO: In a real application, courseId and instructorId should be dynamically determined
+    // based on user selection before reaching this pricing page.
+    // For now, using placeholders as this component is generic.
+    const selectedCourseId = courseId || "1"; // Placeholder: Replace with actual course ID
+    const selectedInstructorId = instructorId || null; // Placeholder: Replace with actual instructor ID if applicable
+
     const successUrl = 'https://example.com/order/success';
     const cancelUrl = 'https://example.com/order/cancel';
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/create-checkout-session`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           tier: tier.toLowerCase(),
-          successUrl:successUrl,
-          cancelUrl:cancelUrl
+          successUrl: successUrl,
+          cancelUrl: cancelUrl,
+          userId: userProfile.id, // Use actual user ID
+          courseId: selectedCourseId, // Use selected course ID
+          instructorId: selectedInstructorId // Use selected instructor ID
         })
       });
 
@@ -43,6 +65,7 @@ const PricingCard = ({
       window.location.href = sessionUrl;
     } catch (error) {
       console.error("Error creating checkout session:", error);
+      alert("Failed to create checkout session. Please try again.");
     }
   };
 
@@ -117,13 +140,70 @@ function App() {
         "Email support"
       ],
       bgColor: "bg-gradient-to-b from-gray-50 to-gray-100",
-      icon: Book
+      icon: Book,
+      courseId: "starter-course-id", // Placeholder
+      instructorId: null // Placeholder
     },
     {
       tier: "Professional",
       price: 65,
       description: "Ideal for growing teams",
       features: [
+        "All Starter features",
+        "Advanced course materials",
+        "Team collaboration tools",
+        "Priority support"
+      ],
+      bgColor: "bg-gradient-to-b from-blue-50 to-indigo-100",
+      icon: Users,
+      isPopular: true,
+      courseId: "professional-course-id", // Placeholder
+      instructorId: null // Placeholder
+    },
+    {
+      tier: "Enterprise",
+      price: 125,
+      description: "For large organizations",
+      features: [
+        "All Professional features",
+        "Custom learning paths",
+        "Advanced analytics",
+        "24/7 dedicated support"
+      ],
+      bgColor: "bg-gradient-to-b from-purple-50 to-purple-100",
+      icon: Cpu,
+      courseId: "enterprise-course-id", // Placeholder
+      instructorId: null // Placeholder
+    }
+  ];
+
+  return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
+              Choose Your Learning Journey
+            </h1>
+            <p className="mt-5 text-xl text-gray-500">
+              Flexible plans designed to help you grow at your own pace
+            </p>
+          </div>
+          <div className="mt-16 space-y-12 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-x-8">
+            {pricingTiers.map((tier) => (
+                <PricingCard key={tier.tier} {...tier} />
+            ))}
+          </div>
+          <div className="mt-16 text-center">
+            <p className="text-base text-gray-500">
+              Need a custom plan? <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">Contact us</a>
+            </p>
+          </div>
+        </div>
+      </div>
+  );
+}
+
+export default App;
         "All Starter features",
         "Advanced course materials",
         "Team collaboration tools",

@@ -6,6 +6,9 @@ import { LessonResources } from './LessonResources';
 import { LessonQuiz } from './LessonQuiz';
 import { NotesPanel } from './NotesPanel';
 import { Course, Note } from '../types/course';
+import { useUser } from '@/app/contexts/UserContext';
+import { enrollUserInCourse, getUserEnrollments } from '../services/api';
+import { Button } from '@/components/ui/button';
 
 interface CourseLearningPageProps {
   course: Course;
@@ -16,10 +19,35 @@ export const CourseLearningPage: React.FC<CourseLearningPageProps> = ({
   course: initialCourse, 
   onBack 
 }) => {
-  const [course, setCourse] = useState<Course>(initialCourse);
+  useEffect(() => {
+    setCourse(initialCourse);
+  }, [initialCourse]);
+
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (userProfile?.id && course?.id) {
+        setEnrollmentLoading(true);
+        setEnrollmentError(null);
+        try {
+          const enrollments = await getUserEnrollments(userProfile.id);
+          const enrolled = enrollments.some(enrollment => enrollment.id === course.id);
+          setIsEnrolled(enrolled);
+        } catch (err: any) {
+          setEnrollmentError(err.message || 'Failed to check enrollment status.');
+          console.error('Error checking enrollment:', err);
+        } finally {
+          setEnrollmentLoading(false);
+        }
+      }
+    };
+    checkEnrollment();
+  }, [userProfile?.id, course?.id]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeTab, setActiveTab] = useState<'resources' | 'quiz' | 'notes'>('resources');
   const [currentVideoTime, setCurrentVideoTime] = useState(0);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
 
   const currentLesson = course.lessons[course.currentLessonIndex];
 
@@ -90,6 +118,31 @@ export const CourseLearningPage: React.FC<CourseLearningPageProps> = ({
     setCurrentVideoTime(time);
   };
 
+  const handleEnroll = async () => {
+    if (!userProfile?.id) {
+      alert("Please log in to enroll in the course.");
+      return;
+    }
+    if (!course?.id) {
+      alert("Course information is missing.");
+      return;
+    }
+
+    setEnrollmentLoading(true);
+    setEnrollmentError(null);
+    try {
+      // Assuming no specific instructor is selected for direct enrollment here
+      await enrollUserInCourse(userProfile.id, course.id);
+      setIsEnrolled(true);
+      alert("Successfully enrolled in the course!");
+    } catch (err: any) {
+      setEnrollmentError(err.message || 'Failed to enroll in the course.');
+      console.error('Error enrolling:', err);
+    } finally {
+      setEnrollmentLoading(false);
+    }
+  };
+
   const hasResources = currentLesson.resources && currentLesson.resources.length > 0;
   const hasQuiz = currentLesson.quiz;
 
@@ -110,6 +163,20 @@ export const CourseLearningPage: React.FC<CourseLearningPageProps> = ({
               seekTime={currentVideoTime}
             />
           </div>
+
+          {/* Enrollment Section */}
+          {!isEnrolled && !enrollmentLoading && enrollmentError && (
+            <div className="p-4 bg-red-100 text-red-700 border border-red-200 rounded-md m-4">
+              {enrollmentError}
+            </div>
+          )}
+          {!isEnrolled && !enrollmentLoading && !enrollmentError && (
+            <div className="p-4 bg-white border-t border-gray-200 flex justify-center items-center">
+              <Button onClick={handleEnroll} disabled={enrollmentLoading}>
+                {enrollmentLoading ? 'Enrolling...' : 'Enroll in Course'}
+              </Button>
+            </div>
+          )}
 
           {/* Bottom Panel */}
           <div className="h-80 bg-white border-t border-gray-200 flex flex-col">
