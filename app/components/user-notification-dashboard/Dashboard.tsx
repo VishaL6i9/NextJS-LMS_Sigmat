@@ -24,7 +24,7 @@ const Dashboard: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${base_url}/users`);
+      const response = await fetch(`${base_url}/api/public/users`);
       if (!response.ok) {
         throw new Error('Failed to fetch users');
       }

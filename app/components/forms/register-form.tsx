@@ -76,7 +76,7 @@ export function RegisterForm() {
         setSuccessMessage("");
 
         try {
-            const response = await fetch(`${base_url}/register/user`, {
+            const response = await fetch(`${base_url}/api/public/register/user`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

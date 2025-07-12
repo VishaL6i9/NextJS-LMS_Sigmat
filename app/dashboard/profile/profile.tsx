@@ -30,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import axios from 'axios';
 import {useRouter} from "next/navigation";
+import * as http from "node:http";
 
 const profileSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -54,6 +55,7 @@ const passwordSchema = z.object({
     message: "Passwords don't match",
     path: ["confirmPassword"],
 });
+const base_url = "http://localhost:8080";
 
 export function ProfileForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -98,8 +100,9 @@ export function ProfileForm() {
                     throw new Error("Authentication token not found");
 
                 }
+                
 
-                const getuserID = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/getuserID`, {
+                const getuserID = await fetch(`${base_url}/api/user/profile/getuserID`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -113,7 +116,7 @@ export function ProfileForm() {
                 const userID = await getuserID.text();
                 localStorage.setItem('userid', userID);
 
-                const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/${userID}`, {
+                const response = await fetch(`${base_url}/api/user/profile/${userID}`, {
                     method: "GET",
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -128,7 +131,7 @@ export function ProfileForm() {
                 profileForm.reset(data);
 
                 try {
-                    const getProfileImageID= await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/getProfileImageID/${userID}`,{
+                    const getProfileImageID= await fetch(`${base_url}/api/user/profile/getProfileImageID/${userID}`,{
                         method: "GET",
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -137,7 +140,7 @@ export function ProfileForm() {
 
                     const profileImageID = await getProfileImageID.text();
                     localStorage.setItem('profileImageID',profileImageID);
-                    const imageResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/get-image/${profileImageID}`, {
+                    const imageResponse = await fetch(`${base_url}/api/public/get-image/${profileImageID}`, {
                         method: "GET",
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -205,7 +208,7 @@ export function ProfileForm() {
                 throw new Error("Authentication token not found");
             }
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile`, {
+            const response = await fetch(`${base_url}/api/user/profile`, {
                 method: "PUT",
                 headers: {
                     'Content-Type': 'application/json',
@@ -255,7 +258,7 @@ export function ProfileForm() {
                 throw new Error("Authentication token not found");
             }
 
-            const url = new URL(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/password`);
+            const url = new URL(`${base_url}/api/user/profile/password`);
             url.searchParams.append("userID", userId);
             url.searchParams.append("currentPassword", values.currentPassword);
             url.searchParams.append("newPassword", values.newPassword);
@@ -335,7 +338,7 @@ export function ProfileForm() {
             formData.append('file', file);
 
             const userId = localStorage.getItem("userid");
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/pic/upload/${userId}`, formData, {
+            const response = await axios.post(`${base_url}/api/user/profile/pic/upload/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
