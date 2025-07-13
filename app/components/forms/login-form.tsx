@@ -143,28 +143,28 @@ export function LoginForm({
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="role"
-                                    render={({ field }) => (
-                                        <FormItem className="grid gap-3">
-                                            <FormLabel>Role</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a role" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="user">User</SelectItem>
-                                                    <SelectItem value="instructor">Instructor</SelectItem>
-                                                    <SelectItem value="admin">Admin</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                {/*<FormField*/}
+                                {/*    control={form.control}*/}
+                                {/*    name="role"*/}
+                                {/*    render={({ field }) => (*/}
+                                {/*        <FormItem className="grid gap-3">*/}
+                                {/*            <FormLabel>Role</FormLabel>*/}
+                                {/*            <Select onValueChange={field.onChange} defaultValue={field.value}>*/}
+                                {/*                <FormControl>*/}
+                                {/*                    <SelectTrigger>*/}
+                                {/*                        <SelectValue placeholder="Select a role" />*/}
+                                {/*                    </SelectTrigger>*/}
+                                {/*                </FormControl>*/}
+                                {/*                <SelectContent>*/}
+                                {/*                    <SelectItem value="user">User</SelectItem>*/}
+                                {/*                    <SelectItem value="instructor">Instructor</SelectItem>*/}
+                                {/*                    <SelectItem value="admin">Admin</SelectItem>*/}
+                                {/*                </SelectContent>*/}
+                                {/*            </Select>*/}
+                                {/*            <FormMessage />*/}
+                                {/*        </FormItem>*/}
+                                {/*    )}*/}
+                                {/*/>*/}
                                 <Button type="submit" className="w-full" disabled={isLoading}>
                                     {isLoading ? 'Logging in...' : 'Login'}
                                 </Button>

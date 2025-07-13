@@ -14,16 +14,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FiUser, FiMail, FiLock } from "react-icons/fi";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 
@@ -33,15 +24,6 @@ const formSchema = z.object({
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
-    role: z.enum(["USERS", "INSTRUCTOR", "ADMIN", "organization_admin"]),
-    organizationName: z.string().optional(),
-    timeZone: z.string(),
-    language: z.string(),
-    country: z.string(),
-    phoneNumber: z.string().optional(),
-    consentToTerms: z.boolean().refine((val) => val === true, {
-        message: "You must agree to the terms and conditions",
-    }),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
@@ -61,11 +43,6 @@ export function RegisterForm() {
             email: "",
             password: "",
             confirmPassword: "",
-            role: "USERS",
-            timeZone: "UTC",
-            language: "en",
-            country: "",
-            consentToTerms: false,
         },
     });
 
@@ -106,16 +83,18 @@ export function RegisterForm() {
     }
 
     return (
-        <Card className="w-full max-w-md mx-auto">
-            <CardHeader>
-                <CardTitle className="text-2xl text-center">Create Your Account</CardTitle>
-                <CardDescription className="text-center">Enter your information to register</CardDescription>
+        <Card>
+            <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Create an account</CardTitle>
+                <CardDescription>
+                    Enter your details below to create your account
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
                         {errorMessage && (
-                            <Alert variant="destructive" className="mb-4">
+                            <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertTitle>Error</AlertTitle>
                                 <AlertDescription>{errorMessage}</AlertDescription>
@@ -123,7 +102,7 @@ export function RegisterForm() {
                         )}
                         
                         {successMessage && (
-                            <Alert className="mb-4 border-green-500 text-green-700">
+                            <Alert variant="default">
                                 <CheckCircle2 className="h-4 w-4" />
                                 <AlertTitle>Success</AlertTitle>
                                 <AlertDescription>{successMessage}</AlertDescription>
@@ -138,12 +117,7 @@ export function RegisterForm() {
                                     <FormItem>
                                         <FormLabel>First Name</FormLabel>
                                         <FormControl>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                                                    <FiUser size={16} />
-                                                </span>
-                                                <Input className="pl-10" {...field} />
-                                            </div>
+                                            <Input placeholder="John" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -156,12 +130,7 @@ export function RegisterForm() {
                                     <FormItem>
                                         <FormLabel>Last Name</FormLabel>
                                         <FormControl>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                                                    <FiUser size={16} />
-                                                </span>
-                                                <Input className="pl-10" {...field} />
-                                            </div>
+                                            <Input placeholder="Doe" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -176,40 +145,12 @@ export function RegisterForm() {
                                 <FormItem>
                                     <FormLabel>Email</FormLabel>
                                     <FormControl>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                                                <FiMail size={16} />
-                                            </span>
-                                            <Input type="email" className="pl-10" {...field} />
-                                        </div>
+                                        <Input type="email" placeholder="john.doe@example.com" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
-
-                        {/*<FormField*/}
-                        {/*    control={form.control}*/}
-                        {/*    name="role"*/}
-                        {/*    render={({ field }) => (*/}
-                        {/*        <FormItem>*/}
-                        {/*            <FormLabel>Role</FormLabel>*/}
-                        {/*            <Select value={field.value} onValueChange={field.onChange}>*/}
-                        {/*                <FormControl>*/}
-                        {/*                    <SelectTrigger>*/}
-                        {/*                        <SelectValue placeholder="Select a role" />*/}
-                        {/*                    </SelectTrigger>*/}
-                        {/*                </FormControl>*/}
-                        {/*                <SelectContent>*/}
-                        {/*                    <SelectItem value="USER">User</SelectItem>*/}
-                        {/*                    <SelectItem value="INSTRUCTOR">Instructor</SelectItem>*/}
-                        {/*                    <SelectItem value="ADMIN">Admin</SelectItem>*/}
-                        {/*                </SelectContent>*/}
-                        {/*            </Select>*/}
-                        {/*            <FormMessage />*/}
-                        {/*        </FormItem>*/}
-                        {/*    )}*/}
-                        {/*/>*/}
 
                         <FormField
                             control={form.control}
@@ -218,12 +159,7 @@ export function RegisterForm() {
                                 <FormItem>
                                     <FormLabel>Password</FormLabel>
                                     <FormControl>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                                                <FiLock size={16} />
-                                            </span>
-                                            <Input type="password" className="pl-10" {...field} />
-                                        </div>
+                                        <Input type="password" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -237,35 +173,9 @@ export function RegisterForm() {
                                 <FormItem>
                                     <FormLabel>Confirm Password</FormLabel>
                                     <FormControl>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                                                <FiLock size={16} />
-                                            </span>
-                                            <Input type="password" className="pl-10" {...field} />
-                                        </div>
+                                        <Input type="password" {...field} />
                                     </FormControl>
                                     <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="consentToTerms"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-4">
-                                    <FormControl>
-                                        <Checkbox 
-                                            checked={field.value} 
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                    <div className="space-y-1 leading-none">
-                                        <FormLabel className="text-sm font-normal">
-                                            I agree to the <a href="#" className="text-primary hover:underline">terms and conditions</a>
-                                        </FormLabel>
-                                        <FormMessage />
-                                    </div>
                                 </FormItem>
                             )}
                         />
@@ -278,18 +188,20 @@ export function RegisterForm() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Registering...
+                                    Creating Account...
                                 </>
                             ) : "Create Account"}
                         </Button>
+
+                        <div className="text-center text-sm">
+                            Already have an account?{" "}
+                            <a href="/auth/login" className="underline">
+                                Sign in
+                            </a>
+                        </div>
                     </form>
                 </Form>
             </CardContent>
-            <CardFooter>
-                <p className="w-full text-center text-sm text-muted-foreground">
-                    Already have an account? <a href="/auth/login" className="text-primary font-medium hover:underline">Sign in</a>
-                </p>
-            </CardFooter>
         </Card>
     );
 }
