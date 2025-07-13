@@ -188,30 +188,28 @@ export function RegisterForm() {
                             )}
                         />
 
-                        <FormField
-                            control={form.control}
-                            name="role"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Role</FormLabel>
-                                    <Select value={field.value} onValueChange={field.onChange}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a role" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="USER">User</SelectItem>
-            <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
-                                            <SelectItem value="INSTRUCTOR">Instructor</SelectItem>
-                                            <SelectItem value="ADMIN">Admin</SelectItem>
-                                            <SelectItem value="organization_admin">Organization Admin</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        {/*<FormField*/}
+                        {/*    control={form.control}*/}
+                        {/*    name="role"*/}
+                        {/*    render={({ field }) => (*/}
+                        {/*        <FormItem>*/}
+                        {/*            <FormLabel>Role</FormLabel>*/}
+                        {/*            <Select value={field.value} onValueChange={field.onChange}>*/}
+                        {/*                <FormControl>*/}
+                        {/*                    <SelectTrigger>*/}
+                        {/*                        <SelectValue placeholder="Select a role" />*/}
+                        {/*                    </SelectTrigger>*/}
+                        {/*                </FormControl>*/}
+                        {/*                <SelectContent>*/}
+                        {/*                    <SelectItem value="USER">User</SelectItem>*/}
+                        {/*                    <SelectItem value="INSTRUCTOR">Instructor</SelectItem>*/}
+                        {/*                    <SelectItem value="ADMIN">Admin</SelectItem>*/}
+                        {/*                </SelectContent>*/}
+                        {/*            </Select>*/}
+                        {/*            <FormMessage />*/}
+                        {/*        </FormItem>*/}
+                        {/*    )}*/}
+                        {/*/>*/}
 
                         <FormField
                             control={form.control}
@@ -289,7 +287,7 @@ export function RegisterForm() {
             </CardContent>
             <CardFooter>
                 <p className="w-full text-center text-sm text-muted-foreground">
-                    Already have an account? <a href="/login" className="text-primary font-medium hover:underline">Sign in</a>
+                    Already have an account? <a href="/auth/login" className="text-primary font-medium hover:underline">Sign in</a>
                 </p>
             </CardFooter>
         </Card>
