@@ -1,6 +1,8 @@
-export interface Student {
+export interface User {
   id: string;
   name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone?: string;
   address?: string;
@@ -26,7 +28,7 @@ export interface Invoice {
   invoiceNumber: string;
   date: string;
   dueDate: string;
-  student: Student;
+  user: User;
   items: InvoiceItem[];
   subtotal: number;
   taxRate: number;

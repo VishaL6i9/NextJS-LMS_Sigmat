@@ -1,3 +1,5 @@
+import { Invoice, Company } from '../../invoiceGenerator/types/invoice';
+
 const API_BASE_URL = 'http://localhost:8080/api';
 
 // API Response Types
@@ -321,6 +323,25 @@ class ApiService {
   }
 
   /**
+   * Save an invoice
+   * Endpoint: POST localhost:8000/api/invoices
+   */
+  async saveInvoice(invoiceData: Invoice): Promise<{ invoice: Invoice; stripeInvoiceUrl: string | null }> {
+    try {
+      console.log('Saving invoice:', invoiceData);
+      const response = await this.fetchWithErrorHandling<{ invoice: Invoice; stripeInvoiceUrl: string | null }>(`${API_BASE_URL}/invoices`, {
+        method: 'POST',
+        body: JSON.stringify(invoiceData),
+      });
+      console.log('Successfully saved invoice:', response.invoice.invoiceNumber);
+      return response;
+    } catch (error) {
+      console.error('Failed to save invoice:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get all instructors
    * Endpoint: GET localhost:8000/api/instructors
    */
@@ -351,3 +372,4 @@ export const deleteCourse = (courseId: string) => apiService.deleteCourse(course
 export const getAllInstructors = () => apiService.getAllInstructors();
 export const enrollUserInCourse = (userId: string, courseId: string, instructorId?: number) => apiService.enrollUserInCourse(userId, courseId, instructorId);
 export const getUserEnrollments = (userId: string) => apiService.getUserEnrollments(userId);
+export const saveInvoice = (invoice: Invoice) => apiService.saveInvoice(invoice);

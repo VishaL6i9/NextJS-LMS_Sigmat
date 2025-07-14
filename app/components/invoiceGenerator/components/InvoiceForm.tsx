@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { Invoice, InvoiceItem, Student } from '../types/invoice';
+import { Invoice, InvoiceItem, User } from '../types/invoice';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -56,10 +56,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onInvoiceChan
     });
   };
 
-  const updateStudent = (field: keyof Student, value: string) => {
+  const updateUser = (field: keyof User, value: string) => {
     onInvoiceChange({
       ...invoice,
-      student: { ...invoice.student, [field]: value },
+      user: { ...invoice.user, [field]: value },
     });
   };
 
@@ -128,47 +128,47 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onInvoiceChan
       <Separator />
 
       <div>
-        <h3 className="text-lg font-medium mb-4">Student Information</h3>
+        <h3 className="text-lg font-medium mb-4">User Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="studentName">Student Name</Label>
+            <Label htmlFor="userName">User Name</Label>
             <Input
-              id="studentName"
+              id="userName"
               type="text"
-              value={invoice.student.name}
-              onChange={(e) => updateStudent('name', e.target.value)}
+              value={invoice.user.name}
+              onChange={(e) => updateUser('name', e.target.value)}
               placeholder="John Doe"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="studentEmail">Email</Label>
+            <Label htmlFor="userEmail">Email</Label>
             <Input
-              id="studentEmail"
+              id="userEmail"
               type="email"
-              value={invoice.student.email}
-              onChange={(e) => updateStudent('email', e.target.value)}
+              value={invoice.user.email}
+              onChange={(e) => updateUser('email', e.target.value)}
               placeholder="john@example.com"
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="studentPhone">Phone</Label>
+            <Label htmlFor="userPhone">Phone</Label>
             <Input
-              id="studentPhone"
+              id="userPhone"
               type="tel"
-              value={invoice.student.phone || ''}
-              onChange={(e) => updateStudent('phone', e.target.value)}
+              value={invoice.user.phone || ''}
+              onChange={(e) => updateUser('phone', e.target.value)}
               placeholder="+1 (555) 123-4567"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="studentAddress">Address</Label>
+            <Label htmlFor="userAddress">Address</Label>
             <Input
-              id="studentAddress"
+              id="userAddress"
               type="text"
-              value={invoice.student.address || ''}
-              onChange={(e) => updateStudent('address', e.target.value)}
+              value={invoice.user.address || ''}
+              onChange={(e) => updateUser('address', e.target.value)}
               placeholder="123 Main St, City, State 12345"
             />
           </div>

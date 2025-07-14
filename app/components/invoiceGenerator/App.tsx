@@ -1,14 +1,15 @@
 "use client";
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { InvoiceForm } from './components/InvoiceForm';
-import { InvoicePreview } from './components/InvoicePreview';
+
+
 import { CompanySettings } from './components/CompanySettings';
 import { useInvoice } from './hooks/useInvoice';
 import { Button } from '@/components/ui/button';
-import { Plus, Save } from 'lucide-react';
+import { Plus, Save, ExternalLink } from 'lucide-react';
 
 function App() {
   const {
@@ -18,12 +19,17 @@ function App() {
     saveInvoice,
     saveCompany,
     createNewInvoice,
-    printInvoice,
+    stripeInvoiceUrl, // Get the URL from the hook
   } = useInvoice();
 
   const handleSaveInvoice = () => {
     saveInvoice();
-    // Replace alert with a toast notification for better UX
+  };
+
+  const handleViewOnStripe = () => {
+    if (stripeInvoiceUrl) {
+      window.open(stripeInvoiceUrl, '_blank');
+    }
   };
 
   return (
@@ -46,8 +52,14 @@ function App() {
             </Button>
             <Button onClick={handleSaveInvoice}>
               <Save className="mr-2 h-4 w-4" />
-              Save Invoice
+              Save & Create on Stripe
             </Button>
+            {stripeInvoiceUrl && (
+              <Button onClick={handleViewOnStripe} variant="secondary">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View on Stripe
+              </Button>
+            )}
           </div>
         </header>
 
@@ -75,9 +87,8 @@ function App() {
                 <CardHeader>
                   <CardTitle>Preview</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <InvoicePreview invoice={currentInvoice} company={company} onPrint={printInvoice} />
-                </CardContent>
+                
+                
               </Card>
             </motion.div>
           </TabsContent>
