@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
@@ -9,10 +10,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { CourseSearch } from "@/app/components/CourseSearch";
 import { apiService, createCourse as apiCreateCourse, updateCourse as apiUpdateCourse, getAllCourses as apiGetAllCourses, deleteCourse as apiDeleteCourse, getAllInstructors, ApiCourseRequest, ApiInstructor } from "@/app/components/course-player-dashboard/services/api";
+import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
+import { CalendarIcon, ChevronsUpDown, PlusCircle, XCircle } from "lucide-react";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface CourseData {
     id?: string;
@@ -36,42 +49,73 @@ interface CourseData {
     thumbnail?: string;
 }
 
+const courseSchema = z.object({
+    id: z.string().optional(),
+    courseName: z.string().min(1, "Course Name is required"),
+    courseCode: z.string().optional(),
+    courseDescription: z.string().optional(),
+    courseCategory: z.string().min(1, "Course Category is required"),
+    instructors: z.array(z.object({ instructorId: z.number() })).min(1, "At least one instructor is required"),
+    courseDuration: z.number().min(0, "Duration must be a positive number"),
+    courseMode: z.string().min(1, "Mode of Delivery is required"),
+    maxEnrollments: z.number().min(0, "Max Enrollments must be a positive number"),
+    courseFee: z.number().min(0, "Course Fee must be a positive number"),
+    language: z.string().min(1, "Language is required"),
+    enrolledStudents: z.number().optional(),
+    totalAssignments: z.number().optional(),
+    completedAssignments: z.number().optional(),
+    averageGrade: z.number().optional(),
+    status: z.enum(['active', 'draft', 'archived']).optional(),
+    startDate: z.date().optional(),
+    endDate: z.date().optional(),
+    thumbnail: z.string().optional(),
+});
+
+const courseCategories = [
+    "Development & Programming",
+    "Business & Entrepreneurship",
+    "IT & Software",
+    "Design & Creative",
+    "Marketing & Digital Marketing",
+    "Personal Development",
+    "Finance & Accounting",
+    "Health & Fitness",
+    "Music & Arts",
+    "Data Science & Analytics"
+];
+
 export default function CoursesManagement() {
     const [courses, setCourses] = useState<CourseData[]>([]);
     const [isCreating, setIsCreating] = useState(false);
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
-    const [currentPage, setCurrentPage] = useState(0);
-    const [formData, setFormData] = useState<Partial<CourseData>>({});
+    const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState('list');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [filteredCourses, setFilteredCourses] = useState<CourseData[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [availableInstructors, setAvailableInstructors] = useState<ApiInstructor[]>([]);
+    const { toast } = useToast();
 
-    const fields = [
-        { label: "Course Name", id: "courseName", type: "text", required: true },
-        { label: "Description", id: "courseDescription", type: "textarea" },
-        { label: "Instructor(s)", id: "instructors", type: "select-multiple", options: availableInstructors.map(inst => ({ label: `${inst.firstName} ${inst.lastName}`, value: inst.instructorId.toString() })), required: true },
-        { label: "Duration", id: "courseDuration", type: "number" },
-        { label: "Mode of Delivery", id: "courseMode", type: "select", options: ["Online", "Offline", "Blended"], required: true },
-        { label: "Maximum Enrollments", id: "maxEnrollments", type: "number" },
-        { label: "Course Fee", id: "courseFee", type: "number" },
-        { label: "Language", id: "language", type: "select", options: ["English", "French", "Spanish", "German", "Italian", "Portuguese", "Russian", "Chinese (Mandarin)", "Japanese", "Arabic", "Hindi", "Korean"], required: true },
-    ];
+    const form = useForm<CourseData>({
+        resolver: zodResolver(courseSchema),
+        defaultValues: {
+            courseName: '',
+            courseCode: '',
+            courseDescription: '',
+            courseCategory: '',
+            instructors: [],
+            courseDuration: 0,
+            courseMode: '',
+            maxEnrollments: 0,
+            courseFee: 0,
+            language: '',
+            status: 'active',
+            startDate: undefined,
+            endDate: undefined,
+        },
+    });
 
-    const courseCategories = [
-        "Development & Programming",
-        "Business & Entrepreneurship",
-        "IT & Software",
-        "Design & Creative",
-        "Marketing & Digital Marketing",
-        "Personal Development",
-        "Finance & Accounting",
-        "Health & Fitness",
-        "Music & Arts",
-        "Data Science & Analytics"
-    ];
+    const { handleSubmit, control, reset, setValue, formState: { errors } } = form;
 
     const fetchInstructors = async () => {
         try {
@@ -79,7 +123,11 @@ export default function CoursesManagement() {
             setAvailableInstructors(instructors);
         } catch (error) {
             console.error('Failed to fetch instructors:', error);
-            setError('Failed to load instructors.');
+            toast({
+                title: "Error",
+                description: "Failed to load instructors.",
+                variant: "destructive",
+            });
         }
     };
 
@@ -102,13 +150,18 @@ export default function CoursesManagement() {
                 language: course.language,
                 enrolledStudents: course.studentsEnrolled,
                 averageGrade: course.rating,
-                status: 'active', // Assuming all fetched courses are active for now
-                startDate: new Date(course.createdAt),
-                endDate: new Date(course.updatedAt),
-                thumbnail: '' // Placeholder
+                status: 'active',
+                startDate: course.createdAt ? new Date(course.createdAt) : undefined,
+                endDate: course.updatedAt ? new Date(course.updatedAt) : undefined,
+                thumbnail: ''
             })));
         } catch (error: any) {
             setError(error.message || 'Failed to load courses. Please try again later.');
+            toast({
+                title: "Error",
+                description: error.message || 'Failed to load courses. Please try again later.',
+                variant: "destructive",
+            });
             console.error('Error fetching courses:', error);
         } finally {
             setIsLoading(false);
@@ -133,7 +186,7 @@ export default function CoursesManagement() {
             return;
         }
 
-        const searchResults = courses.filter(course => 
+        const searchResults = courses.filter(course =>
             course.courseName.toLowerCase().includes(query.toLowerCase()) ||
             course.courseDescription?.toLowerCase().includes(query.toLowerCase()) ||
             course.courseCategory?.toLowerCase().includes(query.toLowerCase()) ||
@@ -143,142 +196,87 @@ export default function CoursesManagement() {
         setFilteredCourses(searchResults);
     };
 
-    const loadCreateForm = (index: number | null = null) => {
+    const loadCourseForm = (course?: CourseData) => {
         setIsCreating(true);
-        setEditingIndex(index);
-        setCurrentPage(0);
+        setEditingCourseId(course?.id || null);
+        reset(course || {}); // Reset form with course data or empty object
         setActiveTab('form');
-
-        if (index !== null && courses[index]) {
-            setFormData({ ...courses[index] });
-        } else {
-            setFormData({});
-        }
-    };
-
-    const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { id, value, type } = e.target;
-
-        const processedValue = type === 'number'
-            ? (value === '' ? undefined : Number(value))
-            : value;
-
-        setFormData(prev => ({
-            ...prev,
-            [id]: processedValue
-        }));
-    };
-
-    const handleSelectChange = (fieldId: string, value: string | string[]) => {
-        if (fieldId === 'instructors') {
-            setFormData(prev => ({
-                ...prev,
-                instructors: (value as string[]).map(id => ({ instructorId: Number(id) }))
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                [fieldId]: value
-            }));
-        }
     };
 
     const generateRandomCourseCode = () => {
         return 'COURSE-' + Math.random().toString(36).substr(2, 9).toUpperCase();
     };
 
-    const addCourse = async (event: FormEvent) => {
-        event.preventDefault();
-
-        const requiredFields = fields.filter(f => f.required).map(f => f.id);
-        const missingFields = requiredFields.filter(field =>
-            !formData[field] ||
-            (Array.isArray(formData[field]) && formData[field].length === 0)
-        );
-
-        if (missingFields.length > 0) {
-            alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
-            return;
-        }
-
+    const onSubmit = async (data: CourseData) => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const courseCode = formData.courseCode || generateRandomCourseCode();
+            const courseCode = data.courseCode || generateRandomCourseCode();
             const courseToSave: ApiCourseRequest = {
-                courseName: formData.courseName || '',
+                courseName: data.courseName,
                 courseCode: courseCode,
-                courseDescription: formData.courseDescription || '',
-                courseCategory: formData.courseCategory || '',
-                instructors: formData.instructors || [],
-                courseDuration: formData.courseDuration || 0,
-                courseMode: formData.courseMode || '',
-                maxEnrollments: formData.maxEnrollments || 0,
-                courseFee: formData.courseFee || 0,
-                language: formData.language || '',
+                courseDescription: data.courseDescription || '',
+                courseCategory: data.courseCategory,
+                instructors: data.instructors,
+                courseDuration: data.courseDuration,
+                courseMode: data.courseMode,
+                maxEnrollments: data.maxEnrollments,
+                courseFee: data.courseFee,
+                language: data.language,
             };
 
             let savedCourse;
-            if (editingIndex !== null && courses[editingIndex]?.id) {
-                savedCourse = await apiUpdateCourse(courses[editingIndex].id!, courseToSave);
+            if (editingCourseId) {
+                savedCourse = await apiUpdateCourse(editingCourseId, courseToSave);
+                toast({
+                    title: "Success",
+                    description: "Course updated successfully!",
+                });
             } else {
                 savedCourse = await apiCreateCourse(courseToSave);
+                toast({
+                    title: "Success",
+                    description: "Course created successfully!",
+                });
             }
 
-            if (editingIndex !== null) {
-                const updatedCourses = [...courses];
-                updatedCourses[editingIndex] = {
-                    ...savedCourse,
-                    startDate: new Date(savedCourse.createdAt),
-                    endDate: new Date(savedCourse.updatedAt),
-                    status: 'active',
-                    totalAssignments: 0,
-                    completedAssignments: 0,
-                    thumbnail: ''
-                };
-                setCourses(updatedCourses);
-            } else {
-                setCourses([...courses, {
-                    ...savedCourse,
-                    startDate: new Date(savedCourse.createdAt),
-                    endDate: new Date(savedCourse.updatedAt),
-                    status: 'active',
-                    totalAssignments: 0,
-                    completedAssignments: 0,
-                    thumbnail: ''
-                }]);
-            }
-            alert(`Course ${editingIndex !== null ? 'updated' : 'created'} successfully!`);
             setIsCreating(false);
-            setEditingIndex(null);
-            setFormData({});
-            fetchCourses(); // Re-fetch courses to ensure data consistency
+            setEditingCourseId(null);
+            reset();
+            fetchCourses();
         } catch (error: any) {
             console.error('Error saving course:', error);
             setError(error.message || 'An error occurred while saving the course.');
+            toast({
+                title: "Error",
+                description: error.message || 'An error occurred while saving the course.',
+                variant: "destructive",
+            });
         } finally {
             setIsLoading(false);
         }
     };
 
-    const deleteCourse = async (index: number) => {
-        if (confirm("Are you sure you want to delete this course?")) {
+    const deleteCourse = async (courseId: string) => {
+        if (confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
             setIsLoading(true);
             setError(null);
             try {
-                const courseIdToDelete = courses[index].id;
-                if (courseIdToDelete) {
-                    await apiDeleteCourse(courseIdToDelete);
-                    const updatedCourses = courses.filter((_, i) => i !== index);
-                    setCourses(updatedCourses);
-                    alert('Course deleted successfully!');
-                } else {
-                    throw new Error('Course ID not found for deletion.');
-                }
+                await apiDeleteCourse(courseId);
+                setCourses(prevCourses => prevCourses.filter(course => course.id !== courseId));
+                toast({
+                    title: "Success",
+                    description: "Course deleted successfully!",
+                });
             } catch (error: any) {
                 console.error('Error deleting course:', error);
                 setError(error.message || 'An error occurred while deleting the course.');
+                toast({
+                    title: "Error",
+                    description: error.message || 'An error occurred while deleting the course.',
+                    variant: "destructive",
+                });
             } finally {
                 setIsLoading(false);
             }
@@ -286,239 +284,495 @@ export default function CoursesManagement() {
     };
 
     const renderForm = () => {
-        const start = currentPage * 5;
-        const end = start + 5;
-
         return (
-            <Card className="w-full max-w-2xl mx-auto">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-semibold">
-                        {editingIndex !== null ? 'Edit Course' : 'Create New Course'}
-                    </CardTitle>
-                    <Separator className="my-2" />
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={addCourse} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <Label htmlFor="courseCategory">Course Category</Label>
-                                <Select
-                                    value={formData.courseCategory || ''}
-                                    onValueChange={(value) => handleSelectChange('courseCategory', value)}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full max-w-3xl mx-auto"
+            >
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-3xl font-bold text-center">
+                            {editingCourseId ? 'Edit Course' : 'Create New Course'}
+                        </CardTitle>
+                        <Separator className="my-4" />
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="courseName">Course Name</Label>
+                                    <Controller
+                                        name="courseName"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Input
+                                                {...field}
+                                                type="text"
+                                                placeholder="Enter course name"
+                                            />
+                                        )}
+                                    />
+                                    {errors.courseName && <p className="text-red-500 text-sm">{errors.courseName.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="courseCategory">Course Category</Label>
+                                    <Controller
+                                        name="courseCategory"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select course category" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {courseCategories.map((category) => (
+                                                        <SelectItem key={category} value={category}>
+                                                            {category}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                    {errors.courseCategory && <p className="text-red-500 text-sm">{errors.courseCategory.message}</p>}
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="courseDescription">Description</Label>
+                                    <Controller
+                                        name="courseDescription"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Textarea
+                                                {...field}
+                                                placeholder="Enter course description"
+                                                className="min-h-[100px]"
+                                            />
+                                        )}
+                                    />
+                                    {errors.courseDescription && <p className="text-red-500 text-sm">{errors.courseDescription.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="courseDuration">Duration (in hours)</Label>
+                                    <Controller
+                                        name="courseDuration"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Input
+                                                {...field}
+                                                type="number"
+                                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                                value={field.value === 0 ? '' : field.value}
+                                                placeholder="e.g., 40"
+                                            />
+                                        )}
+                                    />
+                                    {errors.courseDuration && <p className="text-red-500 text-sm">{errors.courseDuration.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="courseMode">Mode of Delivery</Label>
+                                    <Controller
+                                        name="courseMode"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select mode" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {["Online", "Offline", "Blended"].map((mode) => (
+                                                        <SelectItem key={mode} value={mode}>
+                                                            {mode}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                    {errors.courseMode && <p className="text-red-500 text-sm">{errors.courseMode.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="maxEnrollments">Maximum Enrollments</Label>
+                                    <Controller
+                                        name="maxEnrollments"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Input
+                                                {...field}
+                                                type="number"
+                                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                                value={field.value === 0 ? '' : field.value}
+                                                placeholder="e.g., 100"
+                                            />
+                                        )}
+                                    />
+                                    {errors.maxEnrollments && <p className="text-red-500 text-sm">{errors.maxEnrollments.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="courseFee">Course Fee</Label>
+                                    <Controller
+                                        name="courseFee"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Input
+                                                {...field}
+                                                type="number"
+                                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                                value={field.value === 0 ? '' : field.value}
+                                                placeholder="e.g., 500"
+                                            />
+                                        )}
+                                    />
+                                    {errors.courseFee && <p className="text-red-500 text-sm">{errors.courseFee.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="language">Language</Label>
+                                    <Controller
+                                        name="language"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select language" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {["English", "French", "Spanish", "German", "Italian", "Portuguese", "Russian", "Chinese (Mandarin)", "Japanese", "Arabic", "Hindi", "Korean"].map((lang) => (
+                                                        <SelectItem key={lang} value={lang}>
+                                                            {lang}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                    {errors.language && <p className="text-red-500 text-sm">{errors.language.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="startDate">Start Date</Label>
+                                    <Controller
+                                        name="startDate"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant={"outline"}
+                                                        className={cn(
+                                                            "w-full justify-start text-left font-normal",
+                                                            !field.value && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={field.value}
+                                                        onSelect={field.onChange}
+                                                        initialFocus
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                        )}
+                                    />
+                                    {errors.startDate && <p className="text-red-500 text-sm">{errors.startDate.message}</p>}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="endDate">End Date</Label>
+                                    <Controller
+                                        name="endDate"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant={"outline"}
+                                                        className={cn(
+                                                            "w-full justify-start text-left font-normal",
+                                                            !field.value && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={field.value}
+                                                        onSelect={field.onChange}
+                                                        initialFocus
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                        )}
+                                    />
+                                    {errors.endDate && <p className="text-red-500 text-sm">{errors.endDate.message}</p>}
+                                </div>
+
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="instructors">Instructor(s)</Label>
+                                    <Controller
+                                        name="instructors"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        className="w-full justify-between"
+                                                    >
+                                                        {field.value && field.value.length > 0
+                                                            ? field.value.map(selectedInst => {
+                                                                const instructor = availableInstructors.find(inst => inst.instructorId === selectedInst.instructorId);
+                                                                return instructor ? `${instructor.firstName} ${instructor.lastName}` : '';
+                                                            }).join(", ")
+                                                            : "Select instructor(s)..."}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Search instructors..." />
+                                                        <CommandList>
+                                                            <CommandEmpty>No instructors found.</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {availableInstructors.map((instructor) => (
+                                                                    <CommandItem
+                                                                        key={instructor.instructorId}
+                                                                        onSelect={() => {
+                                                                            const currentSelected = field.value || [];
+                                                                            const isSelected = currentSelected.some(inst => inst.instructorId === instructor.instructorId);
+                                                                            if (isSelected) {
+                                                                                setValue('instructors', currentSelected.filter(inst => inst.instructorId !== instructor.instructorId));
+                                                                            } else {
+                                                                                setValue('instructors', [...currentSelected, { instructorId: instructor.instructorId }]);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <Checkbox
+                                                                            checked={field.value?.some(inst => inst.instructorId === instructor.instructorId)}
+                                                                            onCheckedChange={() => {
+                                                                                const currentSelected = field.value || [];
+                                                                                const isSelected = currentSelected.some(inst => inst.instructorId === instructor.instructorId);
+                                                                                if (isSelected) {
+                                                                                    setValue('instructors', currentSelected.filter(inst => inst.instructorId !== instructor.instructorId));
+                                                                                } else {
+                                                                                    setValue('instructors', [...currentSelected, { instructorId: instructor.instructorId }]);
+                                                                                }
+                                                                            }}
+                                                                            className="mr-2"
+                                                                        />
+                                                                        {`${instructor.firstName} ${instructor.lastName}`}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                        )}
+                                    />
+                                    {errors.instructors && <p className="text-red-500 text-sm">{errors.instructors.message}</p>}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-4 pt-6">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setIsCreating(false);
+                                        setEditingCourseId(null);
+                                        reset();
+                                        setActiveTab('list');
+                                    }}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select course category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {courseCategories.map((category) => (
-                                            <SelectItem key={category} value={category}>
-                                                {category}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-4">
-                                <Label htmlFor="courseName">Course Name</Label>
-                                <Input
-                                    type="text"
-                                    id="courseName"
-                                    value={formData.courseName || ''}
-                                    onChange={handleInputChange}
-                                    required
-                                    placeholder="Enter course name"
-                                />
-                            </div>
-                        </div>
-
-                        {fields.slice(1, end).map((field) => (
-                            <div key={field.id} className="space-y-2">
-                                <Label htmlFor={field.id}>{field.label}</Label>
-                                {field.type === "select" ? (
-                                    <Select
-                                        value={formData[field.id]?.toString() || ''}
-                                        onValueChange={(value) => handleSelectChange(field.id, value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={`Select ${field.label}`} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {field.options?.map((opt) => (
-                                                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                ) : field.type === "select-multiple" ? (
-                                    <Select
-                                        value={formData.instructors?.map(inst => inst.instructorId.toString()) || []}
-                                        onValueChange={(values) => handleSelectChange(field.id, values)}
-                                        multiple // Enable multi-select
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={`Select ${field.label}`} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {field.options?.map((opt: any) => (
-                                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                ) : field.type === "textarea" ? (
-                                    <Textarea
-                                        id={field.id}
-                                        value={formData[field.id] || ''}
-                                        onChange={handleInputChange}
-                                        required={field.required}
-                                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                                        className="min-h-[100px]"
-                                    />
-                                ) : (
-                                    <Input
-                                        type={field.type}
-                                        id={field.id}
-                                        value={formData[field.id] || ''}
-                                        onChange={handleInputChange}
-                                        required={field.required}
-                                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                                    />
-                                )}
-                            </div>
-                        ))}
-
-                        <div className="flex justify-between items-center pt-4">
-                            {currentPage > 0 && (
-                                <Button type="button" variant="outline" onClick={() => setCurrentPage(currentPage - 1)}>
-                                    Previous
+                                    Cancel
                                 </Button>
-                            )}
-                            <div className="flex gap-2">
-                                {end < fields.length && (
-                                    <Button type="button" variant="outline" onClick={() => setCurrentPage(currentPage + 1)}>
-                                        Next
-                                    </Button>
-                                )}
-                                <Button type="submit" variant="default">
-                                    {editingIndex !== null ? 'Update' : 'Create'} Course
+                                <Button type="submit" disabled={isLoading}>
+                                    {isLoading && <span className="animate-spin mr-2">&#9696;</span>}
+                                    {editingCourseId ? 'Update Course' : 'Create Course'}
                                 </Button>
                             </div>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
+                        </form>
+                    </CardContent>
+                </Card>
+            </motion.div>
         );
     };
 
     const renderCourseList = () => (
-        <Card className="w-full">
-            <CardHeader>
-                <div className="flex justify-between items-center">
-                    <CardTitle className="text-2xl font-semibold">Course Management</CardTitle>
-                    <CourseSearch 
-                        onSearch={handleSearch}
-                        placeholder="Search by name, category, or code..."
-                    />
-                </div>
-                <Separator className="my-2" />
-            </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="w-full"
+        >
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <CardTitle className="text-3xl font-bold">Course Catalog</CardTitle>
+                        <CourseSearch
+                            onSearch={handleSearch}
+                            placeholder="Search by name, category, or code..."
+                        />
                     </div>
-                ) : error ? (
-                    <Alert variant="destructive">
-                        <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="px-4 py-3 text-left font-medium">Course Name</th>
-                                    <th className="px-4 py-3 text-left font-medium">Course Code</th>
-                                    <th className="px-4 py-3 text-left font-medium">Status</th>
-                                    <th className="px-4 py-3 text-left font-medium">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredCourses.map((course, index) => (
-                                    <tr key={index} className="border-b hover:bg-muted/50">
-                                        <td className="px-4 py-3">{course.courseName}</td>
-                                        <td className="px-4 py-3">
-                                            <Badge variant="outline">{course.courseCode}</Badge>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <Badge>{course.courseMode}</Badge>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex gap-2">
-                                                <Button variant="outline" size="sm" onClick={() => loadCreateForm(index)}>
-                                                    Edit
-                                                </Button>
-                                                <Button variant="destructive" size="sm" onClick={() => deleteCourse(index)}>
-                                                    Delete
-                                                </Button>
-                                            </div>
-                                        </td>
+                    <Separator className="my-4" />
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary mb-4"></div>
+                            <p className="text-lg text-muted-foreground">Loading courses...</p>
+                        </div>
+                    ) : error ? (
+                        <Alert variant="destructive" className="my-4">
+                            <AlertTitle>Error</AlertTitle>
+                            <AlertDescription>{error}</AlertDescription>
+                        </Alert>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-border">
+                                <thead className="bg-muted/50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Course Name</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Code</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Category</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Mode</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Instructors</th>
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {filteredCourses.length === 0 && (
-                            <div className="text-center py-8 text-muted-foreground">
-                                {isSearching 
-                                    ? "No courses found matching your search criteria."
-                                    : "No courses available. Create your first course to get started."}
-                            </div>
-                        )}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    <AnimatePresence>
+                                        {filteredCourses.length > 0 ? (
+                                            filteredCourses.map((course) => (
+                                                <motion.tr
+                                                    key={course.id}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    exit={{ opacity: 0, x: 20 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className="hover:bg-muted/50"
+                                                >
+                                                    <td className="px-4 py-3 whitespace-nowrap font-medium">{course.courseName}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <Badge variant="secondary">{course.courseCode}</Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">{course.courseCategory}</td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <Badge variant="outline">{course.courseMode}</Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {course.instructors?.map(selectedInst => {
+                                                            const instructor = availableInstructors.find(inst => inst.instructorId === selectedInst.instructorId);
+                                                            return instructor ? (
+                                                                <Badge key={instructor.instructorId} variant="default" className="mr-1 mb-1">
+                                                                    {`${instructor.firstName} ${instructor.lastName}`}
+                                                                </Badge>
+                                                            ) : null;
+                                                        })}
+                                                    </td>
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="flex gap-2">
+                                                            <Button variant="outline" size="sm" onClick={() => loadCourseForm(course)}>
+                                                                Edit
+                                                            </Button>
+                                                            <Button variant="destructive" size="sm" onClick={() => deleteCourse(course.id!)}>
+                                                                Delete
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </motion.tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                    {isSearching
+                                                        ? "No courses found matching your search criteria."
+                                                        : "No courses available. Click 'Create New Course' to get started."}
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </AnimatePresence>
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </motion.div>
     );
 
     const handleTabChange = (value: string) => {
         setActiveTab(value);
         if (value === 'list') {
             setIsCreating(false);
-            setEditingIndex(null);
-            setFormData({});
+            setEditingCourseId(null);
+            reset();
         }
     };
 
     return (
-        <div className="container mx-auto p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold">Course Management</h1>
-                <Button onClick={() => loadCreateForm(null)} className="gap-2">
+        <div className="container mx-auto p-6 space-y-8">
+            <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col md:flex-row justify-between items-center gap-4"
+            >
+                <h1 className="text-4xl font-extrabold text-primary-foreground">Course Management</h1>
+                <Button onClick={() => loadCourseForm()} className="gap-2 px-6 py-3 text-lg">
+                    <PlusCircle className="h-5 w-5" />
                     <span>Create New Course</span>
                 </Button>
-            </div>
+            </motion.div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full max-w-[200px] grid-cols-1">
+                <TabsList className="grid w-full max-w-[250px] grid-cols-2 md:grid-cols-1">
                     <TabsTrigger value="list">Course List</TabsTrigger>
+                    <TabsTrigger value="form">Course Form</TabsTrigger>
                 </TabsList>
 
-                {activeTab === 'list' && (
-                    <div className="mt-6">
-                        {renderCourseList()}
-                    </div>
-                )}
+                <AnimatePresence mode="wait">
+                    {activeTab === 'list' && (
+                        <TabsContent value="list" className="mt-6">
+                            {renderCourseList()}
+                        </TabsContent>
+                    )}
 
-                {activeTab === 'form' && (
-                    <div className="mt-6">
-                        {renderForm()}
-                    </div>
-                )}
+                    {activeTab === 'form' && (
+                        <TabsContent value="form" className="mt-6">
+                            {renderForm()}
+                        </TabsContent>
+                    )}
+                </AnimatePresence>
             </Tabs>
-
-            {error && (
-                <Alert variant="destructive" className="mt-4">
-                    <AlertDescription>{error}</AlertDescription>
-                </Alert>
-            )}
         </div>
     );
 }
