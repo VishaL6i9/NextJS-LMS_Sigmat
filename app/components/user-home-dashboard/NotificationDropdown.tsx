@@ -17,7 +17,7 @@ export const NotificationDropdown = () => {
             <Button 
                 variant="ghost" 
                 size="sm" 
-                className="relative"
+                className="relative text-inherit"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <Bell className="h-5 w-5" />

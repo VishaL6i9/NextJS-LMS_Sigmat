@@ -1,5 +1,5 @@
 
-import Course_completion from "@/app/(navbar)/(courses)/certificates/course_completion";
+import Course_completion from "@/app/(main)/(navbar)/(courses)/certificates/course_completion";
 
 const HomePage = () => {
     return (

@@ -57,9 +57,62 @@ type HomeNotificationAction =
     | { type: 'DELETE_NOTIFICATION'; payload: string }
     | { type: 'SET_USER_ID'; payload: number };
 
-// @ts-ignore
 function homeNotificationReducer(state: HomeNotificationState, action: HomeNotificationAction): HomeNotificationState {
-    
+    switch (action.type) {
+        case 'SET_LOADING':
+            return { ...state, loading: action.payload };
+        case 'SET_ERROR':
+            return { ...state, error: action.payload };
+        case 'SET_NOTIFICATIONS':
+            return { 
+                ...state, 
+                notifications: action.payload,
+                unreadCount: action.payload.filter(n => !n.isRead).length 
+            };
+        case 'ADD_NOTIFICATION':
+            return { 
+                ...state, 
+                notifications: [action.payload, ...state.notifications],
+                unreadCount: state.unreadCount + (action.payload.isRead ? 0 : 1)
+            };
+        case 'ADD_TOAST':
+            return { ...state, toasts: [...state.toasts, action.payload] };
+        case 'REMOVE_TOAST':
+            return { ...state, toasts: state.toasts.filter(t => t.id !== action.payload) };
+        case 'MARK_AS_READ':
+            return {
+                ...state,
+                notifications: state.notifications.map(n => 
+                    n.id === action.payload ? { ...n, isRead: true } : n
+                ),
+                unreadCount: state.unreadCount - 1
+            };
+        case 'MARK_AS_UNREAD':
+            return {
+                ...state,
+                notifications: state.notifications.map(n => 
+                    n.id === action.payload ? { ...n, isRead: false } : n
+                ),
+                unreadCount: state.unreadCount + 1
+            };
+        case 'MARK_ALL_AS_READ':
+            return {
+                ...state,
+                notifications: state.notifications.map(n => ({ ...n, isRead: true })),
+                unreadCount: 0
+            };
+        case 'DELETE_NOTIFICATION':
+            const deletedNotification = state.notifications.find(n => n.id === action.payload);
+            return {
+                ...state,
+                notifications: state.notifications.filter(n => n.id !== action.payload),
+                unreadCount: state.unreadCount - (deletedNotification?.isRead ? 0 : 1)
+            };
+        case 'SET_USER_ID':
+            return { ...state, userId: action.payload };
+        default:
+            return state;
+    }
 }
 
 interface HomeNotificationContextType {

@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { Check, Sparkles, Book, Users, Cpu } from 'lucide-react';
-import { useUser } from '../../contexts/UserContext';
+import { useUser } from '../../../contexts/UserContext';
 
 interface PricingCardProps {
   tier: string;
