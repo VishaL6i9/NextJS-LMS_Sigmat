@@ -33,7 +33,7 @@ const MergedNavbar: React.FC = () => {
     };
 
     const handleLoginButtonClick = () => {
-        router.push('/auth');
+        router.push('/auth/login');
     };
 
     const NavItems = () => (
@@ -200,17 +200,6 @@ const MergedNavbar: React.FC = () => {
                     </div>
                 </div>
             </nav>
-
-            {/* Dashboard Header */}
-            <header className="bg-white shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center">
-                            <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
-                        </div>
-                    </div>
-                </div>
-            </header>
         </div>
     );
 };
