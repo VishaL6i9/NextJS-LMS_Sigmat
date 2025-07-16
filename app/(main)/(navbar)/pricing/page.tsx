@@ -1,14 +1,14 @@
-"use client";
-import React, { useState } from 'react';
-import { Check, Sparkles, Book, Users, Cpu } from 'lucide-react';
-import { useUser } from '../../../contexts/UserContext';
+'use client';
 
-interface PricingCardProps {
-  tier: string;
-  price: number;
-  features: string[];
-  bgColor: string;
-  description: string;
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Check, 
+  X, 
+  Star, ption: string;
   icon: React.ElementType;
   isPopular?: boolean;
   courseId?: string; // New prop for course ID
