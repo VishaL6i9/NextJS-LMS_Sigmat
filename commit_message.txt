@@ -1,10 +1,14 @@
-Fix navbar duplication issue in dashboard routes
+Fix navbar duplication issue in dashboard routes and add user-notification navbar
 
 - Added NavbarWrapper component to conditionally render the global navbar
 - Fixed MergedNavbar component to properly include notification features
 - Updated root layout to use NavbarWrapper instead of direct Navbar inclusion
+- Created MergedNavbar for user-notification route with enhanced notification features
+- Updated user-notification page to use its own MergedNavbar component
 - Ensured dashboard routes only show one navbar (MergedNavbar)
 - Fixed avatar fallback rendering in user profile dropdown
+- Added notification-specific navigation and enhanced notification dropdown
 
 This change prevents duplicate navbars from appearing on dashboard routes while
-maintaining the global navbar on non-dashboard routes.
+maintaining the global navbar on non-dashboard routes. The user-notification
+route now has its own specialized navbar with integrated notification features.
