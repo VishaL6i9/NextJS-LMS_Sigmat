@@ -15,43 +15,39 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUser } from '@/app/contexts/UserContext';
-import { useUserProfile } from '@/app/hooks/useUserProfile';
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
-    role: z.string().nonempty("Role is required").default("user"),
 });
 
 export function LoginForm({
-                            className,
-                            ...props
-                          }: React.ComponentProps<"div">) {
+    className,
+    ...props
+}: React.ComponentProps<"div">) {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const base_url = process.env.NEXT_PUBLIC_BASE_URL;
     const router = useRouter();
-    const { setUserProfile } = useUser();
-    const { fetchProfile } = useUserProfile();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             username: "",
             password: "",
-            role: "",
         },
     });
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
+        console.log('Form submitted with values:', values); // Debug log
         setIsLoading(true);
         setErrorMessage(null);
 
         try {
+            console.log('Making request to:', `${base_url}/api/public/login`); // Debug log
+
             const response = await fetch(`${base_url}/api/public/login`, {
                 method: 'POST',
                 headers: {
@@ -63,25 +59,26 @@ export function LoginForm({
                 }),
             });
 
+            console.log('Response status:', response.status); // Debug log
+            console.log('Response ok:', response.ok); // Debug log
+
             if (!response.ok) {
-                throw new Error('Login failed! Invalid credentials.');
+                const errorText = await response.text();
+                console.error('Error response:', errorText); // Debug log
+                throw new Error(`Login failed! ${errorText || 'Invalid credentials.'}`);
             }
 
             const token = await response.text();
-            console.log(token);
+            console.log('Token received:', token);
             localStorage.setItem('token', token);
 
-            const userProfileData = await fetchProfile();
-            // @ts-ignore
-            if (userProfileData) {
-                setUserProfile(userProfileData);
-            }
-
+            // Redirect to dashboard - let the dashboard handle profile fetching
+            console.log('Redirecting to dashboard...'); // Debug log
             router.push('/dashboard/user-home');
 
         } catch (error: any) {
-            console.error(error);
-            setErrorMessage(error.message);
+            console.error('Login error:', error);
+            setErrorMessage(error.message || 'An unexpected error occurred');
         } finally {
             setIsLoading(false);
         }
@@ -172,7 +169,7 @@ export function LoginForm({
                         </Form>
                         <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                             <span className="bg-card text-muted-foreground relative z-10 px-2">
-                              Or continue with
+                                Or continue with
                             </span>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
