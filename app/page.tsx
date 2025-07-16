@@ -5,14 +5,14 @@ import { motion } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  BookOpen, 
-  Users, 
-  Award, 
-  TrendingUp, 
-  Play, 
-  Star, 
-  CheckCircle, 
+import {
+  BookOpen,
+  Users,
+  Award,
+  TrendingUp,
+  Play,
+  Star,
+  CheckCircle,
   ArrowRight,
   Globe,
   Clock,
@@ -130,14 +130,14 @@ const HomePage: React.FC = () => {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 animate-gradient">
         <div className="absolute inset-0 bg-black/20"></div>
-        
+
         {/* Animated Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-20 h-20 bg-yellow-400/20 rounded-full blur-xl animate-float"></div>
           <div className="absolute bottom-20 right-10 w-32 h-32 bg-pink-400/20 rounded-full blur-xl animate-float" style={{ animationDelay: '2s' }}></div>
           <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-blue-400/20 rounded-full blur-xl animate-float" style={{ animationDelay: '1s' }}></div>
           <div className="absolute top-1/3 right-1/3 w-24 h-24 bg-purple-400/20 rounded-full blur-xl animate-float" style={{ animationDelay: '3s' }}></div>
-          
+
           {/* Grid Pattern */}
           <div className="absolute inset-0 opacity-30">
             <div className="absolute inset-0" style={{
@@ -146,9 +146,9 @@ const HomePage: React.FC = () => {
             }}></div>
           </div>
         </div>
-        
+
         <div className="relative container mx-auto px-4 py-20 lg:py-32">
-          <motion.div 
+          <motion.div
             className="text-center max-w-4xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -164,33 +164,33 @@ const HomePage: React.FC = () => {
                 🚀 New: AI-Powered Learning Paths Available
               </Badge>
             </motion.div>
-            
-            <motion.h1 
+
+            <motion.h1
               className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
               Master New Skills with
-              <motion.span 
+              <motion.span
                 className="bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 bg-clip-text text-transparent animate-gradient"
                 initial={{ backgroundPosition: "0% 50%" }}
                 animate={{ backgroundPosition: "100% 50%" }}
                 transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
               > Expert-Led</motion.span> Courses
             </motion.h1>
-            
-            <motion.p 
+
+            <motion.p
               className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
             >
-              Join thousands of learners advancing their careers with our comprehensive, 
+              Join thousands of learners advancing their careers with our comprehensive,
               industry-relevant courses designed by top professionals.
             </motion.p>
-            
-            <motion.div 
+
+            <motion.div
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -206,12 +206,12 @@ const HomePage: React.FC = () => {
                   </Link>
                 </Button>
               </motion.div>
-              
+
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg font-semibold backdrop-blur-enhanced">
+                <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-indigo-900 px-8 py-4 text-lg font-semibold backdrop-blur-sm transition-all duration-300">
                   <Play className="mr-2 h-5 w-5" />
                   Watch Demo
                 </Button>
@@ -224,7 +224,7 @@ const HomePage: React.FC = () => {
       {/* Stats Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="grid grid-cols-2 md:grid-cols-4 gap-8"
             variants={staggerContainer}
             initial="initial"
@@ -232,7 +232,7 @@ const HomePage: React.FC = () => {
             viewport={{ once: true }}
           >
             {stats.map((stat, index) => (
-              <motion.div 
+              <motion.div
                 key={index}
                 className="text-center"
                 variants={fadeInUp}
@@ -250,7 +250,7 @@ const HomePage: React.FC = () => {
       {/* Features Section */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -264,12 +264,12 @@ const HomePage: React.FC = () => {
               Everything You Need to <span className="text-indigo-600">Succeed</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our comprehensive learning platform provides all the tools and resources 
+              Our comprehensive learning platform provides all the tools and resources
               you need to achieve your educational and career goals.
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
             variants={staggerContainer}
             initial="initial"
@@ -313,17 +313,17 @@ const HomePage: React.FC = () => {
                 Learning Benefits
               </Badge>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-                Accelerate Your Career with 
+                Accelerate Your Career with
                 <span className="text-green-600"> Smart Learning</span>
               </h2>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Our innovative approach combines cutting-edge technology with proven 
+                Our innovative approach combines cutting-edge technology with proven
                 educational methods to deliver an unparalleled learning experience.
               </p>
-              
+
               <div className="space-y-6">
                 {benefits.map((benefit, index) => (
-                  <motion.div 
+                  <motion.div
                     key={index}
                     className="flex items-start space-x-4"
                     initial={{ opacity: 0, x: -20 }}
@@ -387,7 +387,7 @@ const HomePage: React.FC = () => {
       {/* Testimonials Section */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -401,12 +401,12 @@ const HomePage: React.FC = () => {
               What Our <span className="text-purple-600">Students Say</span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Join thousands of successful learners who have transformed their careers 
+              Join thousands of successful learners who have transformed their careers
               with our comprehensive courses and expert guidance.
             </p>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             className="grid md:grid-cols-3 gap-8"
             variants={staggerContainer}
             initial="initial"
@@ -426,8 +426,8 @@ const HomePage: React.FC = () => {
                       "{testimonial.content}"
                     </p>
                     <div className="flex items-center space-x-3">
-                      <img 
-                        src={testimonial.avatar} 
+                      <img
+                        src={testimonial.avatar}
                         alt={testimonial.name}
                         className="w-12 h-12 rounded-full object-cover"
                       />
@@ -458,7 +458,7 @@ const HomePage: React.FC = () => {
               Ready to Start Your Learning Journey?
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Join our community of learners and take the first step towards 
+              Join our community of learners and take the first step towards
               achieving your career goals with expert-led courses.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -467,7 +467,7 @@ const HomePage: React.FC = () => {
                   Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg font-semibold backdrop-blur-sm">
+              <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-indigo-600 px-8 py-4 text-lg font-semibold backdrop-blur-sm transition-all duration-300">
                 <Link href="/courses">
                   Browse Courses
                 </Link>
@@ -475,7 +475,7 @@ const HomePage: React.FC = () => {
             </div>
           </motion.div>
         </div>
-        
+
         {/* Background Elements */}
         <div className="absolute top-10 left-10 w-24 h-24 bg-white/10 rounded-full blur-xl animate-pulse"></div>
         <div className="absolute bottom-10 right-10 w-32 h-32 bg-white/10 rounded-full blur-xl animate-pulse delay-1000"></div>
