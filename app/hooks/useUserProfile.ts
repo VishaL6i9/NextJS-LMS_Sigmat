@@ -21,7 +21,7 @@ export function useUserProfile() {
             
             const token = localStorage.getItem('token');
             if (!token) {
-                router.push('/auth');
+                router.push('/auth/login');
                 return;
             }
 

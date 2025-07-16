@@ -38,7 +38,7 @@ const Navbar: React.FC = () => {
     };
 
     const handleLoginButtonClick = () => {
-        router.push('/auth');
+        router.push('/auth/login');
     };
 
     const NavItems = () => (
