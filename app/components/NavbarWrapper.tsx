@@ -1,22 +1,22 @@
 'use client';
 
-import React from 'react';
 import { usePathname } from 'next/navigation';
 import Navbar from '@/app/components/Navbar';
 
-const routeIgnore = ['/dashboard', '/pricing'];
+// Routes that should NOT show the navbar
+const routeIgnore = ['/dashboard', '/pricing', '/contact-us', '/courses', '/auth'];
 
 const NavbarWrapper: React.FC = () => {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
 
-  // Hide navbar if the pathname starts with one of the prefixes
-  const shouldHideNavbar = routeIgnore.some(prefix =>
-    pathname?.startsWith(prefix)
+  // remove trailing slash, keep leading slash
+  const cleanPath = pathname.replace(/\/$/, '');
+
+  const shouldHide = routeIgnore.some(
+    prefix => cleanPath === prefix || cleanPath.startsWith(prefix + '/')
   );
 
-  if (shouldHideNavbar) {
-    return null;
-  }
+  if (shouldHide) return null;
 
   return <Navbar />;
 };
