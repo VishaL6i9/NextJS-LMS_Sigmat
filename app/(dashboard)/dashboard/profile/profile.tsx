@@ -36,7 +36,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import Link from "next/link";
 
 const profileSchema = z.object({
@@ -69,12 +68,6 @@ const passwordSchema = z
     });
 
 const base_url = "http://localhost:8080";
-
-const fadeInUp = {
-    initial: { opacity: 0, y: 60 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6 },
-};
 
 export function ProfileForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -373,7 +366,7 @@ export function ProfileForm() {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <motion.div {...fadeInUp}>
+            
                 <div className="mb-6">
                     <Link
                         href="/dashboard"
@@ -395,18 +388,19 @@ export function ProfileForm() {
                     </div>
                 </div>
                 <Separator className="my-6" />
-            </motion.div>
+            
 
             {error && (
-                <motion.div
+                
+                    <div
                     className="bg-destructive/10 p-4 rounded-md border border-destructive/20 text-destructive mb-4"
-                    {...fadeInUp}
+                    
                 >
                     <p className="text-sm font-medium">{error}</p>
-                </motion.div>
+                </div>
             )}
 
-            <motion.div {...fadeInUp}>
+            
                 <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
                     <CardHeader>
                         <div className="flex flex-col sm:flex-row justify-between items-center">
@@ -428,7 +422,7 @@ export function ProfileForm() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-col sm:flex-row items-center gap-8 mb-6">
-                            <motion.div whileHover={{ scale: 1.05 }}>
+                            
                                 <Avatar className="h-32 w-32 border-4 border-primary/10">
                                     <AvatarImage src={avatar || ""} alt="Profile" />
                                     <AvatarFallback className="bg-primary/5 text-primary text-xl">
@@ -436,7 +430,7 @@ export function ProfileForm() {
                                         {profileForm.getValues("lastName")?.charAt(0) || ""}
                                     </AvatarFallback>
                                 </Avatar>
-                            </motion.div>
+                            
                             <div className="w-full sm:w-auto space-y-2">
                                 <label
                                     htmlFor="avatar-upload"
@@ -612,10 +606,7 @@ export function ProfileForm() {
                                             />
                                         </div>
                                         <div className="mt-8">
-                                            <motion.div
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
+                                            
                                                 <Button
                                                     type="submit"
                                                     className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white"
@@ -624,7 +615,7 @@ export function ProfileForm() {
                                                 >
                                                     {isLoading ? "Saving..." : "Save Changes"}
                                                 </Button>
-                                            </motion.div>
+                                            
                                         </div>
                                     </form>
                                 </Form>
@@ -697,10 +688,7 @@ export function ProfileForm() {
                                             )}
                                         />
                                         <div className="mt-8">
-                                            <motion.div
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                            >
+                                            
                                                 <Button
                                                     type="submit"
                                                     className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
@@ -711,7 +699,7 @@ export function ProfileForm() {
                                                         ? "Updating Password..."
                                                         : "Update Password"}
                                                 </Button>
-                                            </motion.div>
+                                            
                                         </div>
                                     </form>
                                 </Form>
@@ -719,7 +707,7 @@ export function ProfileForm() {
                         </Tabs>
                     </CardContent>
                 </Card>
-            </motion.div>
+            
             <footer className="mt-8 text-center text-sm text-muted-foreground">
                 <p>
                     Need help? Contact{" "}

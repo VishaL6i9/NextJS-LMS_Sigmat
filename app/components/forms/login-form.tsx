@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+import { useUser } from "@/app/contexts/UserContext";
+
 const formSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
@@ -31,6 +33,7 @@ export function LoginForm({
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const base_url = process.env.NEXT_PUBLIC_BASE_URL;
     const router = useRouter();
+    const { setUserProfile } = useUser();
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -72,7 +75,67 @@ export function LoginForm({
             console.log('Token received:', token);
             localStorage.setItem('token', token);
 
-            // Redirect to dashboard - let the dashboard handle profile fetching
+            // Fetch user profile after successful login
+            const getuserID = await fetch(`${base_url}/api/user/profile/getuserID`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!getuserID.ok) {
+                throw new Error("Failed to fetch user ID");
+            }
+
+            const userID = await getuserID.text();
+            localStorage.setItem("userid", userID);
+
+            const profileResponse = await fetch(`${base_url}/api/user/profile/${userID}`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!profileResponse.ok) {
+                throw new Error("Failed to fetch profile data");
+            }
+
+            const profileData = await profileResponse.json();
+            
+            // Also fetch the profile image
+            const getProfileImageID = await fetch(
+                `${base_url}/api/user/profile/getProfileImageID/${userID}`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            let profileImage = null;
+            if (getProfileImageID.ok) {
+                const profileImageID = await getProfileImageID.text();
+                const imageResponse = await fetch(
+                    `${base_url}/api/public/get-image/${profileImageID}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+                if (imageResponse.ok) {
+                    const imageBlob = await imageResponse.blob();
+                    profileImage = URL.createObjectURL(imageBlob);
+                }
+            }
+
+            setUserProfile({ ...profileData, profileImage });
+
+
+            // Redirect to dashboard
             console.log('Redirecting to dashboard...'); // Debug log
             router.push('/dashboard/user-home');
 
