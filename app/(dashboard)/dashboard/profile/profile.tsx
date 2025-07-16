@@ -93,7 +93,7 @@ export function ProfileForm() {
             try {
                 const token = localStorage.getItem("token");
                 if (!token) {
-                    router.push('/auth');
+                    router.push('/auth/login');
                     toast({title: "Invalid Session",
                         description: "Please Login Before Proceeding.",
                         variant: "default"});

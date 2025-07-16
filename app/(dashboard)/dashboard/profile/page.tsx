@@ -39,7 +39,7 @@ export default function ProfilePage() {
                 </CardContent>
             </Card>
             <footer className="mt-8 text-center text-sm text-muted-foreground">
-                <p>Need help? Contact <Link href="/support" className="underline hover:text-foreground">support</Link></p>
+                <p>Need help? Contact <Link href="/contact-us" className="underline hover:text-foreground">support</Link></p>
             </footer>
         </div>
     );
