@@ -211,9 +211,11 @@ const HomePage: React.FC = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-indigo-900 px-8 py-4 text-lg font-semibold backdrop-blur-sm transition-all duration-300">
-                  <Play className="mr-2 h-5 w-5" />
-                  Watch Demo
+                <Button asChild size="lg" className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 glow-hover">
+                  <Link href="/demo">
+                    <Play className="mr-2 h-5 w-5" />
+                    Watch Demo
+                  </Link>
                 </Button>
               </motion.div>
             </motion.div>
@@ -467,7 +469,7 @@ const HomePage: React.FC = () => {
                   Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-indigo-600 px-8 py-4 text-lg font-semibold backdrop-blur-sm transition-all duration-300">
+              <Button asChild size="lg" className="bg-white text-indigo-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
                 <Link href="/courses">
                   Browse Courses
                 </Link>
