@@ -1,7 +1,13 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { Bell, TrendingUp, Clock, CheckCircle, AlertTriangle, BookOpen, Trophy, Megaphone, Plus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Bell, TrendingUp, Clock, CheckCircle, AlertTriangle, BookOpen, Trophy, Megaphone, Plus, X, Send } from 'lucide-react';
 import { useNotifications } from './contexts/NotificationContext';
 import SendNotificationForm from './SendNotificationForm';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface User {
   id: number;
@@ -11,287 +17,197 @@ interface User {
   lastName: string;
 }
 
+const fadeInUp = {
+    initial: { opacity: 0, y: 60 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, ease: "easeInOut" }
+};
+
+const staggerContainer = {
+    animate: {
+        transition: {
+            staggerChildren: 0.1,
+        },
+    },
+};
+
 const Dashboard: React.FC = () => {
   const { state, addBulkNotifications, addToast } = useNotifications();
   const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch(`${base_url}/api/public/users`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${base_url}/api/public/users`);
+        if (!response.ok) throw new Error('Failed to fetch users');
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        addToast({ title: 'Error', message: 'Failed to fetch users', type: 'error' });
       }
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      addToast({
-        title: 'Error',
-        message: 'Failed to fetch users',
-        type: 'error'
-      });
-    }
-  };
-  
-  const handleAddSampleNotification = async () => {
-    if (users.length === 0) {
-      addToast({
-        title: 'Error',
-        message: 'No users available to send notifications to',
-        type: 'error'
-      });
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      // Sample notification for all users
-      const notification = {
-        title: 'New Course Available',
-        message: 'Advanced React Patterns course is now available for enrollment.',
-        type: 'info' as const,
-        category: 'announcement' as const,
-        priority: 'medium' as const,
-        isRead: false
-      };
-
-      // Get all user IDs
-      const userIds = users.map(user => user.id);
-      
-      await addBulkNotifications(notification, userIds);
-      
-      addToast({
-        title: 'Success',
-        message: `Sample notifications have been sent to ${userIds.length} users!`,
-        type: 'success'
-      });
-    } catch (error) {
-      addToast({
-        title: 'Error',
-        message: 'Failed to send notifications',
-        type: 'error'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+    fetchUsers();
+  }, [base_url, addToast]);
 
   const getCategoryStats = () => {
     const categories = state.notifications.reduce((acc, notification) => {
       const category = notification.category || 'other';
-      if (!acc[category]) {
-        acc[category] = { total: 0, unread: 0 };
-      }
+      if (!acc[category]) acc[category] = { total: 0, unread: 0 };
       acc[category].total++;
-      if (!notification.isRead) {
-        acc[category].unread++;
-      }
+      if (!notification.isRead) acc[category].unread++;
       return acc;
     }, {} as Record<string, { total: number; unread: number }>);
-
-    return Object.entries(categories).map(([category, stats]) => ({
-      category,
-      ...stats
-    }));
+    return Object.entries(categories).map(([category, stats]) => ({ category, ...stats }));
   };
 
   const categoryStats = getCategoryStats();
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'assignment':
-        return <BookOpen className="w-5 h-5" />;
-      case 'grade':
-        return <Trophy className="w-5 h-5" />;
-      case 'announcement':
-        return <Megaphone className="w-5 h-5" />;
-      case 'system':
-        return <AlertTriangle className="w-5 h-5" />;
-      case 'reminder':
-        return <Clock className="w-5 h-5" />;
-      default:
-        return <Bell className="w-5 h-5" />;
-    }
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'assignment':
-        return 'bg-blue-100 text-blue-700';
-      case 'grade':
-        return 'bg-green-100 text-green-700';
-      case 'announcement':
-        return 'bg-purple-100 text-purple-700';
-      case 'system':
-        return 'bg-red-100 text-red-700';
-      case 'reminder':
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
   const recentNotifications = state.notifications.slice(0, 5);
 
+  const statsCards = [
+      { title: 'Total Notifications', value: state.stats.total, icon: Bell, color: 'from-blue-500 to-cyan-500' },
+      { title: 'Unread', value: state.stats.unread, icon: AlertTriangle, color: 'from-red-500 to-orange-500' },
+      { title: 'Sent Today', value: state.stats.today, icon: Clock, color: 'from-green-500 to-emerald-500' },
+      { title: 'Sent This Week', value: state.stats.thisWeek, icon: CheckCircle, color: 'from-purple-500 to-violet-500' }
+  ];
+
+  const getCategoryVisuals = (category: string) => {
+    switch (category) {
+      case 'assignment': return { icon: BookOpen, color: 'from-sky-500 to-blue-600' };
+      case 'grade': return { icon: Trophy, color: 'from-amber-500 to-orange-600' };
+      case 'announcement': return { icon: Megaphone, color: 'from-indigo-500 to-purple-600' };
+      case 'system': return { icon: AlertTriangle, color: 'from-rose-500 to-red-600' };
+      case 'reminder': return { icon: Clock, color: 'from-yellow-500 to-amber-600' };
+      default: return { icon: Bell, color: 'from-slate-500 to-gray-600' };
+    }
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Toggle Button */}
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={() => setShowForm((prev) => !prev)}
-          className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${showForm ? 'bg-gray-200 text-gray-800 hover:bg-gray-300' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-        >
-          {showForm ? (
-            <>
-              <span className="mr-2">✖️</span> Close Notification Form
-            </>
-          ) : (
-            <>
-              <Plus className="w-4 h-4 mr-2" /> Create Notification
-            </>
-          )}
-        </button>
-      </div>
-      {/* Notification Form */}
-      {showForm && <SendNotificationForm users={users} />}
-      {/* Dashboard Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Notification Dashboard</h1>
-            <p className="text-gray-600 mt-1">Manage your learning notifications and stay updated</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Notifications</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{state.stats.total}</p>
-            </div>
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Bell className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-          <div className="flex items-center mt-4 text-sm">
-            <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-            <span className="text-green-600 font-medium">+12%</span>
-            <span className="text-gray-500 ml-1">from last week</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Unread</p>
-              <p className="text-2xl font-bold text-red-600 mt-1">{state.stats.unread}</p>
-            </div>
-            <div className="bg-red-100 p-3 rounded-lg">
-              <AlertTriangle className="w-6 h-6 text-red-600" />
-            </div>
-          </div>
-          <div className="flex items-center mt-4 text-sm">
-            <span className="text-gray-500">Needs attention</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Today</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">{state.stats.today}</p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <Clock className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-          <div className="flex items-center mt-4 text-sm">
-            <span className="text-gray-500">Received today</span>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">This Week</p>
-              <p className="text-2xl font-bold text-purple-600 mt-1">{state.stats.thisWeek}</p>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-          <div className="flex items-center mt-4 text-sm">
-            <span className="text-gray-500">Past 7 days</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Category Breakdown */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Notifications by Category</h2>
-          <div className="space-y-4">
-            {categoryStats.map(({ category, total, unread }) => (
-              <div key={category} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg ${getCategoryColor(category)}`}>
-                    {getCategoryIcon(category)}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 capitalize">{category}</p>
-                    <p className="text-sm text-gray-500">{total} total notifications</p>
-                  </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="container mx-auto px-4 py-12">
+            {/* Header */}
+            <motion.div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12" variants={fadeInUp} initial="initial" animate="animate">
+                <div>
+                    <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                        Notification Hub
+                    </h1>
+                    <p className="text-xl text-gray-600">Broadcast messages and manage system alerts.</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-gray-900">{total}</p>
-                  {unread > 0 && (
-                    <p className="text-sm text-red-600 font-medium">{unread} unread</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                        onClick={() => setShowForm(prev => !prev)}
+                        className="mt-4 md:mt-0 px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white"
+                    >
+                        {showForm ? <X className="mr-2 h-5 w-5" /> : <Send className="mr-2 h-5 w-5" />}
+                        {showForm ? 'Close Composer' : 'Create Notification'}
+                    </Button>
+                </motion.div>
+            </motion.div>
 
-        {/* Recent Notifications */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Recent Notifications</h2>
-          <div className="space-y-4">
-            {recentNotifications.map((notification) => (
-              <div key={notification.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                <div className={`p-2 rounded-lg ${getCategoryColor(notification.category || 'other')}`}>
-                  {getCategoryIcon(notification.category || 'other')}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
-                    <p className={`font-medium text-sm ${!notification.isRead ? 'text-gray-900' : 'text-gray-700'}`}>
-                      {notification.title}
-                    </p>
-                    {!notification.isRead && (
-                      <div className="w-2 h-2 bg-blue-600 rounded-full" />
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1 truncate">{notification.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(notification.timestamp).toLocaleDateString()} at{' '}
-                    {new Date(notification.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+            <AnimatePresence>
+                {showForm && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.5, ease: 'easeInOut' }}
+                        className="mb-12 overflow-hidden"
+                    >
+                        <SendNotificationForm users={users} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Stats Grid */}
+            <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12" variants={staggerContainer} initial="initial" animate="animate">
+                {statsCards.map((stat) => (
+                    <motion.div key={stat.title} variants={fadeInUp}>
+                        <Card className="h-full hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-gray-600">{stat.title}</CardTitle>
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br ${stat.color}`}>
+                                    <stat.icon className="h-5 w-5 text-white" />
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                ))}
+            </motion.div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Category Breakdown */}
+                <motion.div className="lg:col-span-1" variants={fadeInUp} initial="initial" animate="animate">
+                    <Card className="h-full hover:shadow-2xl transition-all duration-300 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                        <CardHeader>
+                            <CardTitle className="text-2xl font-bold text-gray-900">By Category</CardTitle>
+                            <CardDescription>Breakdown of all notifications.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {categoryStats.map(({ category, total, unread }) => {
+                                const { icon: Icon, color } = getCategoryVisuals(category);
+                                return (
+                                    <div key={category} className="flex items-center">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br ${color} mr-4`}>
+                                            <Icon className="h-5 w-5 text-white" />
+                                        </div>
+                                        <div className="flex-grow">
+                                            <p className="font-medium text-gray-900 capitalize">{category}</p>
+                                            <p className="text-sm text-gray-500">{total} total</p>
+                                        </div>
+                                        <div className="text-right">
+                                            {unread > 0 && (
+                                                <Badge variant="destructive">{unread} unread</Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </CardContent>
+                    </Card>
+                </motion.div>
+
+                {/* Recent Notifications */}
+                <motion.div className="lg:col-span-2" variants={fadeInUp} initial="initial" animate="animate">
+                    <Card className="h-full hover:shadow-2xl transition-all duration-300 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                        <CardHeader>
+                            <CardTitle className="text-2xl font-bold text-gray-900">Recent Activity</CardTitle>
+                            <CardDescription>The latest notifications sent out.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-2">
+                                {recentNotifications.map((notification) => {
+                                    const { icon: Icon, color } = getCategoryVisuals(notification.category || 'other');
+                                    return (
+                                        <motion.div key={notification.id} whileHover={{ scale: 1.02 }} className="flex items-start space-x-4 p-3 -m-3 rounded-lg hover:bg-gray-500/10 transition-colors">
+                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br ${color} mt-1`}>
+                                                <Icon className="h-5 w-5 text-white" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between">
+                                                    <p className={`font-semibold ${!notification.isRead ? 'text-gray-900' : 'text-gray-600'}`}>
+                                                        {notification.title}
+                                                    </p>
+                                                    {!notification.isRead && <Badge variant="default">New</Badge>}
+                                                </div>
+                                                <p className="text-sm text-gray-600 mt-1 truncate">{notification.message}</p>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {new Date(notification.timestamp).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </motion.div>
+            </div>
         </div>
-      </div>
     </div>
   );
 };
