@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     DropdownMenu,
@@ -25,8 +25,14 @@ const MergedNavbar: React.FC = () => {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
 
+    useEffect(() => {
+        // This effect will run whenever userProfile changes
+        // No need for localStorage polling or custom events if UserContext is the source of truth
+    }, [userProfile]);
+
     const handleLogout = async () => {
         console.log("Logout initiated");
+        // In a real application, you would call your backend logout endpoint here
         localStorage.removeItem("token");
         setUserProfile(null);
         router.push("/");
@@ -41,67 +47,67 @@ const MergedNavbar: React.FC = () => {
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
-                        className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Home</Button>
+                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Home</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-full md:w-auto">
                     <DropdownMenuItem asChild><Link href="/dashboard/user-home"
-                        className="w-full">User</Link></DropdownMenuItem>
+                                                    className="w-full">User</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/dashboard/instructor-home"
-                        className="w-full">Instructor</Link></DropdownMenuItem>
+                                                    className="w-full">Instructor</Link></DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
-                        className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Courses</Button>
+                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Courses</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-full md:w-auto">
                     <DropdownMenuItem asChild><Link href="/courses" className="w-full">Courses</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/contents"
-                        className="w-full">Contents</Link></DropdownMenuItem>
+                                                    className="w-full">Contents</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reviews" className="w-full">Reviews</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/certificates"
-                        className="w-full">Certificates</Link></DropdownMenuItem>
+                                                    className="w-full">Certificates</Link></DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 
             <Button variant="ghost" asChild
-                className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                    className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
                 <Link href="/forum">Forum</Link>
             </Button>
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
-                        className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Reporting</Button>
+                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Reporting</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-full md:w-auto">
                     <DropdownMenuItem asChild><Link href="/reporting/courses"
-                        className="w-full">Courses</Link></DropdownMenuItem>
+                                                    className="w-full">Courses</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/contents"
-                        className="w-full">Contents</Link></DropdownMenuItem>
+                                                    className="w-full">Contents</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/attendees"
-                        className="w-full">Attendees</Link></DropdownMenuItem>
+                                                    className="w-full">Attendees</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/reviews"
-                        className="w-full">Reviews</Link></DropdownMenuItem>
+                                                    className="w-full">Reviews</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/quizzes"
-                        className="w-full">Quizzes</Link></DropdownMenuItem>
+                                                    className="w-full">Quizzes</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/forum"
-                        className="w-full">Forum</Link></DropdownMenuItem>
+                                                    className="w-full">Forum</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/certifications"
-                        className="w-full">Certifications</Link></DropdownMenuItem>
+                                                    className="w-full">Certifications</Link></DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
-                        className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Configuration</Button>
+                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Configuration</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-full md:w-auto">
                     <DropdownMenuItem asChild><Link href="/configuration/settings"
-                        className="w-full">Settings</Link></DropdownMenuItem>
+                                                    className="w-full">Settings</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/configuration/course-groups" className="w-full">Course
                         Groups</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/configuration/content-tags" className="w-full">Content
@@ -110,12 +116,12 @@ const MergedNavbar: React.FC = () => {
             </DropdownMenu>
 
             <Button variant="ghost" asChild
-                className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                    className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
                 <Link href="/dashboard/profile">Profile</Link>
             </Button>
 
             <Button variant="ghost" asChild
-                className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                    className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
                 <Link href="/pricing">Pricing</Link>
             </Button>
         </>
@@ -171,7 +177,10 @@ const MergedNavbar: React.FC = () => {
                                     <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                                         <Avatar className="h-9 w-9">
                                             <AvatarImage src={userProfile.profileImage || "/placeholder-avatar.jpg"} alt="User Avatar" />
-                                            <AvatarFallback>{userProfile.firstName?.[0]}{userProfile.lastName?.[0]}</AvatarFallback>
+                                            <AvatarFallback>
+                                                {userProfile.firstName && userProfile.firstName[0]}
+                                                {userProfile.lastName && userProfile.lastName[0]}
+                                            </AvatarFallback>
                                         </Avatar>
                                     </Button>
                                 </DropdownMenuTrigger>

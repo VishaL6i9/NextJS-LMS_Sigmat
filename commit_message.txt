@@ -1,24 +1,10 @@
-refactor: restructure app with Next.js route groups and merge navigation components
+Fix navbar duplication issue in dashboard routes
 
-1. Implemented Next.js Route Groups:
-   - Created (main) route group for public pages with global Navbar
-   - Created (dashboard) route group for dashboard pages with custom navigation
-   - Moved (navbar) folder into (main) folder
-   - Moved dashboard folder into (dashboard) folder
+- Added NavbarWrapper component to conditionally render the global navbar
+- Fixed MergedNavbar component to properly include notification features
+- Updated root layout to use NavbarWrapper instead of direct Navbar inclusion
+- Ensured dashboard routes only show one navbar (MergedNavbar)
+- Fixed avatar fallback rendering in user profile dropdown
 
-2. Created a merged navigation component (MergedNavbar):
-   - Combined global Navbar and dashboard Header into a single component
-   - Preserved all routes and functionality from both components
-   - Integrated notification system with user profile controls
-   - Maintained consistent styling and user experience
-
-3. Updated layouts:
-   - Root layout now provides only basic structure and UserProvider
-   - (main) layout includes the global Navbar for public pages
-   - (dashboard) layout provides context providers for dashboard features
-   - Dashboard-specific layout uses the new MergedNavbar component
-
-4. Fixed context provider issues:
-   - Properly nested NotificationProvider and HomeNotificationProvider
-   - Removed redundant providers from individual pages
-   - Fixed empty reducer function in HomeNotificationContext
+This change prevents duplicate navbars from appearing on dashboard routes while
+maintaining the global navbar on non-dashboard routes.

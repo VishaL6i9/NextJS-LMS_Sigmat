@@ -5,6 +5,7 @@ import { UserProvider } from './contexts/UserContext';
 import type { Metadata, Viewport } from 'next';
 import { Toaster } from "@/components/ui/toaster";
 import ContactUsToast from '@/app/components/ContactUsToast';
+import NavbarWrapper from '@/app/components/NavbarWrapper';
 
 export const metadata: Metadata = {
   title: 'Sigmat LMS',
@@ -23,6 +24,7 @@ const RootLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col">
         <UserProvider>
+          <NavbarWrapper />
           {children}
         </UserProvider>
         <ContactUsToast />
