@@ -1,207 +1,224 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  Check, 
-  X, 
-  Star, ption: string;
+import { Button } from '@/components/ui/button';
+import { Check, X, Star, Book, Users, Cpu, Sparkles } from 'lucide-react';
+
+/* ---------- TYPES ---------- */
+interface Feature {
+  option: string;
   icon: React.ElementType;
   isPopular?: boolean;
-  courseId?: string; // New prop for course ID
-  instructorId?: number; // New prop for instructor ID
+  courseId?: string;
+  instructorId?: number | null;
 }
 
-const PricingCard = ({
-                       tier,
-                       price,
-                       features,
-                       bgColor,
-                       description,
-                       icon: Icon,
-                       isPopular,
-                       courseId, // Destructure new prop
-                       instructorId // Destructure new prop
-                     }: PricingCardProps) => {
+interface PricingCardProps extends Feature {
+  tier: string;
+  price: number;
+  bgColor: string;
+  description: string;
+}
+
+/* ---------- HOOK PLACEHOLDER ---------- */
+// Replace this with your actual hook/context
+const useUser = () => ({
+  userProfile: { id: 'demo-user' }, // stub
+});
+
+/* ---------- PRICING CARD ---------- */
+const PricingCard: React.FC<PricingCardProps> = ({
+  tier,
+  price,
+  features,
+  bgColor,
+  description,
+  icon: Icon,
+  isPopular,
+  courseId,
+  instructorId,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const { userProfile } = useUser();
 
   const handleCheckout = async () => {
-    if (!userProfile || !userProfile.id) {
-      alert("Please log in to proceed with checkout.");
+    if (!userProfile?.id) {
+      alert('Please log in to proceed with checkout.');
       return;
     }
-
-    // TODO: In a real application, courseId and instructorId should be dynamically determined
-    // based on user selection before reaching this pricing page.
-    // For now, using placeholders as this component is generic.
-    const selectedCourseId = courseId || "1"; // Placeholder: Replace with actual course ID
-    const selectedInstructorId = instructorId || null; // Placeholder: Replace with actual instructor ID if applicable
 
     const successUrl = 'https://example.com/order/success';
     const cancelUrl = 'https://example.com/order/cancel';
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/create-checkout-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          tier: tier.toLowerCase(),
-          successUrl: successUrl,
-          cancelUrl: cancelUrl,
-          userId: userProfile.id, // Use actual user ID
-          courseId: selectedCourseId, // Use selected course ID
-          instructorId: selectedInstructorId // Use selected instructor ID
-        })
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/create-checkout-session`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tier: tier.toLowerCase(),
+            successUrl,
+            cancelUrl,
+            userId: userProfile.id,
+            courseId: courseId || '1',
+            instructorId: instructorId ?? null,
+          }),
+        }
+      );
 
-      const sessionUrl = await response.text();
-
+      const sessionUrl = await res.text();
       window.location.href = sessionUrl;
-    } catch (error) {
-      console.error("Error creating checkout session:", error);
-      alert("Failed to create checkout session. Please try again.");
+    } catch (err) {
+      console.error(err);
+      alert('Failed to create checkout session.');
     }
   };
 
   return (
-      <div
-          className={`relative transform transition-all duration-300 ease-in-out ${
-              isHovered ? 'scale-105' : ''
-          } ${isPopular ? 'lg:-mt-4' : ''}`}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-      >
-        {isPopular && (
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center">
-                Most Popular <Sparkles className="w-4 h-4 ml-1" />
-              </div>
-            </div>
-        )}
-        <div className={`flex flex-col rounded-2xl shadow-xl overflow-hidden ${bgColor} border-2 border-transparent transition-all duration-300 ${isHovered ? 'border-indigo-500' : ''}`}>
-          <div className="px-6 py-8 sm:p-10 sm:pb-6">
-            <div className="flex items-center justify-center mb-4">
-              <Icon className={`w-10 h-10 ${isHovered ? 'animate-bounce' : ''}`} />
-            </div>
-            <h3 className="text-2xl font-bold text-center mb-4">{tier}</h3>
-            <div className="flex justify-center items-baseline">
-              <span className="text-3xl font-medium">$</span>
-              <span className="text-6xl font-extrabold tracking-tight">{price}</span>
-              <span className="text-xl font-medium text-gray-500">/mo</span>
-            </div>
-            <div className="mt-6 text-center text-gray-600 font-medium">{description}</div>
-          </div>
-          <div className="flex-1 px-6 pt-6 pb-8 bg-white sm:p-10 sm:pt-6">
-            <ul className="space-y-4">
-              {features.map((feature, index) => (
-                  <li key={index} className="flex items-center space-x-3 text-gray-600">
-                    <Check className="flex-shrink-0 w-5 h-5 text-green-500" />
-                    <span className="text-base">{feature}</span>
-                  </li>
-              ))}
-            </ul>
-            <div className="mt-8">
-              <button
-                  className={`w-full px-6 py-4 text-center rounded-xl font-semibold transition-all duration-300 ${
-                      isHovered
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white transform -translate-y-1'
-                          : 'bg-gray-100 text-gray- 800 hover:bg-gray-200'
-                  }`}
-                  onClick={handleCheckout}
-              >
-                Buy Now
-              </button>
-            </div>
-            <div className="mt-6 text-center text-sm text-gray-500 italic">
-              Instant setup, satisfied or reimbursed.
-            </div>
+    <div
+      className={`relative transform transition-all duration-300 ease-in-out ${
+        isHovered ? 'scale-105' : ''
+      } ${isPopular ? 'lg:-mt-4' : ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {isPopular && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+          <div className="flex items-center gap-1 rounded-full bg-gradient-to-r from-purple-600 to-blue-600 px-4 py-1 text-sm font-medium text-white">
+            Most Popular <Sparkles className="h-4 w-4" />
           </div>
         </div>
+      )}
+
+      <div
+        className={`flex flex-col overflow-hidden rounded-2xl shadow-xl ${bgColor} border-2 border-transparent transition-all duration-300 ${
+          isHovered ? 'border-indigo-500' : ''
+        }`}
+      >
+        <div className="px-6 py-8 sm:p-10 sm:pb-6">
+          <div className="mb-4 flex items-center justify-center">
+            <Icon className={`h-10 w-10 ${isHovered ? 'animate-bounce' : ''}`} />
+          </div>
+          <h3 className="mb-4 text-center text-2xl font-bold">{tier}</h3>
+          <div className="flex items-baseline justify-center">
+            <span className="text-3xl font-medium">$</span>
+            <span className="text-6xl font-extrabold tracking-tight">{price}</span>
+            <span className="ml-1 text-xl font-medium text-gray-500">/mo</span>
+          </div>
+          <p className="mt-6 text-center text-gray-600 font-medium">{description}</p>
+        </div>
+
+        <div className="flex-1 bg-white px-6 pt-6 pb-8 sm:p-10 sm:pt-6">
+          <ul className="space-y-4">
+            {features.map((f, i) => (
+              <li key={i} className="flex items-center space-x-3 text-gray-600">
+                <Check className="h-5 w-5 shrink-0 text-green-500" />
+                <span className="text-base">{f}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-8">
+            <button
+              onClick={handleCheckout}
+              className={`w-full rounded-xl px-6 py-4 font-semibold transition-all duration-300 ${
+                isHovered
+                  ? 'translate-y-[-2px] bg-gradient-to-r from-indigo-600 to-purple-600 text-white'
+                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
+            >
+              Buy Now
+            </button>
+          </div>
+
+          <p className="mt-6 text-center text-sm italic text-gray-500">
+            Instant setup, satisfied or reimbursed.
+          </p>
+        </div>
       </div>
+    </div>
   );
 };
 
-function App() {
-  const pricingTiers = [
+/* ---------- MAIN PAGE ---------- */
+export default function PricingPage() {
+  const pricingTiers: PricingCardProps[] = [
     {
-      tier: "Starter",
+      tier: 'Starter',
       price: 35,
-      description: "Perfect for individual learners",
+      description: 'Perfect for individual learners',
       features: [
-        "Access to basic courses",
-        "Learning path guidance",
-        "Basic progress tracking",
-        "Email support"
+        'Access to basic courses',
+        'Learning path guidance',
+        'Basic progress tracking',
+        'Email support',
       ],
-      bgColor: "bg-gradient-to-b from-gray-50 to-gray-100",
+      bgColor: 'bg-gradient-to-b from-gray-50 to-gray-100',
       icon: Book,
-      courseId: "starter-course-id", // Placeholder
-      instructorId: null // Placeholder
+      courseId: 'starter-course-id',
+      instructorId: null,
     },
     {
-      tier: "Professional",
+      tier: 'Professional',
       price: 65,
-      description: "Ideal for growing teams",
+      description: 'Ideal for growing teams',
       features: [
-        "All Starter features",
-        "Advanced course materials",
-        "Team collaboration tools",
-        "Priority support"
+        'All Starter features',
+        'Advanced course materials',
+        'Team collaboration tools',
+        'Priority support',
       ],
-      bgColor: "bg-gradient-to-b from-blue-50 to-indigo-100",
+      bgColor: 'bg-gradient-to-b from-blue-50 to-indigo-100',
       icon: Users,
       isPopular: true,
-      courseId: "professional-course-id", // Placeholder
-      instructorId: null // Placeholder
+      courseId: 'professional-course-id',
+      instructorId: null,
     },
     {
-      tier: "Enterprise",
+      tier: 'Enterprise',
       price: 125,
-      description: "For large organizations",
+      description: 'For large organizations',
       features: [
-        "All Professional features",
-        "Custom learning paths",
-        "Advanced analytics",
-        "24/7 dedicated support"
+        'All Professional features',
+        'Custom learning paths',
+        'Advanced analytics',
+        '24/7 dedicated support',
       ],
-      bgColor: "bg-gradient-to-b from-purple-50 to-purple-100",
+      bgColor: 'bg-gradient-to-b from-purple-50 to-purple-100',
       icon: Cpu,
-      courseId: "enterprise-course-id", // Placeholder
-      instructorId: null // Placeholder
-    }
+      courseId: 'enterprise-course-id',
+      instructorId: null,
+    },
   ];
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
-              Choose Your Learning Journey
-            </h1>
-            <p className="mt-5 text-xl text-gray-500">
-              Flexible plans designed to help you grow at your own pace
-            </p>
-          </div>
-          <div className="mt-16 space-y-12 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-x-8">
-            {pricingTiers.map((tier) => (
-                <PricingCard key={tier.tier} {...tier} />
-            ))}
-          </div>
-          <div className="mt-16 text-center">
-            <p className="text-base text-gray-500">
-              Need a custom plan? <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">Contact us</a>
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-16 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-3xl text-center">
+          <h1 className="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">
+            Choose Your Learning Journey
+          </h1>
+          <p className="mt-5 text-xl text-gray-500">
+            Flexible plans designed to help you grow at your own pace
+          </p>
+        </div>
+
+        <div className="mt-16 grid gap-8 lg:grid-cols-3">
+          {pricingTiers.map((tier) => (
+            <PricingCard key={tier.tier} {...tier} />
+          ))}
+        </div>
+
+        <div className="mt-16 text-center">
+          <p className="text-base text-gray-500">
+            Need a custom plan?{' '}
+            <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Contact us
+            </a>
+          </p>
         </div>
       </div>
+    </div>
   );
 }
-
-export default App;
-        
