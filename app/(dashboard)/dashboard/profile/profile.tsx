@@ -5,10 +5,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { User, Lock, Upload } from "lucide-react";
+import { User, Lock, Upload, ArrowLeft } from "lucide-react";
 import {
     Form,
     FormControl,
@@ -28,9 +34,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import axios from 'axios';
-import {useRouter} from "next/navigation";
-import * as http from "node:http";
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import Link from "next/link";
 
 const profileSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -41,21 +48,33 @@ const profileSchema = z.object({
     language: z.string(),
 });
 
-const passwordSchema = z.object({
-    currentPassword: z.string().min(1, "Current password is required"),
-    newPassword: z
-        .string()
-        .min(8, "Password must be at least 8 characters")
-        .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-        .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-        .regex(/[0-9]/, "Password must contain at least one number")
-        .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
-    confirmPassword: z.string().min(1, "Please confirm your new password"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-});
+const passwordSchema = z
+    .object({
+        currentPassword: z.string().min(1, "Current password is required"),
+        newPassword: z
+            .string()
+            .min(8, "Password must be at least 8 characters")
+            .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+            .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+            .regex(/[0-9]/, "Password must contain at least one number")
+            .regex(
+                /[^A-Za-z0-9]/,
+                "Password must contain at least one special character"
+            ),
+        confirmPassword: z.string().min(1, "Please confirm your new password"),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+        message: "Passwords don't match",
+        path: ["confirmPassword"],
+    });
+
 const base_url = "http://localhost:8080";
+
+const fadeInUp = {
+    initial: { opacity: 0, y: 60 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6 },
+};
 
 export function ProfileForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -93,19 +112,19 @@ export function ProfileForm() {
             try {
                 const token = localStorage.getItem("token");
                 if (!token) {
-                    router.push('/auth/login');
-                    toast({title: "Invalid Session",
+                    router.push("/auth/login");
+                    toast({
+                        title: "Invalid Session",
                         description: "Please Login Before Proceeding.",
-                        variant: "default"});
+                        variant: "default",
+                    });
                     throw new Error("Authentication token not found");
-
                 }
-                
 
                 const getuserID = await fetch(`${base_url}/api/user/profile/getuserID`, {
                     method: "GET",
                     headers: {
-                        'Authorization': `Bearer ${token}`,
+                        Authorization: `Bearer ${token}`,
                     },
                 });
 
@@ -114,12 +133,12 @@ export function ProfileForm() {
                 }
 
                 const userID = await getuserID.text();
-                localStorage.setItem('userid', userID);
+                localStorage.setItem("userid", userID);
 
                 const response = await fetch(`${base_url}/api/user/profile/${userID}`, {
                     method: "GET",
                     headers: {
-                        'Authorization': `Bearer ${token}`,
+                        Authorization: `Bearer ${token}`,
                     },
                 });
 
@@ -131,27 +150,31 @@ export function ProfileForm() {
                 profileForm.reset(data);
 
                 try {
-                    const getProfileImageID= await fetch(`${base_url}/api/user/profile/getProfileImageID/${userID}`,{
-                        method: "GET",
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                        },
-                    });
+                    const getProfileImageID = await fetch(
+                        `${base_url}/api/user/profile/getProfileImageID/${userID}`,
+                        {
+                            method: "GET",
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
 
                     const profileImageID = await getProfileImageID.text();
-                    localStorage.setItem('profileImageID',profileImageID);
-                    const imageResponse = await fetch(`${base_url}/api/public/get-image/${profileImageID}`, {
-                        method: "GET",
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                        },
-                    });
+                    localStorage.setItem("profileImageID", profileImageID);
+                    const imageResponse = await fetch(
+                        `${base_url}/api/public/get-image/${profileImageID}`,
+                        {
+                            method: "GET",
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        }
+                    );
 
                     if (imageResponse.ok) {
-
-                        //standard is null check is not working for some reason.
-                        const contentType = imageResponse.headers.get('content-type');
-                        if (contentType && contentType.startsWith('image/')) {
+                        const contentType = imageResponse.headers.get("content-type");
+                        if (contentType && contentType.startsWith("image/")) {
                             const imageBlob = await imageResponse.blob();
                             const imageUrl = URL.createObjectURL(imageBlob);
                             setAvatar(imageUrl);
@@ -162,7 +185,9 @@ export function ProfileForm() {
                         }
                     } else {
                         if (imageResponse.status !== 404) {
-                            console.warn(`Image fetch returned status: ${imageResponse.status}`);
+                            console.warn(
+                                `Image fetch returned status: ${imageResponse.status}`
+                            );
                         }
                         setAvatar(null);
                     }
@@ -170,9 +195,9 @@ export function ProfileForm() {
                     console.error("Error fetching profile image:", imageError);
                     setAvatar(null);
                 }
-
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+                const errorMessage =
+                    error instanceof Error ? error.message : "An unknown error occurred";
                 setError(errorMessage);
                 console.error("Error fetching profile data:", error);
             } finally {
@@ -189,9 +214,9 @@ export function ProfileForm() {
         const cleanup = fetchUserData();
 
         return () => {
-            cleanup.then(cleanupFn => cleanupFn && cleanupFn());
+            cleanup.then((cleanupFn) => cleanupFn && cleanupFn());
         };
-    }, [profileForm]);
+    }, [profileForm, router]);
 
     async function onSubmitProfile(values: z.infer<typeof profileSchema>) {
         setIsLoading(true);
@@ -200,19 +225,15 @@ export function ProfileForm() {
             const userId = localStorage.getItem("userid");
             const token = localStorage.getItem("token");
 
-            if (!userId) {
-                throw new Error("User ID is not available");
-            }
-
-            if (!token) {
-                throw new Error("Authentication token not found");
+            if (!userId || !token) {
+                throw new Error("User ID or token not found");
             }
 
             const response = await fetch(`${base_url}/api/user/profile`, {
                 method: "PUT",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({ ...values, id: userId }),
             });
@@ -222,22 +243,19 @@ export function ProfileForm() {
                 throw new Error(errorData?.message || "Failed to update profile");
             }
 
-            profileForm.reset();
             toast({
                 title: "Profile Updated",
                 description: "Your profile has been updated successfully.",
-                variant: "default",
             });
-
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            const errorMessage =
+                error instanceof Error ? error.message : "An unknown error occurred";
             setError(errorMessage);
             toast({
                 title: "Update Failed",
                 description: errorMessage,
                 variant: "destructive",
             });
-            console.error("Error updating profile:", error);
         } finally {
             setIsLoading(false);
         }
@@ -250,12 +268,8 @@ export function ProfileForm() {
             const userId = localStorage.getItem("userid");
             const token = localStorage.getItem("token");
 
-            if (!userId) {
-                throw new Error("User ID is not available");
-            }
-
-            if (!token) {
-                throw new Error("Authentication token not found");
+            if (!userId || !token) {
+                throw new Error("User ID or token not found");
             }
 
             const url = new URL(`${base_url}/api/user/profile/password`);
@@ -266,7 +280,7 @@ export function ProfileForm() {
             const response = await fetch(url.toString(), {
                 method: "PUT",
                 headers: {
-                    'Authorization': `Bearer ${token}`,
+                    Authorization: `Bearer ${token}`,
                 },
             });
 
@@ -275,37 +289,29 @@ export function ProfileForm() {
                 throw new Error(errorData?.message || "Failed to update password");
             }
 
-            passwordForm.reset({
-                currentPassword: "",
-                newPassword: "",
-                confirmPassword: "",
-            });
-
+            passwordForm.reset();
             toast({
                 title: "Password Updated",
                 description: "Your password has been updated successfully.",
-                variant: "default",
             });
-
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            const errorMessage =
+                error instanceof Error ? error.message : "An unknown error occurred";
             setError(errorMessage);
             toast({
                 title: "Password Update Failed",
                 description: errorMessage,
                 variant: "destructive",
             });
-            console.error("Error updating password:", error);
         } finally {
             setIsLoading(false);
         }
     }
 
-    const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarChange = async (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
         const file = event.target.files?.[0];
-
-        // @ts-ignore
-        localStorage.setItem('file',file);
         if (!file) return;
 
         if (file.size > 5 * 1024 * 1024) {
@@ -317,7 +323,7 @@ export function ProfileForm() {
             return;
         }
 
-        const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        const validTypes = ["image/jpeg", "image/png", "image/gif"];
         if (!validTypes.includes(file.type)) {
             toast({
                 title: "Invalid file type",
@@ -335,20 +341,23 @@ export function ProfileForm() {
             reader.readAsDataURL(file);
 
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append("file", file);
 
             const userId = localStorage.getItem("userid");
-            const response = await axios.post(`${base_url}/api/user/profile/pic/upload/${userId}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            const response = await axios.post(
+                `${base_url}/api/user/profile/pic/upload/${userId}`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
 
             if (response.status === 200) {
                 toast({
                     title: "Avatar Updated",
                     description: "Your profile picture has been updated.",
-                    variant: "default",
                 });
             } else {
                 throw new Error("Failed to update profile picture.");
@@ -363,283 +372,365 @@ export function ProfileForm() {
     };
 
     return (
-        <div className="space-y-8 max-w-4xl mx-auto">
-            {error && (
-                <div className="bg-destructive/10 p-4 rounded-md border border-destructive/20 text-destructive mb-4">
-                    <p className="text-sm font-medium">{error}</p>
-                </div>
-            )}
+        <div className="container mx-auto px-4 py-8">
+            <motion.div {...fadeInUp}>
+                <div className="mb-6">
+                    <Link
+                        href="/dashboard"
+                        className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
+                    >
+                        <ArrowLeft className="mr-1 h-4 w-4" />
+                        Back to Dashboard
+                    </Link>
 
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-col sm:flex-row justify-between items-center">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <CardTitle className="text-2xl font-bold">Your Profile</CardTitle>
-                            <CardDescription>Manage your personal information and account settings</CardDescription>
-                        </div>
-                        <Badge variant="outline" className="mt-2 sm:mt-0">
-                            User Account
-                        </Badge>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col sm:flex-row items-center gap-8 mb-6">
-                        <Avatar className="h-32 w-32 border-4 border-primary/10">
-                            <AvatarImage src={avatar || ""} alt="Profile" />
-                            <AvatarFallback className="bg-primary/5 text-primary text-xl">
-                                {profileForm.getValues("firstName")?.charAt(0) || ""}
-                                {profileForm.getValues("lastName")?.charAt(0) || ""}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="w-full sm:w-auto space-y-2">
-                            <label
-                                htmlFor="avatar-upload"
-                                className="flex items-center gap-2 text-sm font-medium cursor-pointer hover:text-primary transition-colors"
-                            >
-                                <Upload size={16} />
-                                Upload new picture
-                            </label>
-                            <Input
-                                type="file"
-                                accept="image/jpeg, image/png, image/gif"
-                                onChange={handleAvatarChange}
-                                className="max-w-xs hidden"
-                                id="avatar-upload"
-                            />
-                            <p className="text-sm text-muted-foreground">
-                                JPG, PNG or GIF. Max size 5MB.
+                            <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                                Profile Settings
+                            </h1>
+                            <p className="text-muted-foreground mt-1">
+                                Manage your account settings and preferences
                             </p>
                         </div>
                     </div>
+                </div>
+                <Separator className="my-6" />
+            </motion.div>
 
-                    <Separator className="my-6" />
+            {error && (
+                <motion.div
+                    className="bg-destructive/10 p-4 rounded-md border border-destructive/20 text-destructive mb-4"
+                    {...fadeInUp}
+                >
+                    <p className="text-sm font-medium">{error}</p>
+                </motion.div>
+            )}
 
-                    <Tabs defaultValue="profile" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 mb-8">
-                            <TabsTrigger value="profile" className="flex items-center gap-2">
-                                <User size={16} />
-                                Profile Details
-                            </TabsTrigger>
-                            <TabsTrigger value="password" className="flex items-center gap-2">
-                                <Lock size={16} />
-                                Security
-                            </TabsTrigger>
-                        </TabsList>
+            <motion.div {...fadeInUp}>
+                <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+                    <CardHeader>
+                        <div className="flex flex-col sm:flex-row justify-between items-center">
+                            <div>
+                                <CardTitle className="text-2xl font-bold text-gray-900">
+                                    Your Profile
+                                </CardTitle>
+                                <CardDescription>
+                                    Manage your personal information and account settings
+                                </CardDescription>
+                            </div>
+                            <Badge
+                                variant="outline"
+                                className="mt-2 sm:mt-0 bg-indigo-100 text-indigo-700"
+                            >
+                                User Account
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col sm:flex-row items-center gap-8 mb-6">
+                            <motion.div whileHover={{ scale: 1.05 }}>
+                                <Avatar className="h-32 w-32 border-4 border-primary/10">
+                                    <AvatarImage src={avatar || ""} alt="Profile" />
+                                    <AvatarFallback className="bg-primary/5 text-primary text-xl">
+                                        {profileForm.getValues("firstName")?.charAt(0) || ""}
+                                        {profileForm.getValues("lastName")?.charAt(0) || ""}
+                                    </AvatarFallback>
+                                </Avatar>
+                            </motion.div>
+                            <div className="w-full sm:w-auto space-y-2">
+                                <label
+                                    htmlFor="avatar-upload"
+                                    className="flex items-center gap-2 text-sm font-medium cursor-pointer text-indigo-600 hover:text-indigo-700 transition-colors"
+                                >
+                                    <Upload size={16} />
+                                    Upload new picture
+                                </label>
+                                <Input
+                                    type="file"
+                                    accept="image/jpeg, image/png, image/gif"
+                                    onChange={handleAvatarChange}
+                                    className="max-w-xs hidden"
+                                    id="avatar-upload"
+                                />
+                                <p className="text-sm text-muted-foreground">
+                                    JPG, PNG or GIF. Max size 5MB.
+                                </p>
+                            </div>
+                        </div>
 
-                        <Form {...profileForm}>
-                            <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-6 py-4">
-                                <TabsContent value="profile">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <Separator className="my-6" />
+
+                        <Tabs defaultValue="profile" className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 mb-8">
+                                <TabsTrigger value="profile" className="flex items-center gap-2">
+                                    <User size={16} />
+                                    Profile Details
+                                </TabsTrigger>
+                                <TabsTrigger value="password" className="flex items-center gap-2">
+                                    <Lock size={16} />
+                                    Security
+                                </TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="profile">
+                                <Form {...profileForm}>
+                                    <form
+                                        onSubmit={profileForm.handleSubmit(onSubmitProfile)}
+                                        className="space-y-6 py-4"
+                                    >
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                            <FormField
+                                                control={profileForm.control}
+                                                name="firstName"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>First Name</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="First name"
+                                                                {...field}
+                                                                className="bg-white/80"
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={profileForm.control}
+                                                name="lastName"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Last Name</FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                placeholder="Last name"
+                                                                {...field}
+                                                                className="bg-white/80"
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+
                                         <FormField
                                             control={profileForm.control}
-                                            name="firstName"
+                                            name="email"
                                             render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>First Name</FormLabel>
+                                                <FormItem className="mt-6">
+                                                    <FormLabel>Email</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="First name" {...field} className="bg-background" />
+                                                        <Input
+                                                            type="email"
+                                                            placeholder="your.email@example.com"
+                                                            {...field}
+                                                            className="bg-white/80"
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
+
                                         <FormField
                                             control={profileForm.control}
-                                            name="lastName"
+                                            name="phone"
                                             render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Last Name</FormLabel>
+                                                <FormItem className="mt-6">
+                                                    <FormLabel>Phone Number</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Last name" {...field} className="bg-background" />
+                                                        <Input
+                                                            placeholder="e.g. +1 (555) 123-4567"
+                                                            {...field}
+                                                            className="bg-white/80"
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
-                                    </div>
 
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem className="mt-6">
-                                                <FormLabel>Email</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="email"
-                                                        placeholder="your.email@example.com"
-                                                        {...field}
-                                                        className="bg-background"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+                                            <FormField
+                                                control={profileForm.control}
+                                                name="timezone"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Time Zone</FormLabel>
+                                                        <Select
+                                                            onValueChange={field.onChange}
+                                                            value={field.value}
+                                                        >
+                                                            <FormControl>
+                                                                <SelectTrigger className="bg-white/80">
+                                                                    <SelectValue placeholder="Select timezone" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="UTC">UTC</SelectItem>
+                                                                <SelectItem value="EST">EST</SelectItem>
+                                                                <SelectItem value="CST">CST</SelectItem>
+                                                                <SelectItem value="MST">MST</SelectItem>
+                                                                <SelectItem value="PST">PST</SelectItem>
+                                                                <SelectItem value="GMT">GMT</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
 
-                                    <FormField
-                                        control={profileForm.control}
-                                        name="phone"
-                                        render={({ field }) => (
-                                            <FormItem className="mt-6">
-                                                <FormLabel>Phone Number</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        placeholder="e.g. +1 (555) 123-4567"
-                                                        {...field}
-                                                        className="bg-background"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                            <FormField
+                                                control={profileForm.control}
+                                                name="language"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Language</FormLabel>
+                                                        <Select
+                                                            onValueChange={field.onChange}
+                                                            value={field.value}
+                                                        >
+                                                            <FormControl>
+                                                                <SelectTrigger className="bg-white/80">
+                                                                    <SelectValue placeholder="Select language" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="en">English</SelectItem>
+                                                                <SelectItem value="es">Spanish</SelectItem>
+                                                                <SelectItem value="fr">French</SelectItem>
+                                                                <SelectItem value="de">German</SelectItem>
+                                                                <SelectItem value="zh">Chinese</SelectItem>
+                                                                <SelectItem value="ja">Japanese</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="mt-8">
+                                            <motion.div
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                            >
+                                                <Button
+                                                    type="submit"
+                                                    className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white"
+                                                    disabled={isLoading}
+                                                    size="lg"
+                                                >
+                                                    {isLoading ? "Saving..." : "Save Changes"}
+                                                </Button>
+                                            </motion.div>
+                                        </div>
+                                    </form>
+                                </Form>
+                            </TabsContent>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+                            <TabsContent value="password">
+                                <Form {...passwordForm}>
+                                    <form
+                                        onSubmit={passwordForm.handleSubmit(onSubmitPassword)}
+                                        className="space-y-6 py-4"
+                                    >
                                         <FormField
-                                            control={profileForm.control}
-                                            name="timezone"
+                                            control={passwordForm.control}
+                                            name="currentPassword"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Time Zone</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger className="bg-background">
-                                                                <SelectValue placeholder="Select timezone" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
-                                                            <SelectItem value="EST">EST (Eastern Standard Time)</SelectItem>
-                                                            <SelectItem value="CST">CST (Central Standard Time)</SelectItem>
-                                                            <SelectItem value="MST">MST (Mountain Standard Time)</SelectItem>
-                                                            <SelectItem value="PST">PST (Pacific Standard Time)</SelectItem>
-                                                            <SelectItem value="GMT">GMT (Greenwich Mean Time)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <FormLabel>Current Password</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="password"
+                                                            placeholder="Enter your current password"
+                                                            {...field}
+                                                            className="bg-white/80"
+                                                        />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
 
                                         <FormField
-                                            control={profileForm.control}
-                                            name="language"
+                                            control={passwordForm.control}
+                                            name="newPassword"
                                             render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Language</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger className="bg-background">
-                                                                <SelectValue placeholder="Select language" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            <SelectItem value="en">English</SelectItem>
-                                                            <SelectItem value="es">Spanish</SelectItem>
-                                                            <SelectItem value="fr">French</SelectItem>
-                                                            <SelectItem value="de">German</SelectItem>
-                                                            <SelectItem value="zh">Chinese</SelectItem>
-                                                            <SelectItem value="ja">Japanese</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                <FormItem className="mt-6">
+                                                    <FormLabel>New Password</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="password"
+                                                            placeholder="Enter new password"
+                                                            {...field}
+                                                            className="bg-white/80"
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        Must be at least 8 characters and include uppercase,
+                                                        lowercase, numbers, and special characters.
+                                                    </p>
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={passwordForm.control}
+                                            name="confirmPassword"
+                                            render={({ field }) => (
+                                                <FormItem className="mt-6">
+                                                    <FormLabel>Confirm New Password</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="password"
+                                                            placeholder="Confirm new password"
+                                                            {...field}
+                                                            className="bg-white/80"
+                                                        />
+                                                    </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
-                                    </div>
-                                    <div className="mt-8">
-                                        <Button
-                                            type="submit"
-                                            className="w-full sm:w-auto"
-                                            disabled={isLoading}
-                                            size="lg"
-                                        >
-                                            {isLoading ? "Saving..." : "Save Changes"}
-                                        </Button>
-                                    </div>
-                                </TabsContent>
-                            </form>
-                        </Form>
-
-                        <Form {...passwordForm}>
-                            <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="space-y-6 py-4">
-                                <TabsContent value="password">
-                                    <FormField
-                                        control={passwordForm.control}
-                                        name="currentPassword"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Current Password</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Enter your current password"
-                                                        {...field}
-                                                        className="bg-background"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={passwordForm.control}
-                                        name="newPassword"
-                                        render={({ field }) => (
-                                            <FormItem className="mt-6">
-                                                <FormLabel>New Password</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Enter new password"
-                                                        {...field}
-                                                        className="bg-background"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters.
-                                                </p>
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    <FormField
-                                        control={passwordForm.control}
-                                        name="confirmPassword"
-                                        render={({ field }) => (
-                                            <FormItem className="mt-6">
-                                                <FormLabel>Confirm New Password</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="password"
-                                                        placeholder="Confirm new password"
-                                                        {...field}
-                                                        className="bg-background"
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <div className="mt-8">
-                                        <Button
-                                            type="submit"
-                                            className="w-full sm:w-auto"
-                                            disabled={isLoading}
-                                            size="lg"
-                                        >
-                                            {isLoading ? "Updating Password..." : "Update Password"}
-                                        </Button>
-                                    </div>
-                                </TabsContent>
-                            </form>
-                        </Form>
-                    </Tabs>
-                </CardContent>
-            </Card>
+                                        <div className="mt-8">
+                                            <motion.div
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                            >
+                                                <Button
+                                                    type="submit"
+                                                    className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white"
+                                                    disabled={isLoading}
+                                                    size="lg"
+                                                >
+                                                    {isLoading
+                                                        ? "Updating Password..."
+                                                        : "Update Password"}
+                                                </Button>
+                                            </motion.div>
+                                        </div>
+                                    </form>
+                                </Form>
+                            </TabsContent>
+                        </Tabs>
+                    </CardContent>
+                </Card>
+            </motion.div>
+            <footer className="mt-8 text-center text-sm text-muted-foreground">
+                <p>
+                    Need help? Contact{" "}
+                    <Link
+                        href="/contact-us"
+                        className="underline hover:text-foreground"
+                    >
+                        support
+                    </Link>
+                </p>
+            </footer>
         </div>
     );
 }
