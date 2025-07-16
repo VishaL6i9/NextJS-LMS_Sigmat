@@ -1,0 +1,23 @@
+Okay, I've examined the code. As suspected, your main app/layout.tsx is applying the global Navbar to every page, and then the UserHome page at
+  app/dashboard/user-home/page.tsx adds its own Header.
+
+
+  To fix this, I'll restructure your application to use Next.js Route Groups. This will create separate layouts for the main marketing/public pages and your
+  internal dashboard pages.
+
+
+  Here is my plan:
+   1. I will create a new "(main)" folder in the app directory for all the components that use the global navbar.
+   2. I will then move the "(navbar)" folder into the "(main)" folder to maintain the project structure.
+   3. A new layout.tsx file will be created in "app/(main)" that will contain the global Navbar.
+   4. The root app/layout.tsx will be updated to remove the global Navbar.
+   5. I will then create a new "(dashboard)" folder in the app directory for all the dashboard pages.
+   6. I will move the dashboard folder into the "(dashboard)" folder.
+   7. A new layout.tsx file will be created in "app/(dashboard)/dashboard" that will contain the dashboard-specific Header.
+   8. Finally, I will update "app/(dashboard)/dashboard/user-home/page.tsx" to remove the redundant Header.
+   9. Removed redundant Header and NotificationProvider from "app/(dashboard)/dashboard/user-notification/page.tsx".
+   10. Re-added NotificationProvider to "app/(dashboard)/dashboard/user-notification/page.tsx" to resolve `useNotifications` error.
+   11. Removed redundant HomeNotificationProvider from "app/(dashboard)/dashboard/user-home/page.tsx" to resolve `useHomeNotifications` error.
+
+ALWAYS VERIFY IF MOVE OR COPY COMMANDS WORKED AFTER EXECUTION.
+CONVERT WINDOWS DIRECTORIES PATH FROM / OR \ SO THAT IT WONT CAUSE PROBLEMS
