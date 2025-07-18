@@ -50,7 +50,7 @@ const StudentManagement: React.FC = () => {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+    <div className="w-full hover:shadow-2xl transition-all duration-300 border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-xl p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
