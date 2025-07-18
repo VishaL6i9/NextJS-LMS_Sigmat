@@ -148,8 +148,7 @@ class ApiService {
       };
 
       if (token) {
-        // @ts-ignore
-        headers['Authorization'] = `Bearer ${token}`;
+        (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
       }
 
       const response = await fetch(url, {
