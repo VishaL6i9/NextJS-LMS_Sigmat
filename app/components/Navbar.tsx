@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -18,14 +18,53 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, LogOut, User, ChevronDown } from "lucide-react";
 import { useUser } from '@/app/contexts/UserContext';
+import { getProfileImageId, getProfileImage, ApiError } from "@/app/components/services/api";
 
 const Navbar: React.FC = () => {
     const { userProfile, setUserProfile } = useUser();
     const router = useRouter();
     const [isOpen, setIsOpen] = React.useState(false);
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const imageUrlToRevoke = useRef<string | null>(null);
 
     useEffect(() => {
-        // User profile changes are handled by the UserContext
+        const fetchAvatar = async () => {
+            if (userProfile && userProfile.id) {
+                try {
+                    const profileImageID = await getProfileImageId(userProfile.id);
+                    const imageBlob = await getProfileImage(profileImageID);
+                    
+                    if (imageUrlToRevoke.current) {
+                        URL.revokeObjectURL(imageUrlToRevoke.current);
+                    }
+                    const url = URL.createObjectURL(imageBlob);
+                    setAvatarUrl(url);
+                    imageUrlToRevoke.current = url;
+                } catch (error) {
+                    if (error instanceof ApiError && error.status === 404) {
+                        setAvatarUrl(null); // No image found, use fallback
+                    } else {
+                        console.error("Error fetching profile image:", error);
+                        setAvatarUrl(null);
+                    }
+                }
+            } else {
+                if (imageUrlToRevoke.current) {
+                    URL.revokeObjectURL(imageUrlToRevoke.current);
+                    imageUrlToRevoke.current = null;
+                }
+                setAvatarUrl(null);
+            }
+        };
+
+        fetchAvatar();
+
+        return () => {
+            if (imageUrlToRevoke.current) {
+                URL.revokeObjectURL(imageUrlToRevoke.current);
+                imageUrlToRevoke.current = null;
+            }
+        };
     }, [userProfile]);
 
     const handleLogout = async () => {
@@ -105,34 +144,43 @@ const Navbar: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    {userProfile ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                    <Button variant="ghost" className="relative h-11 w-11 rounded-full">
-                                        <Avatar className="h-11 w-11 border-2 border-white/50">
-                                            <AvatarImage src={ "/250.jpg"} alt="User Avatar" />
-                                            <AvatarFallback className="bg-gradient-to-br from-orange-500 to-pink-600 text-white">
-                                                {userProfile.firstName?.[0]}{userProfile.lastName?.[0]}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    </Button>
-                                </motion.div>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 bg-white/80 backdrop-blur-sm border-0 shadow-lg mt-2" align="end" forceMount>
-                                <DropdownMenuItem asChild>
-                                    <Link href="/dashboard/profile" className="flex items-center w-full cursor-pointer">
-                                        <User className="mr-2 h-4 w-4" />
-                                        <span>Profile</span>
-                                    </Link>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                                    <Avatar className="h-11 w-11 border-2 border-white/50">
+                                        <AvatarImage src={avatarUrl || "/250.jpg"} alt="User Avatar" />
+                                        <AvatarFallback className="bg-gradient-to-br from-orange-500 to-pink-600 text-white">
+                                            {userProfile ? `${userProfile.firstName?.[0] ?? ''}${userProfile.lastName?.[0] ?? ''}` : 'U'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </motion.div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 bg-white/80 backdrop-blur-sm border-0 shadow-lg mt-2" align="end" forceMount>
+                            {userProfile ? (
+                                <>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/dashboard/profile" className="flex items-center w-full cursor-pointer">
+                                            <User className="mr-2 h-4 w-4" />
+                                            <span>Profile</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <span>Log out</span>
+                                    </DropdownMenuItem>
+                                </>
+                            ) : (
+                                <DropdownMenuItem onClick={handleLoginButtonClick} className="cursor-pointer">
+                                    <User className="mr-2 h-4 w-4" />
+                                    <span>Login</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    ) : (
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {!userProfile && (
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="hidden md:block">
                             <Button
                                 onClick={handleLoginButtonClick}
@@ -153,7 +201,24 @@ const Navbar: React.FC = () => {
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[85vw] max-w-md flex flex-col gap-4 pt-10 overflow-y-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                                 <NavItems isMobile />
-                                {!userProfile && (
+                                {userProfile ? (
+                                    <>
+                                        <Link href="/dashboard/profile" className="flex items-center w-full cursor-pointer text-gray-700 hover:text-primary py-2 px-4 rounded-md transition-colors duration-200">
+                                            <User className="mr-2 h-4 w-4" />
+                                            <span>Profile</span>
+                                        </Link>
+                                        <Button
+                                            onClick={() => {
+                                                handleLogout();
+                                                setIsOpen(false);
+                                            }}
+                                            className="w-full px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white"
+                                        >
+                                            <LogOut className="mr-2 h-4 w-4" />
+                                            <span>Log out</span>
+                                        </Button>
+                                    </>
+                                ) : (
                                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="mt-4">
                                         <Button
                                             onClick={() => {
