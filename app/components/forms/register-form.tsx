@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { registerUser, ApiError } from "@/app/components/services/api";
 
 const formSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -33,7 +34,6 @@ export function RegisterForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
-    const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -53,30 +53,22 @@ export function RegisterForm() {
         setSuccessMessage("");
 
         try {
-            const response = await fetch(`${base_url}/api/public/register/user`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    firstName: values.firstName,
-                    lastName: values.lastName,
-                    email: values.email,
-                    username: values.email,
-                    password: values.password,
-                }),
+            await registerUser({
+                firstName: values.firstName,
+                lastName: values.lastName,
+                email: values.email,
+                username: values.email,
+                password: values.password,
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Registration failed');
-            }
 
             setSuccessMessage("🎉 Registration Successful! Check Your Mailbox for a confirmation email.");
         } catch (error) {
             console.error(error);
-            // @ts-ignore
-            setErrorMessage(error.message || "An error occurred during registration.");
+            if (error instanceof ApiError) {
+                setErrorMessage(error.response?.message || error.message);
+            } else {
+                setErrorMessage("An error occurred during registration.");
+            }
         } finally {
             setIsLoading(false);
         }

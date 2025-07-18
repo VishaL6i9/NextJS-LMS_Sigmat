@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { cn } from "@/lib/utils";
 
 import { useUser } from "@/app/contexts/UserContext";
+import { login, getUserId, getUserProfile, getProfileImageId, getProfileImage, ApiError, UserProfile } from "@/app/components/services/api";
 
 const formSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
@@ -31,7 +32,6 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const base_url = process.env.NEXT_PUBLIC_BASE_URL;
     const router = useRouter();
     const { setUserProfile } = useUser();
 
@@ -49,91 +49,32 @@ export function LoginForm({
         setErrorMessage(null);
 
         try {
-            console.log('Making request to:', `${base_url}/api/public/login`); // Debug log
-
-            const response = await fetch(`${base_url}/api/public/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username: values.username,
-                    password: values.password,
-                }),
-            });
-
-            console.log('Response status:', response.status); // Debug log
-            console.log('Response ok:', response.ok); // Debug log
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Error response:', errorText); // Debug log
-                throw new Error(`Login failed! ${errorText || 'Invalid credentials.'}`);
-            }
-
-            const token = await response.text();
+            const token = await login(values.username, values.password);
             console.log('Token received:', token);
             localStorage.setItem('token', token);
 
             // Fetch user profile after successful login
-            const getuserID = await fetch(`${base_url}/api/user/profile/getuserID`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (!getuserID.ok) {
-                throw new Error("Failed to fetch user ID");
-            }
-
-            const userID = await getuserID.text();
+            const userID = await getUserId();
             localStorage.setItem("userid", userID);
 
-            const profileResponse = await fetch(`${base_url}/api/user/profile/${userID}`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (!profileResponse.ok) {
-                throw new Error("Failed to fetch profile data");
-            }
-
-            const profileData = await profileResponse.json();
+            const profileData: UserProfile = await getUserProfile(userID);
             
-            // Also fetch the profile image
-            const getProfileImageID = await fetch(
-                `${base_url}/api/user/profile/getProfileImageID/${userID}`,
-                {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            let profileImage = null;
-            if (getProfileImageID.ok) {
-                const profileImageID = await getProfileImageID.text();
-                const imageResponse = await fetch(
-                    `${base_url}/api/public/get-image/${profileImageID}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-                if (imageResponse.ok) {
-                    const imageBlob = await imageResponse.blob();
-                    profileImage = URL.createObjectURL(imageBlob);
+            let profileImage: string | null = null;
+            try {
+                const profileImageID = await getProfileImageId(userID);
+                const imageBlob = await getProfileImage(profileImageID);
+                profileImage = URL.createObjectURL(imageBlob);
+            } catch (imageError) {
+                if (imageError instanceof ApiError && imageError.status === 404) {
+                    // No image found, use default placeholder
+                    profileImage = null;
+                } else {
+                    console.error("Error fetching profile image:", imageError);
+                    profileImage = null;
                 }
             }
 
             setUserProfile({ ...profileData, profileImage });
-
 
             // Redirect to dashboard
             console.log('Redirecting to dashboard...'); // Debug log
@@ -141,7 +82,11 @@ export function LoginForm({
 
         } catch (error: any) {
             console.error('Login error:', error);
-            setErrorMessage(error.message || 'An unexpected error occurred');
+            if (error instanceof ApiError) {
+                setErrorMessage(error.response?.message || error.message);
+            } else {
+                setErrorMessage(error.message || 'An unexpected error occurred');
+            }
         } finally {
             setIsLoading(false);
         }

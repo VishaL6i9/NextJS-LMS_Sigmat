@@ -420,6 +420,61 @@ class ApiService {
   }
 
   /**
+   * User Login
+   * Endpoint: POST localhost:8080/api/public/login
+   */
+  async login(username: string, password: string): Promise<string> {
+    try {
+      console.log('Attempting login for user:', username);
+      const response = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/public/login`, {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      });
+      console.log('Login successful for user:', username);
+      return response;
+    } catch (error) {
+      console.error('Login failed for user:', username, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Register a new user
+   * Endpoint: POST localhost:8080/api/public/register/user
+   */
+  async registerUser(userData: { firstName: string; lastName: string; email: string; username: string; password: string; }): Promise<void> {
+    try {
+      console.log('Registering new user:', userData.email);
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/public/register/user`, {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
+      console.log('Successfully registered user');
+    } catch (error) {
+      console.error('Failed to register user:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send password reset link
+   * Endpoint: POST localhost:8080/api/public/forgot-password
+   */
+  async sendPasswordResetLink(email: string): Promise<void> {
+    try {
+      console.log('Sending password reset link to:', email);
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/public/forgot-password`, {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+      console.log('Password reset link sent successfully to:', email);
+    } catch (error) {
+      console.error('Failed to send password reset link to:', email, error);
+      throw error;
+    }
+  }
+
+  /**
    * Get user ID
    * Endpoint: GET localhost:8080/api/user/profile/getuserID
    */
@@ -595,3 +650,6 @@ export const getProfileImage = (profileImageID: string) => apiService.getProfile
 export const updateUserProfile = (profileData: UpdateProfileRequest) => apiService.updateUserProfile(profileData);
 export const updatePassword = (passwordData: UpdatePasswordRequest) => apiService.updatePassword(passwordData);
 export const uploadProfileImage = (userId: string, file: File) => apiService.uploadProfileImage(userId, file);
+export const registerUser = (userData: { firstName: string; lastName: string; email: string; username: string; password: string; }) => apiService.registerUser(userData);
+export const sendPasswordResetLink = (email: string) => apiService.sendPasswordResetLink(email);
+export const login = (username: string, password: string) => apiService.login(username, password);

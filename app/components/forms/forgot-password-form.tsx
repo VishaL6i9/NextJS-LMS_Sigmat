@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { sendPasswordResetLink, ApiError } from "@/app/components/services/api";
 
 const formSchema = z.object({
     email: z.string().email("Invalid email address"),
@@ -38,14 +39,19 @@ export function ForgotPasswordForm() {
         setErrorMessage("");
         setSuccessMessage("");
         
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Replace with your actual API call
-        console.log(values);
-
-        setSuccessMessage("If an account with that email exists, a password reset link has been sent.");
-        setIsLoading(false);
+        try {
+            await sendPasswordResetLink(values.email);
+            setSuccessMessage("If an account with that email exists, a password reset link has been sent.");
+        } catch (error) {
+            console.error(error);
+            if (error instanceof ApiError) {
+                setErrorMessage(error.response?.message || error.message);
+            } else {
+                setErrorMessage("An error occurred while sending the reset link.");
+            }
+        } finally {
+            setIsLoading(false);
+        }
     }
 
     return (
