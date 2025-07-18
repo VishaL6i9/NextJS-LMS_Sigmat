@@ -12,6 +12,7 @@ import {
   ToastNotification,
   NotificationStats,
 } from '../types/notification';
+import { getNotificationStats } from '@/app/components/services/api';
 
 // === State and Action Types ===
 
@@ -25,19 +26,19 @@ interface NotificationState {
 }
 
 type NotificationAction =
-    | { type: 'SET_LOADING'; payload: boolean }
-    | { type: 'SET_ERROR'; payload: string | null }
-    | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
-    | { type: 'SET_STATS'; payload: NotificationStats }
-    | { type: 'ADD_NOTIFICATION'; payload: Notification }
-    | { type: 'ADD_TOAST'; payload: ToastNotification }
-    | { type: 'REMOVE_TOAST'; payload: string }
-    | { type: 'MARK_AS_READ'; payload: string }
-    | { type: 'MARK_AS_UNREAD'; payload: string }
-    | { type: 'MARK_ALL_AS_READ' }
-    | { type: 'DELETE_NOTIFICATION'; payload: string }
-    | { type: 'CLEAR_ALL_NOTIFICATIONS' }
-    | { type: 'SET_USER_ID'; payload: number };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
+  | { type: 'SET_STATS'; payload: NotificationStats }
+  | { type: 'ADD_NOTIFICATION'; payload: Notification }
+  | { type: 'ADD_TOAST'; payload: ToastNotification }
+  | { type: 'REMOVE_TOAST'; payload: string }
+  | { type: 'MARK_AS_READ'; payload: string }
+  | { type: 'MARK_AS_UNREAD'; payload: string }
+  | { type: 'MARK_ALL_AS_READ' }
+  | { type: 'DELETE_NOTIFICATION'; payload: string }
+  | { type: 'CLEAR_ALL_NOTIFICATIONS' }
+  | { type: 'SET_USER_ID'; payload: number };
 
 interface NotificationContextType {
   state: NotificationState;
@@ -113,9 +114,7 @@ const API_BASE_URL = 'http://localhost:8080/api/notifications';
 
 const fetchStats = async (userId: number): Promise<NotificationStats> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/user/${userId}/stats`);
-    if (!response.ok) throw new Error('Failed to fetch stats');
-    return await response.json();
+    return await getNotificationStats(userId);
   } catch {
     return { total: 0, unread: 0, today: 0, thisWeek: 0 };
   }
@@ -185,11 +184,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const updateStats = useCallback(async () => {
     if (!state.userId) return;
-    
+
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${state.userId}/stats`);
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      const stats = await response.json();
+      const stats = await getNotificationStats(state.userId);
       dispatch({ type: 'SET_STATS', payload: stats });
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -239,20 +236,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notification),
       });
-      
+
       if (!res.ok) throw new Error('Failed to add notification');
       const data = await res.json();
-      
+
       dispatch({ type: 'ADD_NOTIFICATION', payload: data });
       await updateStats(); // Update stats after adding notification
-      
+
       // Show toast for new notification
-       /* showToast({
-          title: 'New Notification',
-          message: notification.title,
-          type: 'info',
-        });
-        */
+      /* showToast({
+         title: 'New Notification',
+         message: notification.title,
+         type: 'info',
+       });
+       */
     } catch (error) {
       console.error('Failed to add notification:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to add notification' });
@@ -271,17 +268,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(notification),
       });
-      
+
       if (!res.ok) throw new Error('Failed to send bulk notifications');
       const data = await res.json();
-      
+
       // Add all notifications to the state
       data.forEach((notification: Notification) => {
         dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
       });
-      
+
       await updateStats();
-      
+
       addToast({
         title: 'Success',
         message: `Sent notifications to ${userIds.length} users`,
@@ -290,7 +287,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch (error) {
       console.error('Failed to send bulk notifications:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to send bulk notifications' });
-      
+
       addToast({
         title: 'Error',
         message: 'Failed to send bulk notifications',
@@ -304,11 +301,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const markAsRead = useCallback(async (id: string) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/${id}/read`, { 
+      const res = await fetch(`${API_BASE_URL}/${id}/read`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
       });
-      
+
       if (!res.ok) throw new Error('Failed to mark as read');
       dispatch({ type: 'MARK_AS_READ', payload: id });
       await updateStats(); // Update stats after marking as read
@@ -339,11 +336,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/user/${state.userId}/read-all`, { 
+      const res = await fetch(`${API_BASE_URL}/user/${state.userId}/read-all`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
       });
-      
+
       if (!res.ok) throw new Error('Failed to mark all as read');
       dispatch({ type: 'MARK_ALL_AS_READ' });
       await updateStats(); // Update stats after marking all as read
@@ -404,9 +401,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   return (
-      <NotificationContext.Provider value={value}>
-        {children}
-      </NotificationContext.Provider>
+    <NotificationContext.Provider value={value}>
+      {children}
+    </NotificationContext.Provider>
   );
 };
 
