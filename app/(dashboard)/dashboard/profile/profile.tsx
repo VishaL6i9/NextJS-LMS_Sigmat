@@ -34,9 +34,21 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import axios from "axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+    getUserId,
+    getUserProfile,
+    getProfileImageId,
+    getProfileImage,
+    updateUserProfile,
+    updatePassword,
+    uploadProfileImage,
+    ApiError,
+    UserProfile,
+    UpdateProfileRequest,
+    UpdatePasswordRequest,
+} from "@/app/components/services/api";
 
 const profileSchema = z.object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -66,8 +78,6 @@ const passwordSchema = z
         message: "Passwords don't match",
         path: ["confirmPassword"],
     });
-
-const base_url = "http://localhost:8080";
 
 export function ProfileForm() {
     const [isLoading, setIsLoading] = useState(false);
@@ -114,79 +124,27 @@ export function ProfileForm() {
                     throw new Error("Authentication token not found");
                 }
 
-                const getuserID = await fetch(`${base_url}/api/user/profile/getuserID`, {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (!getuserID.ok) {
-                    throw new Error("Failed to fetch user ID");
-                }
-
-                const userID = await getuserID.text();
+                const userID = await getUserId();
                 localStorage.setItem("userid", userID);
 
-                const response = await fetch(`${base_url}/api/user/profile/${userID}`, {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch profile data");
-                }
-
-                const data = await response.json();
+                const data = await getUserProfile(userID);
                 profileForm.reset(data);
 
                 try {
-                    const getProfileImageID = await fetch(
-                        `${base_url}/api/user/profile/getProfileImageID/${userID}`,
-                        {
-                            method: "GET",
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                            },
-                        }
-                    );
-
-                    const profileImageID = await getProfileImageID.text();
+                    const profileImageID = await getProfileImageId(userID);
                     localStorage.setItem("profileImageID", profileImageID);
-                    const imageResponse = await fetch(
-                        `${base_url}/api/public/get-image/${profileImageID}`,
-                        {
-                            method: "GET",
-                            headers: {
-                                Authorization: `Bearer ${token}`,
-                            },
-                        }
-                    );
+                    const imageBlob = await getProfileImage(profileImageID);
 
-                    if (imageResponse.ok) {
-                        const contentType = imageResponse.headers.get("content-type");
-                        if (contentType && contentType.startsWith("image/")) {
-                            const imageBlob = await imageResponse.blob();
-                            const imageUrl = URL.createObjectURL(imageBlob);
-                            setAvatar(imageUrl);
-                            imageUrlToRevoke = imageUrl;
-                        } else {
-                            console.warn("Invalid content type received:", contentType);
-                            setAvatar(null);
-                        }
+                    const imageUrl = URL.createObjectURL(imageBlob);
+                    setAvatar(imageUrl);
+                    imageUrlToRevoke = imageUrl;
+                } catch (imageError) {
+                    if (imageError instanceof ApiError && imageError.status === 404) {
+                        setAvatar(null);
                     } else {
-                        if (imageResponse.status !== 404) {
-                            console.warn(
-                                `Image fetch returned status: ${imageResponse.status}`
-                            );
-                        }
+                        console.error("Error fetching profile image:", imageError);
                         setAvatar(null);
                     }
-                } catch (imageError) {
-                    console.error("Error fetching profile image:", imageError);
-                    setAvatar(null);
                 }
             } catch (error) {
                 const errorMessage =
@@ -218,23 +176,12 @@ export function ProfileForm() {
             const userId = localStorage.getItem("userid");
             const token = localStorage.getItem("token");
 
-            if (!userId || !token) {
-                throw new Error("User ID or token not found");
+            if (!userId) {
+                throw new Error("User ID not found");
             }
 
-            const response = await fetch(`${base_url}/api/user/profile`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ ...values, id: userId }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                throw new Error(errorData?.message || "Failed to update profile");
-            }
+            const profileData: UpdateProfileRequest = { ...values, id: userId };
+            await updateUserProfile(profileData);
 
             toast({
                 title: "Profile Updated",
@@ -261,26 +208,17 @@ export function ProfileForm() {
             const userId = localStorage.getItem("userid");
             const token = localStorage.getItem("token");
 
-            if (!userId || !token) {
-                throw new Error("User ID or token not found");
+            if (!userId) {
+                throw new Error("User ID not found");
             }
 
-            const url = new URL(`${base_url}/api/user/profile/password`);
-            url.searchParams.append("userID", userId);
-            url.searchParams.append("currentPassword", values.currentPassword);
-            url.searchParams.append("newPassword", values.newPassword);
+            const passwordUpdateData: UpdatePasswordRequest = {
+                userID: userId,
+                currentPassword: values.currentPassword,
+                newPassword: values.newPassword,
+            };
 
-            const response = await fetch(url.toString(), {
-                method: "PUT",
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                throw new Error(errorData?.message || "Failed to update password");
-            }
+            await updatePassword(passwordUpdateData);
 
             passwordForm.reset();
             toast({
@@ -333,28 +271,17 @@ export function ProfileForm() {
             };
             reader.readAsDataURL(file);
 
-            const formData = new FormData();
-            formData.append("file", file);
-
             const userId = localStorage.getItem("userid");
-            const response = await axios.post(
-                `${base_url}/api/user/profile/pic/upload/${userId}`,
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                }
-            );
-
-            if (response.status === 200) {
-                toast({
-                    title: "Avatar Updated",
-                    description: "Your profile picture has been updated.",
-                });
-            } else {
-                throw new Error("Failed to update profile picture.");
+            if (!userId) {
+                throw new Error("User ID not found");
             }
+
+            await uploadProfileImage(userId, file);
+
+            toast({
+                title: "Avatar Updated",
+                description: "Your profile picture has been updated.",
+            });
         } catch (error) {
             toast({
                 title: "Avatar Update Failed",

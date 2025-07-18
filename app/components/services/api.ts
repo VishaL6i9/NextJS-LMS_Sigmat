@@ -76,6 +76,37 @@ export interface Role {
   name: string;
 }
 
+export interface UserProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  timezone: string;
+  language: string;
+}
+
+export interface UpdateProfileRequest {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  timezone: string;
+  language: string;
+}
+
+export interface UpdatePasswordRequest {
+  userID: string;
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ProfileImageResponse {
+  message: string;
+  profileImageID: string;
+}
+
 
 // API Error Types
 export class ApiError extends Error {
@@ -133,8 +164,16 @@ class ApiService {
           errorData
         );
       }
-
-      return await response.json();
+      
+      // Handle cases where the response might be empty (e.g., 204 No Content)
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return await response.json();
+      } else if (contentType && contentType.startsWith("image/")) {
+        return await response.blob() as T; // Return blob for image
+      } else {
+        return await response.text() as T; // Return text for other types like user ID
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
@@ -379,6 +418,156 @@ class ApiService {
       throw error;
     }
   }
+
+  /**
+   * Get user ID
+   * Endpoint: GET localhost:8080/api/user/profile/getuserID
+   */
+  async getUserId(): Promise<string> {
+    try {
+      console.log('Fetching user ID...');
+      const userId = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/user/profile/getuserID`);
+      console.log(`Successfully fetched user ID: ${userId}`);
+      return userId;
+    } catch (error) {
+      console.error('Failed to fetch user ID:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user profile by ID
+   * Endpoint: GET localhost:8080/api/user/profile/{userID}
+   */
+  async getUserProfile(userId: string): Promise<UserProfile> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get profile', 400);
+    }
+    try {
+      console.log(`Fetching user profile for ID: ${userId}`);
+      const profile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile/${userId}`);
+      console.log(`Successfully fetched profile for user: ${profile.email}`);
+      return profile;
+    } catch (error) {
+      console.error(`Failed to fetch user profile for ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get profile image ID by user ID
+   * Endpoint: GET localhost:8080/api/user/profile/getProfileImageID/{userID}
+   */
+  async getProfileImageId(userId: string): Promise<string> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get profile image ID', 400);
+    }
+    try {
+      console.log(`Fetching profile image ID for user ID: ${userId}`);
+      const imageId = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/user/profile/getProfileImageID/${userId}`);
+      console.log(`Successfully fetched profile image ID: ${imageId}`);
+      return imageId;
+    } catch (error) {
+      console.error(`Failed to fetch profile image ID for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get profile image by image ID
+   * Endpoint: GET localhost:8080/api/public/get-image/{profileImageID}
+   */
+  async getProfileImage(profileImageID: string): Promise<Blob> {
+    if (!profileImageID) {
+      throw new ApiError('Profile Image ID is required to get image', 400);
+    }
+    try {
+      console.log(`Fetching profile image for ID: ${profileImageID}`);
+      const imageBlob = await this.fetchWithErrorHandling<Blob>(`${API_BASE_URL}/public/get-image/${profileImageID}`);
+      console.log(`Successfully fetched profile image for ID: ${profileImageID}`);
+      return imageBlob;
+    } catch (error) {
+      console.error(`Failed to fetch profile image for ID ${profileImageID}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user profile
+   * Endpoint: PUT localhost:8080/api/user/profile
+   */
+  async updateUserProfile(profileData: UpdateProfileRequest): Promise<UserProfile> {
+    try {
+      console.log('Updating user profile:', profileData);
+      const updatedProfile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile`, {
+        method: 'PUT',
+        body: JSON.stringify(profileData),
+      });
+      console.log('Successfully updated profile for user:', updatedProfile.email);
+      return updatedProfile;
+    } catch (error) {
+      console.error('Failed to update user profile:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update user password
+   * Endpoint: PUT localhost:8080/api/user/profile/password
+   */
+  async updatePassword(passwordData: UpdatePasswordRequest): Promise<void> {
+    try {
+      console.log('Updating user password...');
+      const queryParams = new URLSearchParams({
+        userID: passwordData.userID,
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/user/profile/password?${queryParams.toString()}`, {
+        method: 'PUT',
+      });
+      console.log('Successfully updated password');
+    } catch (error) {
+      console.error('Failed to update password:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload profile image
+   * Endpoint: POST localhost:8080/api/user/profile/pic/upload/{userId}
+   */
+  async uploadProfileImage(userId: string, file: File): Promise<ProfileImageResponse> {
+    if (!userId) {
+      throw new ApiError('User ID is required for image upload', 400);
+    }
+    try {
+      console.log(`Uploading profile image for user ID: ${userId}`);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/user/profile/pic/upload/${userId}`, {
+        method: 'POST',
+        body: formData,
+        // Do NOT set Content-Type header for FormData, browser sets it automatically with boundary
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          `Image upload failed: ${response.status} ${response.statusText}`,
+          response.status,
+          errorData
+        );
+      }
+      const result = await response.json();
+      console.log('Successfully uploaded profile image:', result);
+      return result;
+    } catch (error) {
+      console.error(`Failed to upload profile image for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
@@ -397,3 +586,12 @@ export const getAllInstructors = () => apiService.getAllInstructors();
 export const enrollUserInCourse = (userId: string, courseId: string, instructorId?: number) => apiService.enrollUserInCourse(userId, courseId, instructorId);
 export const getUserEnrollments = (userId: string) => apiService.getUserEnrollments(userId);
 export const saveInvoice = (invoice: Invoice) => apiService.saveInvoice(invoice);
+
+// New profile related exports
+export const getUserId = () => apiService.getUserId();
+export const getUserProfile = (userId: string) => apiService.getUserProfile(userId);
+export const getProfileImageId = (userId: string) => apiService.getProfileImageId(userId);
+export const getProfileImage = (profileImageID: string) => apiService.getProfileImage(profileImageID);
+export const updateUserProfile = (profileData: UpdateProfileRequest) => apiService.updateUserProfile(profileData);
+export const updatePassword = (passwordData: UpdatePasswordRequest) => apiService.updatePassword(passwordData);
+export const uploadProfileImage = (userId: string, file: File) => apiService.uploadProfileImage(userId, file);
