@@ -7,7 +7,7 @@ import { LessonQuiz } from './LessonQuiz';
 import { NotesPanel } from './NotesPanel';
 import { Course, Note } from '../types/course';
 import { useUser } from '@/app/contexts/UserContext';
-import { enrollUserInCourse, getUserEnrollments } from '../services/api';
+import { enrollUserInCourse, getUserEnrollments } from '@/app/components/services/api';
 import { Button } from '@/components/ui/button';
 
 interface CourseLearningPageProps {

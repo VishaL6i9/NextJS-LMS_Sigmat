@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Invoice, Company } from '../types/invoice';
-import { saveInvoice as saveInvoiceApi } from '../../course-player-dashboard/services/api';
+import { saveInvoice as saveInvoiceApi } from '@/app/components/services/api';
 
 export const useInvoice = () => {
   const [currentInvoice, setCurrentInvoice] = useState<Invoice>(() => {

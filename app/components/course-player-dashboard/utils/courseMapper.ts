@@ -1,5 +1,5 @@
 import { Course, Lesson, Resource, Quiz, Question } from '../types/course';
-import { ApiCourse, ApiLesson, ApiResource, ApiQuiz, ApiQuestion } from '../services/api';
+import { ApiCourse, ApiLesson, ApiResource, ApiQuiz, ApiQuestion } from '@/app/components/services/api';
 
 /**
  * Maps API course data to internal Course type

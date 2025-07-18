@@ -1,7 +1,7 @@
 'use client';
 import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
 import { Course, Student, Assignment, InstructorStats, RecentActivity, Instructor } from '../types/instructor';
-import { apiService, createCourse as apiCreateCourse, updateCourse as apiUpdateCourse, getAllCourses as apiGetAllCourses, ApiCourseRequest } from '../../course-player-dashboard/services/api';
+import { apiService, createCourse as apiCreateCourse, updateCourse as apiUpdateCourse, getAllCourses as apiGetAllCourses, ApiCourseRequest } from '@/app/components/services/api';
 
 interface InstructorState {
     courses: Course[];

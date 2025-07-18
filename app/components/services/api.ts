@@ -1,4 +1,4 @@
-import { Invoice, Company } from '../../invoiceGenerator/types/invoice';
+import { Invoice } from '../invoiceGenerator/types/invoice';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -71,6 +71,12 @@ export interface CourseIdResponse {
   id: string;
 }
 
+export interface Role {
+  id: number;
+  name: string;
+}
+
+
 // API Error Types
 export class ApiError extends Error {
   constructor(
@@ -110,6 +116,7 @@ class ApiService {
       };
 
       if (token) {
+        // @ts-ignore
         headers['Authorization'] = `Bearer ${token}`;
       }
 
@@ -139,6 +146,22 @@ class ApiService {
         0,
         error
       );
+    }
+  }
+
+  /**
+   * Get user roles
+   * Endpoint: GET localhost:8080/api/public/role
+   */
+  async getUserRoles(): Promise<Role[]> {
+    try {
+      console.log('Fetching user roles...');
+      const roles = await this.fetchWithErrorHandling<Role[]>(`${API_BASE_URL}/public/role`);
+      console.log(`Successfully fetched ${roles.length} roles`);
+      return roles;
+    } catch (error) {
+      console.error('Failed to fetch user roles:', error);
+      throw error;
     }
   }
 
@@ -362,6 +385,7 @@ class ApiService {
 export const apiService = new ApiService();
 
 // Export individual functions for convenience
+export const getUserRoles = () => apiService.getUserRoles();
 export const getAllCourses = () => apiService.getAllCourses();
 export const getCourseById = (courseId: string) => apiService.getCourseById(courseId);
 export const getCourseIdByCourseCode = (courseCode: string) => apiService.getCourseIdByCourseCode(courseCode);

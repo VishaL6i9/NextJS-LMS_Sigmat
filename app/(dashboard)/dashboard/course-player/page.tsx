@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { CourseLearningPage } from '@/app/components/course-player-dashboard/components/CourseLearningPage';
-import { getCourseById, ApiCourse } from '@/app/components/course-player-dashboard/services/api';
+import { getCourseById, ApiCourse } from '@/app/components/services/api';
 
 function Page() {
   const [course, setCourse] = useState<ApiCourse | null>(null);

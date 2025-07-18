@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiService, ApiError } from '../services/api';
+import { apiService, ApiError } from '@/app/components/services/api';
 import { useCourses } from '../hooks/useCourses';
 import { useCourse } from '../hooks/useCourse';
 

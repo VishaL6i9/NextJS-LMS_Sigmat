@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Course } from '../types/course';
-import { apiService, ApiError } from '../services/api';
+import { apiService, ApiError } from '@/app/components/services/api';
 import { mapApiCourseToCourse, mapApiCoursesToCourses } from '../utils/courseMapper';
 
 interface UseCoursesState {
