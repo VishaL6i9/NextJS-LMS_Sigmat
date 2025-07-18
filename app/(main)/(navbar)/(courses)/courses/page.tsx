@@ -121,7 +121,9 @@ export default function CoursesManagement() {
     const fetchUserRoles = async () => {
         try {
             const roles = await getUserRoles();
-            setUserRoles(roles);
+            // Extract role names from Role objects
+            const roleNames = roles.map(role => role.name || role.toString());
+            setUserRoles(roleNames);
         } catch (error) {
             console.error('Failed to fetch user roles:', error);
         }

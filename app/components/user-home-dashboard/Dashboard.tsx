@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
     Bell,
@@ -38,9 +39,23 @@ const staggerContainer = {
 };
 
 export const Dashboard = () => {
+    const router = useRouter();
     const { userProfile } = useUser();
     const { notifications, unreadCount } = useNotifications();
     const [activeTab, setActiveTab] = useState<'overview' | 'notifications'>('overview');
+
+    // Move token check to useEffect to avoid rendering issues
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            router.push("/auth/login");
+            toast({
+                title: "Invalid Session",
+                description: "Please Login Before Proceeding.",
+                variant: "default",
+            });
+        }
+    }, [router]);
 
     const recentAssignments = notifications.filter(n => n.category === 'assignment').length;
 
@@ -179,10 +194,9 @@ export const Dashboard = () => {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-semibold text-gray-800">{deadline.dueDate}</p>
-                                            <Badge className={`mt-1 ${
-                                                deadline.priority === 'high' ? 'bg-red-500' :
-                                                deadline.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                                            }`}>
+                                            <Badge className={`mt-1 ${deadline.priority === 'high' ? 'bg-red-500' :
+                                                    deadline.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                                }`}>
                                                 {deadline.priority}
                                             </Badge>
                                         </div>

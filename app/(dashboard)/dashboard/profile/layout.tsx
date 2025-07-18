@@ -1,7 +1,3 @@
-// app/(dashboard)/dashboard/profile/layout.tsx
-'use client';
-
-import React from 'react';
 import { NotificationProvider } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
 import { HomeNotificationProvider } from '@/app/components/user-home-dashboard/contexts/HomeNotificationContext';
 
