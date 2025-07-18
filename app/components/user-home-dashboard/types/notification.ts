@@ -10,23 +10,15 @@ export interface Notification {
     actionText?: string;
 }
 
-export interface Toast {
-    id: string;
-    title?: string;
-    message: string;
-    type: 'success' | 'error' | 'info' | 'warning';
-    duration?: number;
-}
-
 export interface NotificationContextType {
     notifications: Notification[];
-    toasts: Toast[];
     unreadCount: number;
+    loading: boolean;
+    error: string | null;
     addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
     markAsRead: (id: string) => void;
     markAsUnread: (id: string) => void;
     markAllAsRead: () => void;
     deleteNotification: (id: string) => void;
-    showToast: (toast: Omit<Toast, 'id'>) => void;
-    dismissToast: (id: string) => void;
+    showToast: (toastData: { title?: string; message: string; type?: 'info' | 'success' | 'warning' | 'error' }) => void;
 }
