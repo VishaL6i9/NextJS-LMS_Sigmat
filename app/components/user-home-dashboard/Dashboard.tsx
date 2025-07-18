@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from '@/app/contexts/UserContext';
+import { toast } from '@/hooks/use-toast';
 
 const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -38,16 +39,16 @@ const staggerContainer = {
 
 export const Dashboard = () => {
     const { userProfile } = useUser();
-    const { notifications, unreadCount, showToast } = useNotifications();
+    const { notifications, unreadCount } = useNotifications();
     const [activeTab, setActiveTab] = useState<'overview' | 'notifications'>('overview');
 
     const recentAssignments = notifications.filter(n => n.category === 'assignment').length;
 
     const handleQuickAction = (action: string) => {
-        showToast({
+        toast({
             title: 'Action Completed',
-            message: `${action} action has been triggered.`,
-            type: 'success',
+            description: `${action} action has been triggered.`,
+            variant: 'default',
         });
     };
 

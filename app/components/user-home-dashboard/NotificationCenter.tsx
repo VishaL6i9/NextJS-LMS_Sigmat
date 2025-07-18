@@ -2,66 +2,31 @@
 
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCircle, Circle, Trash2, Filter, MoreVertical, ExternalLink } from 'lucide-react';
+import { CheckCircle, Circle, Trash2, MoreVertical, ExternalLink } from 'lucide-react';
 import { useHomeNotifications, HomeNotificationWrapper } from './contexts/HomeNotificationContext';
 import { getNotificationIcon, getNotificationColor } from '@/app/components/utils/notificationUtils';
 import { Notification } from '@/app/components/user-home-dashboard/types/notification';
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-function NotificationItem(props: {
-    notification: Notification,
-    onMarkAsRead: (id: string) => void,
-    onDelete: (id: string) => void
-}) {
-    return null;
-}
-
-export const NotificationCenter: React.FC = () => {
-    const { 
-        notifications, 
-        addNotification, 
-        markAsRead, 
-        deleteNotification 
-    } = useHomeNotifications();
-
-    const handleMarkAsRead = (id: string) => {
-        markAsRead(id);
-    };
-
-    // @ts-ignore
-    return (
-        <HomeNotificationWrapper>
-            <div className="notifications-container">
-                {notifications.map((notification) => (
-                    <NotificationItem 
-                        key={notification.id} 
-                        notification={notification}
-                        onMarkAsRead={handleMarkAsRead}
-                        onDelete={deleteNotification}
-                    />
-                ))}
-            </div>
-        </HomeNotificationWrapper>
-    );
-};
-
-interface NotificationCardProps {
+interface NotificationItemProps {
     notification: Notification;
-    isSelected: boolean;
-    onSelect: (id: string) => void;
     onMarkAsRead: (id: string) => void;
     onMarkAsUnread: (id: string) => void;
     onDelete: (id: string) => void;
 }
 
-const NotificationCard = ({
-                              notification,
-                              isSelected,
-                              onSelect,
-                              onMarkAsRead,
-                              onMarkAsUnread,
-                              onDelete,
-                          }: NotificationCardProps) => {
-    const [showActions, setShowActions] = useState(false);
+const NotificationItem: React.FC<NotificationItemProps> = ({
+    notification,
+    onMarkAsRead,
+    onMarkAsUnread,
+    onDelete,
+}) => {
     const Icon = getNotificationIcon(notification.type);
     const colorClass = getNotificationColor(notification.type);
 
@@ -71,11 +36,16 @@ const NotificationCard = ({
         }`}>
             <div className="flex items-start space-x-4">
                 {/* Checkbox */}
-                <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => onSelect(notification.id)}
-                    className="mt-1 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                <Checkbox
+                    checked={notification.isRead}
+                    onCheckedChange={(checked) => {
+                        if (checked) {
+                            onMarkAsRead(notification.id);
+                        } else {
+                            onMarkAsUnread(notification.id);
+                        }
+                    }}
+                    className="mt-1"
                 />
 
                 {/* Icon */}
@@ -110,51 +80,67 @@ const NotificationCard = ({
                   {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
                 </span>
                                 {notification.actionUrl && (
-                                    <button className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-1">
+                                    <a
+                                        href={notification.actionUrl}
+                                        className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-1"
+                                    >
                                         <span>{notification.actionText}</span>
                                         <ExternalLink className="h-3 w-3" />
-                                    </button>
+                                    </a>
                                 )}
                             </div>
                         </div>
 
                         {/* Actions Menu */}
-                        <div className="relative ml-4">
-                            <button
-                                onClick={() => setShowActions(!showActions)}
-                                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                            >
-                                <MoreVertical className="h-4 w-4 text-gray-400" />
-                            </button>
-
-                            {showActions && (
-                                <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-10">
-                                    <button
-                                        onClick={() => {
-                                            notification.isRead ? onMarkAsUnread(notification.id) : onMarkAsRead(notification.id);
-                                            setShowActions(false);
-                                        }}
-                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                                    >
-                                        {notification.isRead ? <Circle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                                        <span>Mark as {notification.isRead ? 'unread' : 'read'}</span>
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            onDelete(notification.id);
-                                            setShowActions(false);
-                                        }}
-                                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span>Delete</span>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <MoreVertical className="h-4 w-4 text-gray-400" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem onClick={() => {
+                                    notification.isRead ? onMarkAsUnread(notification.id) : onMarkAsRead(notification.id);
+                                }}>
+                                    {notification.isRead ? <Circle className="mr-2 h-4 w-4" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                                    <span>Mark as {notification.isRead ? 'unread' : 'read'}</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onDelete(notification.id)} className="text-red-600">
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
             </div>
         </div>
+    );
+};
+
+export const NotificationCenter: React.FC = () => {
+    const { 
+        notifications,
+        markAsRead,
+        markAsUnread,
+        deleteNotification
+    } = useHomeNotifications();
+
+    return (
+        <HomeNotificationWrapper>
+            <div className="notifications-container">
+                {notifications.map((notification) => (
+                    <NotificationItem 
+                        key={notification.id} 
+                        notification={notification}
+                        onMarkAsRead={markAsRead}
+                        onMarkAsUnread={markAsUnread}
+                        onDelete={deleteNotification}
+                    />
+                ))}
+            </div>
+        </HomeNotificationWrapper>
     );
 };
