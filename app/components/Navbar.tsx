@@ -4,21 +4,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
+    Sheet,
+    SheetContent,
+    SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, LogOut, User, ChevronDown } from "lucide-react";
 import { useUser } from '@/app/contexts/UserContext';
-import {getProfileImageId, getProfileImage, ApiError, getUserId} from "@/app/components/services/api";
+import { getProfileImageId, getProfileImage, ApiError, getUserId } from "@/app/components/services/api";
 
 const Navbar: React.FC = () => {
     const { userProfile, setUserProfile } = useUser();
@@ -33,21 +33,32 @@ const Navbar: React.FC = () => {
                 try {
                     const userID = await getUserId();
                     const profileImageID = await getProfileImageId(userID);
-                    const imageBlob = await getProfileImage(profileImageID);
-                    
-                    if (imageUrlToRevoke.current) {
-                        URL.revokeObjectURL(imageUrlToRevoke.current);
-                    }
-                    const url = URL.createObjectURL(imageBlob);
-                    setAvatarUrl(url);
-                    imageUrlToRevoke.current = url;
-                } catch (error) {
-                    if (error instanceof ApiError && error.status === 404) {
-                        setAvatarUrl(null); // No image found, use fallback
+
+                    // Check if profileImageID is valid before trying to fetch the image
+                    if (profileImageID && profileImageID.trim() !== '') {
+                        const imageBlob = await getProfileImage(profileImageID);
+
+                        if (imageUrlToRevoke.current) {
+                            URL.revokeObjectURL(imageUrlToRevoke.current);
+                        }
+                        const url = URL.createObjectURL(imageBlob);
+                        setAvatarUrl(url);
+                        imageUrlToRevoke.current = url;
                     } else {
-                        console.error("Error fetching profile image:", error);
+                        // No valid profile image ID, use fallback
+                        console.log("No profile image ID found, using fallback with initials:",
+                            userProfile.firstName?.[0], userProfile.lastName?.[0]);
                         setAvatarUrl(null);
                     }
+                } catch (error) {
+                    console.log("Profile image fetch failed, using fallback with initials:",
+                        userProfile.firstName?.[0], userProfile.lastName?.[0], error);
+                    // Clean up any existing URL
+                    if (imageUrlToRevoke.current) {
+                        URL.revokeObjectURL(imageUrlToRevoke.current);
+                        imageUrlToRevoke.current = null;
+                    }
+                    setAvatarUrl(null); // This will trigger the fallback with first letters
                 }
             } else {
                 if (imageUrlToRevoke.current) {
@@ -150,7 +161,15 @@ const Navbar: React.FC = () => {
                             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                                 <Button variant="ghost" className="relative h-11 w-11 rounded-full">
                                     <Avatar className="h-11 w-11 border-2 border-white/50">
-                                        <AvatarImage src={avatarUrl || "/250.jpg"} alt="User Avatar" />
+                                        {/* Only use the image if avatarUrl is available, otherwise trigger the fallback */}
+                                        {avatarUrl ? (
+                                            <AvatarImage src={avatarUrl} alt="User Avatar" />
+                                        ) : (
+                                            <AvatarImage src="" alt="User Avatar" onError={(e) => {
+                                                console.log("Avatar image failed to load, using initials fallback");
+                                                e.currentTarget.style.display = 'none';
+                                            }} />
+                                        )}
                                         <AvatarFallback className="bg-gradient-to-br from-orange-500 to-pink-600 text-white">
                                             {userProfile ? `${userProfile.firstName?.[0] ?? ''}${userProfile.lastName?.[0] ?? ''}` : 'U'}
                                         </AvatarFallback>
@@ -197,7 +216,7 @@ const Navbar: React.FC = () => {
                         <Sheet open={isOpen} onOpenChange={setIsOpen}>
                             <SheetTrigger asChild>
                                 <Button variant="ghost" size="icon" className="text-white">
-                                    <Menu className="h-7 w-7"/>
+                                    <Menu className="h-7 w-7" />
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-[85vw] max-w-md flex flex-col gap-4 pt-10 overflow-y-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
