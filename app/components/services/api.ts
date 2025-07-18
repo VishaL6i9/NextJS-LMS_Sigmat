@@ -1,4 +1,5 @@
 import { Invoice } from '../invoiceGenerator/types/invoice';
+import { Notification } from '../user-home-dashboard/types/notification';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -623,6 +624,148 @@ class ApiService {
       throw error;
     }
   }
+
+  // === NOTIFICATION API METHODS ===
+
+  /**
+   * Get notifications for a user
+   * Endpoint: GET localhost:8080/api/notifications/user/{userId}
+   */
+  async getNotifications(userId: number): Promise<Notification[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get notifications', 400);
+    }
+    try {
+      console.log(`Fetching notifications for user ID: ${userId}`);
+      const notifications = await this.fetchWithErrorHandling<Notification[]>(`${API_BASE_URL}/notifications/user/${userId}`);
+      console.log(`Successfully fetched ${notifications.length} notifications for user ${userId}`);
+      return notifications;
+    } catch (error) {
+      console.error(`Failed to fetch notifications for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a new notification
+   * Endpoint: POST localhost:8080/api/notifications?userId={userId}
+   */
+  async addNotification(notification: Omit<Notification, 'id' | 'timestamp'>, userId: number): Promise<Notification> {
+    if (!userId) {
+      throw new ApiError('User ID is required to add notification', 400);
+    }
+    try {
+      console.log(`Adding notification for user ID: ${userId}`, notification);
+      const newNotification = await this.fetchWithErrorHandling<Notification>(`${API_BASE_URL}/notifications?userId=${userId}`, {
+        method: 'POST',
+        body: JSON.stringify(notification),
+      });
+      console.log('Successfully added notification:', newNotification.title);
+      return newNotification;
+    } catch (error) {
+      console.error(`Failed to add notification for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark notification as read
+   * Endpoint: PUT localhost:8080/api/notifications/{id}/read
+   */
+  async markNotificationAsRead(id: string): Promise<void> {
+    if (!id) {
+      throw new ApiError('Notification ID is required to mark as read', 400);
+    }
+    try {
+      console.log(`Marking notification ${id} as read`);
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/${id}/read`, {
+        method: 'PUT',
+      });
+      console.log('Successfully marked notification as read');
+    } catch (error) {
+      console.error(`Failed to mark notification ${id} as read:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark notification as unread
+   * Endpoint: PUT localhost:8080/api/notifications/{id}/unread
+   */
+  async markNotificationAsUnread(id: string): Promise<void> {
+    if (!id) {
+      throw new ApiError('Notification ID is required to mark as unread', 400);
+    }
+    try {
+      console.log(`Marking notification ${id} as unread`);
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/${id}/unread`, {
+        method: 'PUT',
+      });
+      console.log('Successfully marked notification as unread');
+    } catch (error) {
+      console.error(`Failed to mark notification ${id} as unread:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark all notifications as read for a user
+   * Endpoint: PUT localhost:8080/api/notifications/user/{userId}/read-all
+   */
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    if (!userId) {
+      throw new ApiError('User ID is required to mark all as read', 400);
+    }
+    try {
+      console.log(`Marking all notifications as read for user ID: ${userId}`);
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/user/${userId}/read-all`, {
+        method: 'PUT',
+      });
+      console.log('Successfully marked all notifications as read');
+    } catch (error) {
+      console.error(`Failed to mark all notifications as read for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a notification
+   * Endpoint: DELETE localhost:8080/api/notifications/{id}
+   */
+  async deleteNotification(id: string): Promise<void> {
+    if (!id) {
+      throw new ApiError('Notification ID is required for deletion', 400);
+    }
+    try {
+      console.log(`Deleting notification ${id}`);
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/${id}`, {
+        method: 'DELETE',
+      });
+      console.log('Successfully deleted notification');
+    } catch (error) {
+      console.error(`Failed to delete notification ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get notification statistics for a user
+   * Endpoint: GET localhost:8080/api/notifications/user/{userId}/stats
+   */
+  async getNotificationStats(userId: number): Promise<any> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get notification stats', 400);
+    }
+    try {
+      console.log(`Fetching notification stats for user ID: ${userId}`);
+      const stats = await this.fetchWithErrorHandling<any>(`${API_BASE_URL}/notifications/user/${userId}/stats`);
+      console.log(`Successfully fetched notification stats for user ${userId}`);
+      return stats;
+    } catch (error) {
+      console.error(`Failed to fetch notification stats for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
@@ -653,3 +796,12 @@ export const uploadProfileImage = (userId: string, file: File) => apiService.upl
 export const registerUser = (userData: { firstName: string; lastName: string; email: string; username: string; password: string; }) => apiService.registerUser(userData);
 export const sendPasswordResetLink = (email: string) => apiService.sendPasswordResetLink(email);
 export const login = (username: string, password: string) => apiService.login(username, password);
+
+// Notification related exports
+export const getNotifications = (userId: number) => apiService.getNotifications(userId);
+export const addNotification = (notification: Omit<Notification, 'id' | 'timestamp'>, userId: number) => apiService.addNotification(notification, userId);
+export const markNotificationAsRead = (id: string) => apiService.markNotificationAsRead(id);
+export const markNotificationAsUnread = (id: string) => apiService.markNotificationAsUnread(id);
+export const markAllNotificationsAsRead = (userId: number) => apiService.markAllNotificationsAsRead(userId);
+export const deleteNotification = (id: string) => apiService.deleteNotification(id);
+export const getNotificationStats = (userId: number) => apiService.getNotificationStats(userId);
