@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
-import { Notification, ToastNotification, NotificationStats } from '../types/notification';
+'use client';
+import React, {createContext, useCallback, useContext, useReducer} from 'react';
+import {Notification, NotificationStats, ToastNotification} from '../types/notification';
 
 interface NotificationState {
     notifications: Notification[];
