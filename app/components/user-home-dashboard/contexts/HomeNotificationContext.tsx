@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { Notification, Toast } from '@/app/components/user-home-dashboard/types/notification';
+import { Notification } from '@/app/components/user-home-dashboard/types/notification';
+import { toast } from '@/hooks/use-toast';
 
 // === Constants ===
 const initialNotifications: Notification[] = [
@@ -29,15 +30,8 @@ const initialNotifications: Notification[] = [
     },
 ];
 
-const LoadingSpinner: React.FC = () => (
-    <div className="flex justify-center items-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    </div>
-);
-
 interface HomeNotificationState {
     notifications: Notification[];
-    toasts: Toast[];
     loading: boolean;
     error: string | null;
     userId: number;
@@ -49,8 +43,6 @@ type HomeNotificationAction =
     | { type: 'SET_ERROR'; payload: string | null }
     | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
     | { type: 'ADD_NOTIFICATION'; payload: Notification }
-    | { type: 'ADD_TOAST'; payload: Toast }
-    | { type: 'REMOVE_TOAST'; payload: string }
     | { type: 'MARK_AS_READ'; payload: string }
     | { type: 'MARK_AS_UNREAD'; payload: string }
     | { type: 'MARK_ALL_AS_READ' }
@@ -64,25 +56,21 @@ function homeNotificationReducer(state: HomeNotificationState, action: HomeNotif
         case 'SET_ERROR':
             return { ...state, error: action.payload };
         case 'SET_NOTIFICATIONS':
-            return { 
-                ...state, 
+            return {
+                ...state,
                 notifications: action.payload,
-                unreadCount: action.payload.filter(n => !n.isRead).length 
+                unreadCount: action.payload.filter(n => !n.isRead).length
             };
         case 'ADD_NOTIFICATION':
-            return { 
-                ...state, 
+            return {
+                ...state,
                 notifications: [action.payload, ...state.notifications],
                 unreadCount: state.unreadCount + (action.payload.isRead ? 0 : 1)
             };
-        case 'ADD_TOAST':
-            return { ...state, toasts: [...state.toasts, action.payload] };
-        case 'REMOVE_TOAST':
-            return { ...state, toasts: state.toasts.filter(t => t.id !== action.payload) };
         case 'MARK_AS_READ':
             return {
                 ...state,
-                notifications: state.notifications.map(n => 
+                notifications: state.notifications.map(n =>
                     n.id === action.payload ? { ...n, isRead: true } : n
                 ),
                 unreadCount: state.unreadCount - 1
@@ -90,7 +78,7 @@ function homeNotificationReducer(state: HomeNotificationState, action: HomeNotif
         case 'MARK_AS_UNREAD':
             return {
                 ...state,
-                notifications: state.notifications.map(n => 
+                notifications: state.notifications.map(n =>
                     n.id === action.payload ? { ...n, isRead: false } : n
                 ),
                 unreadCount: state.unreadCount + 1
@@ -117,7 +105,6 @@ function homeNotificationReducer(state: HomeNotificationState, action: HomeNotif
 
 interface HomeNotificationContextType {
     notifications: Notification[];
-    toasts: Toast[];
     unreadCount: number;
     loading: boolean;
     error: string | null;
@@ -126,8 +113,7 @@ interface HomeNotificationContextType {
     markAsUnread: (id: string) => void;
     markAllAsRead: () => void;
     deleteNotification: (id: string) => void;
-    showToast: (toast: Omit<Toast, 'id'>) => void;
-    dismissToast: (id: string) => void;
+    showToast: (toastData: { title?: string; message: string; type?: 'info' | 'success' | 'warning' | 'error' }) => void;
 }
 
 const HomeNotificationContext = createContext<HomeNotificationContextType | undefined>(undefined);
@@ -135,7 +121,6 @@ const HomeNotificationContext = createContext<HomeNotificationContextType | unde
 export const HomeNotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, dispatch] = useReducer(homeNotificationReducer, {
         notifications: initialNotifications,
-        toasts: [],
         loading: false,
         error: null,
         userId: 0,
@@ -167,29 +152,16 @@ export const HomeNotificationProvider: React.FC<{ children: React.ReactNode }> =
         dispatch({ type: 'DELETE_NOTIFICATION', payload: id });
     }, []);
 
-    const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
-        const newToast: Toast = {
-            ...toast,
-            id: Date.now().toString(),
-            duration: toast.duration || 5000,
-        };
-        dispatch({ type: 'ADD_TOAST', payload: newToast });
-
-        // Auto-dismiss toast after duration
-        if (newToast.duration !== 0) {  // Only auto-dismiss if duration is not 0
-            setTimeout(() => {
-                dismissToast(newToast.id);
-            }, newToast.duration);
-        }
-    }, []);
-
-    const dismissToast = useCallback((id: string) => {
-        dispatch({ type: 'REMOVE_TOAST', payload: id });
+    const showToast = useCallback((toastData: { title?: string; message: string; type?: 'info' | 'success' | 'warning' | 'error' }) => {
+        toast({
+            title: toastData.title,
+            description: toastData.message,
+            variant: toastData.type === 'error' ? 'destructive' : 'default',
+        });
     }, []);
 
     const value: HomeNotificationContextType = {
         notifications: state.notifications,
-        toasts: state.toasts,
         unreadCount: state.unreadCount,
         loading: state.loading,
         error: state.error,
@@ -199,7 +171,6 @@ export const HomeNotificationProvider: React.FC<{ children: React.ReactNode }> =
         markAllAsRead,
         deleteNotification,
         showToast,
-        dismissToast
     };
 
     // Remove or comment out this useEffect that generates automatic notifications
@@ -226,6 +197,13 @@ export const useHomeNotifications = () => {
     }
     return context;
 };
+
+// Loading component
+const LoadingSpinner: React.FC = () => (
+    <div className="flex justify-center items-center p-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+);
 
 export const HomeNotificationWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { loading } = useHomeNotifications();
