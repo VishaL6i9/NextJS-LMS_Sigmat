@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, LogOut, User, ChevronDown } from "lucide-react";
 import { useUser } from '@/app/contexts/UserContext';
-import { getProfileImageId, getProfileImage, ApiError } from "@/app/components/services/api";
+import {getProfileImageId, getProfileImage, ApiError, getUserId} from "@/app/components/services/api";
 
 const Navbar: React.FC = () => {
     const { userProfile, setUserProfile } = useUser();
@@ -31,7 +31,8 @@ const Navbar: React.FC = () => {
         const fetchAvatar = async () => {
             if (userProfile && userProfile.id) {
                 try {
-                    const profileImageID = await getProfileImageId(userProfile.id);
+                    const userID = await getUserId();
+                    const profileImageID = await getProfileImageId(userID);
                     const imageBlob = await getProfileImage(profileImageID);
                     
                     if (imageUrlToRevoke.current) {
