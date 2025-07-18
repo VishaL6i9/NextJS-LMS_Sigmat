@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 import { useUser } from "@/app/contexts/UserContext";
@@ -175,8 +176,9 @@ export function LoginForm({
                                 </Button>
                             </form>
                         </Form>
-                        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-                            <span className="bg-card text-muted-foreground relative z-10 px-2">
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <Separator className="shrink" />
+                            <span className="bg-background text-muted-foreground absolute px-2 top-1/2 -translate-y-1/2">
                                 Or continue with
                             </span>
                         </div>
