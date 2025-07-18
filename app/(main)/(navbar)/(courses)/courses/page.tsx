@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { CourseSearch } from "@/app/components/CourseSearch";
-import { apiService, createCourse as apiCreateCourse, updateCourse as apiUpdateCourse, getAllCourses as apiGetAllCourses, deleteCourse as apiDeleteCourse, getAllInstructors, ApiCourseRequest, ApiInstructor } from "@/app/components/course-player-dashboard/services/api";
+import { apiService, createCourse as apiCreateCourse, updateCourse as apiUpdateCourse, getAllCourses as apiGetAllCourses, deleteCourse as apiDeleteCourse, getAllInstructors, ApiCourseRequest, ApiInstructor, getUserRoles } from "@/app/components/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarIcon, ChevronsUpDown, PlusCircle, XCircle } from "lucide-react";
@@ -94,6 +94,7 @@ export default function CoursesManagement() {
     const [filteredCourses, setFilteredCourses] = useState<CourseData[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [availableInstructors, setAvailableInstructors] = useState<ApiInstructor[]>([]);
+    const [userRoles, setUserRoles] = useState<string[]>([]);
     const { toast } = useToast();
 
     const form = useForm<CourseData>({
@@ -116,6 +117,15 @@ export default function CoursesManagement() {
     });
 
     const { handleSubmit, control, reset, setValue, formState: { errors } } = form;
+
+    const fetchUserRoles = async () => {
+        try {
+            const roles = await getUserRoles();
+            setUserRoles(roles);
+        } catch (error) {
+            console.error('Failed to fetch user roles:', error);
+        }
+    };
 
     const fetchInstructors = async () => {
         try {
@@ -171,6 +181,7 @@ export default function CoursesManagement() {
     useEffect(() => {
         fetchCourses();
         fetchInstructors();
+        fetchUserRoles();
     }, []);
 
     useEffect(() => {
@@ -283,7 +294,11 @@ export default function CoursesManagement() {
         }
     };
 
+    const canManageCourses = userRoles.includes('ADMIN') || userRoles.includes('INSTRUCTOR');
+
     const renderForm = () => {
+        if (!canManageCourses) return null;
+
         return (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -665,7 +680,7 @@ export default function CoursesManagement() {
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Category</th>
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Mode</th>
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Instructors</th>
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
+                                        {canManageCourses && <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
@@ -698,21 +713,23 @@ export default function CoursesManagement() {
                                                             ) : null;
                                                         })}
                                                     </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                        <div className="flex gap-2">
-                                                            <Button variant="outline" size="sm" onClick={() => loadCourseForm(course)}>
-                                                                Edit
-                                                            </Button>
-                                                            <Button variant="destructive" size="sm" onClick={() => deleteCourse(course.id!)}>
-                                                                Delete
-                                                            </Button>
-                                                        </div>
-                                                    </td>
+                                                    {canManageCourses && (
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            <div className="flex gap-2">
+                                                                <Button variant="outline" size="sm" onClick={() => loadCourseForm(course)}>
+                                                                    Edit
+                                                                </Button>
+                                                                <Button variant="destructive" size="sm" onClick={() => deleteCourse(course.id!)}>
+                                                                    Delete
+                                                                </Button>
+                                                            </div>
+                                                        </td>
+                                                    )}
                                                 </motion.tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                <td colSpan={canManageCourses ? 6 : 5} className="text-center py-8 text-muted-foreground">
                                                     {isSearching
                                                         ? "No courses found matching your search criteria."
                                                         : "No courses available. Click 'Create New Course' to get started."}
@@ -747,16 +764,18 @@ export default function CoursesManagement() {
                 className="flex flex-col md:flex-row justify-between items-center gap-4"
             >
                 <h1 className="text-4xl font-extrabold text-primary-foreground">Course Management</h1>
-                <Button onClick={() => loadCourseForm()} className="gap-2 px-6 py-3 text-lg">
-                    <PlusCircle className="h-5 w-5" />
-                    <span>Create New Course</span>
-                </Button>
+                {canManageCourses && (
+                    <Button onClick={() => loadCourseForm()} className="gap-2 px-6 py-3 text-lg">
+                        <PlusCircle className="h-5 w-5" />
+                        <span>Create New Course</span>
+                    </Button>
+                )}
             </motion.div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full max-w-[250px] grid-cols-2 md:grid-cols-1">
+                <TabsList className={`grid w-full max-w-[250px] ${canManageCourses ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     <TabsTrigger value="list">Course List</TabsTrigger>
-                    <TabsTrigger value="form">Course Form</TabsTrigger>
+                    {canManageCourses && <TabsTrigger value="form">Course Form</TabsTrigger>}
                 </TabsList>
 
                 <AnimatePresence mode="wait">
@@ -766,7 +785,7 @@ export default function CoursesManagement() {
                         </TabsContent>
                     )}
 
-                    {activeTab === 'form' && (
+                    {activeTab === 'form' && canManageCourses && (
                         <TabsContent value="form" className="mt-6">
                             {renderForm()}
                         </TabsContent>
