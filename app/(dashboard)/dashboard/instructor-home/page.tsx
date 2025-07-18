@@ -5,15 +5,21 @@ import InstructorHeader from '@/app/components/instructor-home-dashboard/instruc
 import InstructorDashboard from '@/app/components/instructor-home-dashboard/instructor/InstructorDashboard';
 import CourseManagement from '@/app/components/instructor-home-dashboard/instructor/CourseManagement';
 import StudentManagement from '@/app/components/instructor-home-dashboard/instructor/StudentManagement';
+import { NotificationProvider } from '@/app/components/instructor-home-dashboard/contexts/NotificationContext';
 
 function App() {
     return (
         <InstructorProvider>
-            <div className="min-h-screen bg-gray-50">
-                <InstructorHeader />
-                <main className="pb-8">
-                    <InstructorDashboard />
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-screen">
+                    <InstructorHeader />
+                </div>
+                <main className="pb-12">
+                    <NotificationProvider>
+                        
+                        <InstructorDashboard />
+                    </NotificationProvider>
+                    <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-screen mt-8 space-y-8">
                         <CourseManagement />
                         <StudentManagement />
                     </div>
