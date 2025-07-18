@@ -21,15 +21,15 @@ export const viewport: Viewport = {
 
 const RootLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <html lang="en" className="h-full">
+      <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col">
-        <UserProvider>
-          {children}
-        </UserProvider>
-        <ContactUsToast />
-        <Toaster />
+      <UserProvider>
+        {children}
+      </UserProvider>
+      <ContactUsToast />
+      <Toaster />
       </body>
-    </html>
+      </html>
   );
 };
 
