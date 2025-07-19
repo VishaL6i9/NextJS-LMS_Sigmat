@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -20,7 +20,8 @@ import {
 import { useInstructor } from '../contexts/InstructorContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import {toast, useToast} from "@/hooks/use-toast";
+import {useRouter} from "next/navigation";
 
 const InstructorDashboard: React.FC = () => {
   const { state } = useInstructor();
@@ -41,6 +42,20 @@ const InstructorDashboard: React.FC = () => {
       },
     },
   };
+
+  const router = useRouter();
+  
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/auth/login");
+      toast({
+        title: "Invalid Session",
+        description: "Please Login Before Proceeding.",
+        variant: "default",
+      });
+    }
+  }, [router]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
