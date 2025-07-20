@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import {
     Sheet,
     SheetContent,
+    SheetHeader,
+    SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -159,6 +161,9 @@ const MergedNavbar: React.FC = () => {
                             </SheetTrigger>
                             <SheetContent side="right"
                                 className="w-[85vw] max-w-md flex flex-col gap-4 pt-10 overflow-y-auto">
+                                <SheetHeader>
+                                    <SheetTitle className="sr-only">Mobile Navigation</SheetTitle>
+                                </SheetHeader>
                                 <NavItems />
                             </SheetContent>
                         </Sheet>
