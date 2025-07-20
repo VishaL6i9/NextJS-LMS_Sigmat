@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, FormEvent, ChangeEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { CourseSearch } from "@/app/components/CourseSearch";
-import { apiService, createCourse as apiCreateCourse, updateCourse as apiUpdateCourse, getAllCourses as apiGetAllCourses, deleteCourse as apiDeleteCourse, getAllInstructors, ApiCourseRequest, ApiInstructor, getUserRoles } from "@/app/components/services/api";
+import {
+    apiService,
+    createCourse as apiCreateCourse,
+    updateCourse as apiUpdateCourse,
+    getAllCourses as apiGetAllCourses,
+    deleteCourse as apiDeleteCourse,
+    getAllInstructors,
+    ApiCourseRequest,
+    ApiInstructor,
+    getUserRoles,
+    getCourseById as apiGetCourseById
+} from "@/app/components/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarIcon, ChevronsUpDown, PlusCircle, XCircle } from "lucide-react";
+import { CalendarIcon, ChevronsUpDown, PlusCircle, ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -26,6 +37,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ModuleList } from '@/app/components/course-management/ModuleList';
+
+// Data interfaces
+interface Lesson {
+    id: string;
+    title: string;
+    type: 'video' | 'article' | 'quiz' | 'assignment';
+}
+
+interface Module {
+    id: string;
+    title: string;
+    description: string;
+    lessons: Lesson[];
+}
 
 interface CourseData {
     id?: string;
@@ -33,7 +59,6 @@ interface CourseData {
     courseCode: string;
     courseDescription: string;
     courseCategory: string;
-    instructors: { instructorId: number }[];
     courseDuration: number;
     courseMode: string;
     maxEnrollments: number;
@@ -47,6 +72,7 @@ interface CourseData {
     startDate?: Date;
     endDate?: Date;
     thumbnail?: string;
+    modules?: Module[];
 }
 
 const courseSchema = z.object({
@@ -95,6 +121,8 @@ export default function CoursesManagement() {
     const [isSearching, setIsSearching] = useState(false);
     const [availableInstructors, setAvailableInstructors] = useState<ApiInstructor[]>([]);
     const [userRoles, setUserRoles] = useState<string[]>([]);
+    const [selectedCourse, setSelectedCourse] = useState<CourseData | null>(null);
+    const [isViewingCourse, setIsViewingCourse] = useState(false);
     const { toast } = useToast();
 
     const form = useForm<CourseData>({
@@ -121,7 +149,6 @@ export default function CoursesManagement() {
     const fetchUserRoles = async () => {
         try {
             const roles = await getUserRoles();
-            // Extract role names from Role objects
             const roleNames = roles.map(role => role.name || role.toString());
             setUserRoles(roleNames);
         } catch (error) {
@@ -154,7 +181,6 @@ export default function CoursesManagement() {
                 courseCode: course.courseCode,
                 courseDescription: course.courseDescription,
                 courseCategory: course.courseCategory,
-                instructors: course.instructors.map(inst => ({ instructorId: inst.instructorId })),
                 courseDuration: course.courseDuration,
                 courseMode: course.courseMode,
                 maxEnrollments: course.maxEnrollments,
@@ -165,7 +191,8 @@ export default function CoursesManagement() {
                 status: 'active',
                 startDate: course.createdAt ? new Date(course.createdAt) : undefined,
                 endDate: course.updatedAt ? new Date(course.updatedAt) : undefined,
-                thumbnail: ''
+                thumbnail: '',
+                instructors: [], // Instructors are not part of CourseDTO response
             })));
         } catch (error: any) {
             setError(error.message || 'Failed to load courses. Please try again later.');
@@ -212,7 +239,7 @@ export default function CoursesManagement() {
     const loadCourseForm = (course?: CourseData) => {
         setIsCreating(true);
         setEditingCourseId(course?.id || null);
-        reset(course || {}); // Reset form with course data or empty object
+        reset(course || {});
         setActiveTab('form');
     };
 
@@ -239,15 +266,14 @@ export default function CoursesManagement() {
                 language: data.language,
             };
 
-            let savedCourse;
             if (editingCourseId) {
-                savedCourse = await apiUpdateCourse(editingCourseId, courseToSave);
+                await apiUpdateCourse(editingCourseId, courseToSave);
                 toast({
                     title: "Success",
                     description: "Course updated successfully!",
                 });
             } else {
-                savedCourse = await apiCreateCourse(courseToSave);
+                await apiCreateCourse(courseToSave);
                 toast({
                     title: "Success",
                     description: "Course created successfully!",
@@ -258,6 +284,7 @@ export default function CoursesManagement() {
             setEditingCourseId(null);
             reset();
             fetchCourses();
+            setActiveTab('list');
         } catch (error: any) {
             console.error('Error saving course:', error);
             setError(error.message || 'An error occurred while saving the course.');
@@ -296,6 +323,35 @@ export default function CoursesManagement() {
         }
     };
 
+    const handleViewCourse = async (courseCode: string) => {
+        setIsLoading(true);
+        try {
+            const courseId  = await apiService.getCourseIdByCourseCode(courseCode);
+            const courseDetails = await apiGetCourseById(courseId.toString());
+            const modules = await apiService.getAllModulesForCourse(courseId.toString());
+            setSelectedCourse({
+                ...courseDetails,
+                modules: modules || [],
+            });
+            setIsViewingCourse(true);
+        } catch (error) {
+            console.error("Failed to fetch course details", error);
+            toast({
+                title: "Error",
+                description: "Failed to load course details.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleModuleCreated = () => {
+        if (selectedCourse?.id) {
+            handleViewCourse(selectedCourse.id);
+        }
+    };
+
     const canManageCourses = userRoles.includes('ADMIN') || userRoles.includes('INSTRUCTOR');
 
     const renderForm = () => {
@@ -318,6 +374,7 @@ export default function CoursesManagement() {
                     </CardHeader>
                     <CardContent>
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                            {/* Form fields remain the same */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="courseName">Course Name</Label>
@@ -681,8 +738,8 @@ export default function CoursesManagement() {
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Code</th>
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Category</th>
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Mode</th>
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Instructors</th>
-                                        {canManageCourses && <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>}
+                                        
+                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
@@ -705,33 +762,29 @@ export default function CoursesManagement() {
                                                     <td className="px-4 py-3 whitespace-nowrap">
                                                         <Badge variant="outline">{course.courseMode}</Badge>
                                                     </td>
-                                                    <td className="px-4 py-3">
-                                                        {course.instructors?.map(selectedInst => {
-                                                            const instructor = availableInstructors.find(inst => inst.instructorId === selectedInst.instructorId);
-                                                            return instructor ? (
-                                                                <Badge key={instructor.instructorId} variant="default" className="mr-1 mb-1">
-                                                                    {`${instructor.firstName} ${instructor.lastName}`}
-                                                                </Badge>
-                                                            ) : null;
-                                                        })}
+                                                    
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <div className="flex gap-2">
+                                                            <Button variant="outline" size="sm" onClick={() => handleViewCourse(course.courseCode)}>
+                                                                View
+                                                            </Button>
+                                                            {canManageCourses && (
+                                                                <>
+                                                                    <Button variant="outline" size="sm" onClick={() => loadCourseForm(course)}>
+                                                                        Edit
+                                                                    </Button>
+                                                                    <Button variant="destructive" size="sm" onClick={() => deleteCourse(course.id!)}>
+                                                                        Delete
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </td>
-                                                    {canManageCourses && (
-                                                        <td className="px-4 py-3 whitespace-nowrap">
-                                                            <div className="flex gap-2">
-                                                                <Button variant="outline" size="sm" onClick={() => loadCourseForm(course)}>
-                                                                    Edit
-                                                                </Button>
-                                                                <Button variant="destructive" size="sm" onClick={() => deleteCourse(course.id!)}>
-                                                                    Delete
-                                                                </Button>
-                                                            </div>
-                                                        </td>
-                                                    )}
                                                 </motion.tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan={canManageCourses ? 6 : 5} className="text-center py-8 text-muted-foreground">
+                                                <td colSpan={5} className="text-center py-8 text-muted-foreground">
                                                     {isSearching
                                                         ? "No courses found matching your search criteria."
                                                         : "No courses available. Click 'Create New Course' to get started."}
@@ -756,6 +809,44 @@ export default function CoursesManagement() {
             reset();
         }
     };
+
+    const CourseDetails = ({ course, onBack }: { course: CourseData, onBack: () => void }) => {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+            >
+                <Button onClick={onBack} variant="outline" className="mb-4">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Course List
+                </Button>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-3xl font-bold">{course.courseName}</CardTitle>
+                        <p className="text-muted-foreground">{course.courseDescription}</p>
+                    </CardHeader>
+                    <CardContent>
+                        <ModuleList
+                            courseId={course.id!}
+                            modules={course.modules || []}
+                            onModuleCreated={handleModuleCreated}
+                        />
+                    </CardContent>
+                </Card>
+            </motion.div>
+        );
+    };
+
+    if (isViewingCourse && selectedCourse) {
+        return (
+            <div className="container mx-auto p-6 space-y-8">
+                <CourseDetails course={selectedCourse} onBack={() => setIsViewingCourse(false)} />
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto p-6 space-y-8">
