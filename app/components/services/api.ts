@@ -15,11 +15,9 @@ export interface ApiCourse {
   courseFee: number;
   language: string;
   courseCategory: string;
-  instructors: ApiInstructor[];
   rating: number;
   studentsEnrolled: number;
   certificate: boolean;
-  lessons: ApiLesson[];
   createdAt: string;
   updatedAt: string;
 }
@@ -33,15 +31,20 @@ export interface ApiInstructor {
   dateOfJoining: string;
 }
 
+export interface ApiModule {
+    id: string;
+    title: string;
+    description: string;
+    moduleOrder: number;
+    lessons: ApiLesson[];
+}
+
 export interface ApiLesson {
   id: string;
   title: string;
-  duration: number;
-  videoUrl: string;
-  description?: string;
-  order: number;
-  resources?: ApiResource[];
-  quiz?: ApiQuiz;
+  type: 'video' | 'article' | 'quiz' | 'assignment';
+  lessonOrder: number;
+  [key: string]: any; // Allow for other properties based on type
 }
 
 export interface ApiResource {
@@ -67,6 +70,148 @@ export interface ApiQuestion {
   correctAnswer: number;
   explanation?: string;
 }
+
+export interface ApiAssignmentSubmission {
+  id?: string;
+  content: string;
+  filePath?: string;
+  userId: string;
+  assignmentId: string;
+  submissionDate?: string;
+  grade?: number;
+  feedback?: string;
+}
+
+export interface ApiVideo {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  uploadDate: string;
+}
+
+export interface ApiCertificate {
+  id: string;
+  learnerId: string;
+  courseId: string;
+  instructorId: string;
+  dateOfCertificate: string;
+  fileUrl?: string;
+}
+
+export interface ApiCheckoutSessionRequest {
+  tier: string;
+  successUrl: string;
+  cancelUrl: string;
+  userId: number;
+  courseId?: number;
+  instructorId?: number;
+}
+
+export interface ApiCheckoutSessionResponse {
+  url: string;
+}
+
+export interface ApiUser {
+  id: string;
+  username: string;
+  email: string;
+  roles: Role[];
+}
+
+export interface ApiInstructorRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNo: string;
+  dateOfJoining: string;
+}
+
+export interface ApiInstructorUpdate extends ApiInstructorRequest {
+  instructorId: number;
+}
+
+export interface ApiQuizQuestionRequest {
+  questionText: string;
+  answerChoices: { choiceText: string; isCorrect: boolean }[];
+}
+
+export interface ApiNotificationRequest {
+  title: string;
+  message: string;
+  type: 'SYSTEM' | 'COURSE' | 'ASSIGNMENT' | 'QUIZ';
+  category: 'ANNOUNCEMENT' | 'REMINDER' | 'ALERT';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+}
+
+export interface ApiNotificationUpdate extends ApiNotificationRequest {
+  id: string;
+}
+
+export interface ApiAssignmentSubmissionRequest {
+  content: string;
+  filePath?: string;
+}
+
+export interface ApiGradeSubmissionRequest {
+  grade: number;
+  feedback?: string;
+}
+
+export interface ApiVideoUploadResponse {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+}
+
+export interface ApiCertificateRequest {
+  learnerId: number;
+  courseId: number;
+  instructorId: number;
+  dateOfCertificate: string;
+  file?: File;
+}
+
+export interface ApiCertificateResponse {
+  id: string;
+  learnerId: number;
+  courseId: number;
+  instructorId: number;
+  dateOfCertificate: string;
+  fileUrl?: string;
+}
+
+export interface ApiInvoiceRequest {
+  invoiceNumber: string;
+  date: string;
+  dueDate: string;
+  user: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
+  items: Array<{
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+  }>;
+  subtotal: number;
+  taxRate: number;
+  taxAmount: number;
+  discount: number;
+  total: number;
+  status: string;
+  notes?: string;
+}
+
+export interface ApiInvoiceResponse {
+  invoice: Invoice;
+  stripeInvoiceUrl: string | null;
+}
+
 
 export interface CourseIdResponse {
   id: string;
@@ -134,6 +279,19 @@ export interface ApiCourseRequest {
   instructors: { instructorId: number }[];
 }
 
+export interface ApiModuleRequest {
+    title: string;
+    description: string;
+    moduleOrder: number;
+}
+
+export interface ApiLessonRequest {
+    title: string;
+    type: 'video' | 'article' | 'quiz' | 'assignment';
+    lessonOrder: number;
+    [key: string]: any;
+}
+
 export interface ApiCourseUpdate extends ApiCourseRequest {
   courseId: string;
 }
@@ -165,14 +323,13 @@ class ApiService {
         );
       }
       
-      // Handle cases where the response might be empty (e.g., 204 No Content)
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         return await response.json();
       } else if (contentType && contentType.startsWith("image/")) {
-        return await response.blob() as T; // Return blob for image
+        return await response.blob() as T;
       } else {
-        return await response.text() as T; // Return text for other types like user ID
+        return await response.text() as T;
       }
     } catch (error) {
       if (error instanceof ApiError) {
@@ -188,15 +345,9 @@ class ApiService {
     }
   }
 
-  /**
-   * Get user roles
-   * Endpoint: GET localhost:8080/api/public/role
-   */
   async getUserRoles(): Promise<Role[]> {
     try {
-      console.log('Fetching user roles...');
       const roles = await this.fetchWithErrorHandling<Role[]>(`${API_BASE_URL}/public/role`);
-      console.log(`Successfully fetched ${roles.length} roles`);
       return roles;
     } catch (error) {
       console.error('Failed to fetch user roles:', error);
@@ -204,15 +355,48 @@ class ApiService {
     }
   }
 
-  /**
-   * Get all courses
-   * Endpoint: GET localhost:8000/api/courses
-   */
+  // AdminController Methods
+  async getAllUsers(): Promise<ApiUser[]> {
+    try {
+      const users = await this.fetchWithErrorHandling<ApiUser[]>(`${API_BASE_URL}/admin/users`);
+      return users;
+    } catch (error) {
+      console.error('Failed to fetch all users:', error);
+      throw error;
+    }
+  }
+
+  async deleteUserByUsername(username: string): Promise<void> {
+    if (!username) {
+      throw new ApiError('Username is required for deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/admin/delete/user/${username}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to delete user ${username}:`, error);
+      throw error;
+    }
+  }
+
+  async changeUserRole(userId: string, newRole: string): Promise<void> {
+    if (!userId || !newRole) {
+      throw new ApiError('User ID and new role are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/admin/user/${userId}/role?newRole=${newRole}`, {
+        method: 'PUT',
+      });
+    } catch (error) {
+      console.error(`Failed to change role for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
   async getAllCourses(): Promise<ApiCourse[]> {
     try {
-      console.log('Fetching all courses...');
       const courses = await this.fetchWithErrorHandling<ApiCourse[]>(`${API_BASE_URL}/courses`);
-      console.log(`Successfully fetched ${courses.length} courses`);
       return courses;
     } catch (error) {
       console.error('Failed to fetch all courses:', error);
@@ -220,19 +404,13 @@ class ApiService {
     }
   }
 
-  /**
-   * Get course by ID
-   * Endpoint: GET localhost:8000/api/courses/{courseId}
-   */
   async getCourseById(courseId: string): Promise<ApiCourse> {
     if (!courseId) {
       throw new ApiError('Course ID is required', 400);
     }
 
     try {
-      console.log(`Fetching course with ID: ${courseId}`);
       const course = await this.fetchWithErrorHandling<ApiCourse>(`${API_BASE_URL}/courses/${courseId}`);
-      console.log(`Successfully fetched course: ${course.courseName}`);
       return course;
     } catch (error) {
       console.error(`Failed to fetch course with ID ${courseId}:`, error);
@@ -240,19 +418,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Get course ID by course code
-   * Endpoint: GET localhost:8000/api/courses/{coursecode}/id
-   */
   async getCourseIdByCourseCode(courseCode: string): Promise<CourseIdResponse> {
     if (!courseCode) {
       throw new ApiError('Course code is required', 400);
     }
-
     try {
-      console.log(`Fetching course ID for course code: ${courseCode}`);
       const response = await this.fetchWithErrorHandling<CourseIdResponse>(`${API_BASE_URL}/courses/${courseCode}/id`);
-      console.log(`Successfully fetched course ID: ${response.id} for course code: ${courseCode}`);
       return response;
     } catch (error) {
       console.error(`Failed to fetch course ID for course code ${courseCode}:`, error);
@@ -260,35 +431,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Helper method to get course by course code
-   * This combines getCourseIdByCourseCode and getCourseById
-   */
-  async getCourseByCourseCode(courseCode: string): Promise<ApiCourse> {
-    try {
-      console.log(`Fetching course by course code: ${courseCode}`);
-      const { id } = await this.getCourseIdByCourseCode(courseCode);
-      const course = await this.getCourseById(id);
-      console.log(`Successfully fetched course by course code: ${course.courseName}`);
-      return course;
-    } catch (error) {
-      console.error(`Failed to fetch course by course code ${courseCode}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create a new course
-   * Endpoint: POST localhost:8000/api/courses
-   */
   async createCourse(courseData: ApiCourseRequest): Promise<ApiCourse> {
     try {
-      console.log('Creating new course:', courseData);
       const newCourse = await this.fetchWithErrorHandling<ApiCourse>(`${API_BASE_URL}/courses`, {
         method: 'POST',
         body: JSON.stringify(courseData),
       });
-      console.log('Successfully created course:', newCourse.courseName);
       return newCourse;
     } catch (error) {
       console.error('Failed to create course:', error);
@@ -296,21 +444,15 @@ class ApiService {
     }
   }
 
-  /**
-   * Update an existing course
-   * Endpoint: PUT localhost:8000/api/courses/{courseId}
-   */
   async updateCourse(courseId: string, courseData: ApiCourseRequest): Promise<ApiCourse> {
     if (!courseId) {
       throw new ApiError('Course ID is required for update', 400);
     }
     try {
-      console.log(`Updating course ${courseId}:`, courseData);
       const updatedCourse = await this.fetchWithErrorHandling<ApiCourse>(`${API_BASE_URL}/courses/${courseId}`, {
         method: 'PUT',
         body: JSON.stringify(courseData),
       });
-      console.log('Successfully updated course:', updatedCourse.courseName);
       return updatedCourse;
     } catch (error) {
       console.error(`Failed to update course ${courseId}:`, error);
@@ -318,36 +460,241 @@ class ApiService {
     }
   }
 
-  /**
-   * Delete a course
-   * Endpoint: DELETE localhost:8000/api/courses/{courseId}
-   */
   async deleteCourse(courseId: string): Promise<void> {
     if (!courseId) {
       throw new ApiError('Course ID is required for deletion', 400);
     }
     try {
-      console.log(`Deleting course ${courseId}`);
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/courses/${courseId}`, {
         method: 'DELETE',
       });
-      console.log('Successfully deleted course');
     } catch (error) {
       console.error(`Failed to delete course ${courseId}:`, error);
       throw error;
     }
   }
 
-  /**
-   * Enroll user in a course
-   * Endpoint: POST localhost:8000/api/user/enroll
-   */
+  async createModule(courseId: string, moduleData: ApiModuleRequest): Promise<ApiModule> {
+    if (!courseId) {
+        throw new ApiError('Course ID is required to create a module', 400);
+    }
+    try {
+        const newModule = await this.fetchWithErrorHandling<ApiModule>(`${API_BASE_URL}/courses/${courseId}/modules`, {
+            method: 'POST',
+            body: JSON.stringify(moduleData),
+        });
+        return newModule;
+    } catch (error) {
+        console.error(`Failed to create module for course ${courseId}:`, error);
+        throw error;
+    }
+  }
+
+  async updateModule(moduleId: string, moduleData: ApiModuleRequest): Promise<ApiModule> {
+    if (!moduleId) {
+        throw new ApiError('Module ID is required for update', 400);
+    }
+    try {
+        const updatedModule = await this.fetchWithErrorHandling<ApiModule>(`${API_BASE_URL}/modules/${moduleId}`, {
+            method: 'PUT',
+            body: JSON.stringify(moduleData),
+        });
+        return updatedModule;
+    } catch (error) {
+        console.error(`Failed to update module ${moduleId}:`, error);
+        throw error;
+    }
+  }
+
+  async deleteModule(moduleId: string): Promise<void> {
+    if (!moduleId) {
+        throw new ApiError('Module ID is required for deletion', 400);
+    }
+    try {
+        await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/modules/${moduleId}`, {
+            method: 'DELETE',
+        });
+    } catch (error) {
+        console.error(`Failed to delete module ${moduleId}:`, error);
+        throw error;
+    }
+  }
+
+  async createLesson(moduleId: string, lessonData: ApiLessonRequest): Promise<ApiLesson> {
+    if (!moduleId) {
+        throw new ApiError('Module ID is required to create a lesson', 400);
+    }
+    try {
+        const newLesson = await this.fetchWithErrorHandling<ApiLesson>(`${API_BASE_URL}/lessons/module/${moduleId}`, {
+            method: 'POST',
+            body: JSON.stringify(lessonData),
+        });
+        return newLesson;
+    } catch (error) {
+        console.error(`Failed to create lesson for module ${moduleId}:`, error);
+        throw error;
+    }
+  }
+
+  async getAllModulesForCourse(courseId: string): Promise<ApiModule[]> {
+    if (!courseId) {
+      throw new ApiError('Course ID is required to get modules', 400);
+    }
+    try {
+      const modules = await this.fetchWithErrorHandling<ApiModule[]>(`${API_BASE_URL}/courses/${courseId}/modules`);
+      return modules;
+    } catch (error) {
+      console.error(`Failed to fetch modules for course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateLesson(lessonId: string, lessonData: ApiLessonRequest): Promise<ApiLesson> {
+    if (!lessonId) {
+        throw new ApiError('Lesson ID is required for update', 400);
+    }
+    try {
+        const updatedLesson = await this.fetchWithErrorHandling<ApiLesson>(`${API_BASE_URL}/lessons/${lessonId}`, {
+            method: 'PUT',
+            body: JSON.stringify(lessonData),
+        });
+        return updatedLesson;
+    } catch (error) {
+        console.error(`Failed to update lesson ${lessonId}:`, error);
+        throw error;
+    }
+  }
+
+  async deleteLesson(lessonId: string): Promise<void> {
+    if (!lessonId) {
+        throw new ApiError('Lesson ID is required for deletion', 400);
+    }
+    try {
+        await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/lessons/${lessonId}`, {
+            method: 'DELETE',
+        });
+    } catch (error) {
+        console.error(`Failed to delete lesson ${lessonId}:`, error);
+        throw error;
+    }
+  }
+
+  // AssignmentController Methods
+  async submitAssignment(assignmentId: string, userId: string, submissionData: ApiAssignmentSubmissionRequest): Promise<ApiAssignmentSubmission> {
+    if (!assignmentId || !userId) {
+      throw new ApiError('Assignment ID and User ID are required for submission', 400);
+    }
+    try {
+      const formData = new FormData();
+      formData.append('content', submissionData.content);
+      if (submissionData.filePath) {
+        // Assuming filePath is a Blob or File object for upload
+        // For simplicity, if it's just a string path, you might need to adjust how it's handled
+        // For now, treating it as a file to be appended
+        // You might need to fetch the file content if filePath is just a path string
+        // For a real application, you'd likely pass a File object directly from an input
+        // For this example, I'll assume submissionData.filePath is a File object if present
+        // If it's a string, you'd need to read the file and append its content
+        // For now, I'll just append the string as a blob if it's not a File object
+        if (submissionData.filePath instanceof File) {
+          formData.append('file', submissionData.filePath);
+        } else if (typeof submissionData.filePath === 'string') {
+          // This part might need adjustment based on how you handle file paths on the frontend
+          // For now, creating a Blob from the string content as a placeholder
+          formData.append('file', new Blob([submissionData.filePath], { type: 'text/plain' }), 'submission.txt');
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/assignments/${assignmentId}/submit?userId=${userId}`, {
+        method: 'POST',
+        body: formData,
+        // Do NOT set Content-Type header for FormData, browser sets it automatically with boundary
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          `Assignment submission failed: ${response.status} ${response.statusText}`,
+          response.status,
+          errorData
+        );
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Failed to submit assignment ${assignmentId} for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getSubmissionsForAssignment(assignmentId: string): Promise<ApiAssignmentSubmission[]> {
+    if (!assignmentId) {
+      throw new ApiError('Assignment ID is required to get submissions', 400);
+    }
+    try {
+      const submissions = await this.fetchWithErrorHandling<ApiAssignmentSubmission[]>(`${API_BASE_URL}/assignments/${assignmentId}/submissions`);
+      return submissions;
+    } catch (error) {
+      console.error(`Failed to fetch submissions for assignment ${assignmentId}:`, error);
+      throw error;
+    }
+  }
+
+  async gradeSubmission(submissionId: string, gradeData: ApiGradeSubmissionRequest): Promise<ApiAssignmentSubmission> {
+    if (!submissionId) {
+      throw new ApiError('Submission ID is required for grading', 400);
+    }
+    try {
+      const queryParams = new URLSearchParams({
+        grade: gradeData.grade.toString(),
+      });
+      if (gradeData.feedback) {
+        queryParams.append('feedback', gradeData.feedback);
+      }
+      const updatedSubmission = await this.fetchWithErrorHandling<ApiAssignmentSubmission>(`${API_BASE_URL}/submissions/${submissionId}/grade?${queryParams.toString()}`, {
+        method: 'POST',
+      });
+      return updatedSubmission;
+    } catch (error) {
+      console.error(`Failed to grade submission ${submissionId}:`, error);
+      throw error;
+    }
+  }
+
+  // QuizController Methods
+  async addQuestionToQuiz(quizId: string, questionData: ApiQuizQuestionRequest): Promise<ApiQuestion> {
+    if (!quizId) {
+      throw new ApiError('Quiz ID is required to add a question', 400);
+    }
+    try {
+      const newQuestion = await this.fetchWithErrorHandling<ApiQuestion>(`${API_BASE_URL}/quizzes/${quizId}/questions`, {
+        method: 'POST',
+        body: JSON.stringify(questionData),
+      });
+      return newQuestion;
+    } catch (error) {
+      console.error(`Failed to add question to quiz ${quizId}:`, error);
+      throw error;
+    }
+  }
+
+  async getQuiz(quizId: string): Promise<ApiQuiz> {
+    if (!quizId) {
+      throw new ApiError('Quiz ID is required to get quiz details', 400);
+    }
+    try {
+      const quiz = await this.fetchWithErrorHandling<ApiQuiz>(`${API_BASE_URL}/quizzes/${quizId}`);
+      return quiz;
+    } catch (error) {
+      console.error(`Failed to fetch quiz ${quizId}:`, error);
+      throw error;
+    }
+  }
+
   async enrollUserInCourse(userId: string, courseId: string, instructorId?: number): Promise<void> {
     if (!userId || !courseId) {
       throw new ApiError('User ID and Course ID are required for enrollment', 400);
     }
     try {
-      console.log(`Enrolling user ${userId} in course ${courseId}`);
       const queryParams = new URLSearchParams({
         userId,
         courseId,
@@ -358,25 +705,18 @@ class ApiService {
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/user/enroll?${queryParams.toString()}`, {
         method: 'POST',
       });
-      console.log('Successfully enrolled user in course');
     } catch (error) {
       console.error(`Failed to enroll user ${userId} in course ${courseId}:`, error);
       throw error;
     }
   }
 
-  /**
-   * Get user enrollments
-   * Endpoint: GET localhost:8000/api/user/enrollments/{userId}
-   */
   async getUserEnrollments(userId: string): Promise<ApiCourse[]> {
     if (!userId) {
       throw new ApiError('User ID is required to get enrollments', 400);
     }
     try {
-      console.log(`Fetching enrollments for user ${userId}`);
       const enrollments = await this.fetchWithErrorHandling<ApiCourse[]>(`${API_BASE_URL}/user/enrollments/${userId}`);
-      console.log(`Successfully fetched ${enrollments.length} enrollments for user ${userId}`);
       return enrollments;
     } catch (error) {
       console.error(`Failed to fetch enrollments for user ${userId}:`, error);
@@ -384,18 +724,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Save an invoice
-   * Endpoint: POST localhost:8000/api/invoices
-   */
   async saveInvoice(invoiceData: Invoice): Promise<{ invoice: Invoice; stripeInvoiceUrl: string | null }> {
     try {
-      console.log('Saving invoice:', invoiceData);
       const response = await this.fetchWithErrorHandling<{ invoice: Invoice; stripeInvoiceUrl: string | null }>(`${API_BASE_URL}/invoices`, {
         method: 'POST',
         body: JSON.stringify(invoiceData),
       });
-      console.log('Successfully saved invoice:', response.invoice.invoiceNumber);
       return response;
     } catch (error) {
       console.error('Failed to save invoice:', error);
@@ -403,34 +737,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Get all instructors
-   * Endpoint: GET localhost:8000/api/instructors
-   */
-  async getAllInstructors(): Promise<ApiInstructor[]> {
-    try {
-      console.log('Fetching all instructors...');
-      const instructors = await this.fetchWithErrorHandling<ApiInstructor[]>(`${API_BASE_URL}/instructors`);
-      console.log(`Successfully fetched ${instructors.length} instructors`);
-      return instructors;
-    } catch (error) {
-      console.error('Failed to fetch all instructors:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * User Login
-   * Endpoint: POST localhost:8080/api/public/login
-   */
   async login(username: string, password: string): Promise<string> {
     try {
-      console.log('Attempting login for user:', username);
       const response = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/public/login`, {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       });
-      console.log('Login successful for user:', username);
       return response;
     } catch (error) {
       console.error('Login failed for user:', username, error);
@@ -438,51 +750,33 @@ class ApiService {
     }
   }
 
-  /**
-   * Register a new user
-   * Endpoint: POST localhost:8080/api/public/register/user
-   */
   async registerUser(userData: { firstName: string; lastName: string; email: string; username: string; password: string; }): Promise<void> {
     try {
-      console.log('Registering new user:', userData.email);
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/public/register/user`, {
         method: 'POST',
         body: JSON.stringify(userData),
       });
-      console.log('Successfully registered user');
     } catch (error) {
       console.error('Failed to register user:', error);
       throw error;
     }
   }
 
-  /**
-   * Send password reset link
-   * Endpoint: POST localhost:8080/api/public/forgot-password
-   */
   async sendPasswordResetLink(email: string): Promise<void> {
     try {
-      console.log('Sending password reset link to:', email);
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/public/forgot-password`, {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
-      console.log('Password reset link sent successfully to:', email);
     } catch (error) {
       console.error('Failed to send password reset link to:', email, error);
       throw error;
     }
   }
 
-  /**
-   * Get user ID
-   * Endpoint: GET localhost:8080/api/user/profile/getuserID
-   */
   async getUserId(): Promise<string> {
     try {
-      console.log('Fetching user ID...');
       const userId = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/user/profile/getuserID`);
-      console.log(`Successfully fetched user ID: ${userId}`);
       return userId;
     } catch (error) {
       console.error('Failed to fetch user ID:', error);
@@ -490,18 +784,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Get user profile by ID
-   * Endpoint: GET localhost:8080/api/user/profile/{userID}
-   */
   async getUserProfile(userId: string): Promise<UserProfile> {
     if (!userId) {
       throw new ApiError('User ID is required to get profile', 400);
     }
     try {
-      console.log(`Fetching user profile for ID: ${userId}`);
       const profile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile/${userId}`);
-      console.log(`Successfully fetched profile for user: ${profile.email}`);
       return profile;
     } catch (error) {
       console.error(`Failed to fetch user profile for ID ${userId}:`, error);
@@ -509,18 +797,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Get profile image ID by user ID
-   * Endpoint: GET localhost:8080/api/user/profile/getProfileImageID/{userID}
-   */
   async getProfileImageId(userId: string): Promise<string> {
     if (!userId) {
       throw new ApiError('User ID is required to get profile image ID', 400);
     }
     try {
-      console.log(`Fetching profile image ID for user ID: ${userId}`);
       const imageId = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/user/profile/getProfileImageID/${userId}`);
-      console.log(`Successfully fetched profile image ID: ${imageId}`);
       return imageId;
     } catch (error) {
       console.error(`Failed to fetch profile image ID for user ID ${userId}:`, error);
@@ -528,18 +810,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Get profile image by image ID
-   * Endpoint: GET localhost:8080/api/public/get-image/{profileImageID}
-   */
   async getProfileImage(profileImageID: string): Promise<Blob> {
     if (!profileImageID) {
       throw new ApiError('Profile Image ID is required to get image', 400);
     }
     try {
-      console.log(`Fetching profile image for ID: ${profileImageID}`);
       const imageBlob = await this.fetchWithErrorHandling<Blob>(`${API_BASE_URL}/public/get-image/${profileImageID}`);
-      console.log(`Successfully fetched profile image for ID: ${profileImageID}`);
       return imageBlob;
     } catch (error) {
       console.error(`Failed to fetch profile image for ID ${profileImageID}:`, error);
@@ -547,18 +823,12 @@ class ApiService {
     }
   }
 
-  /**
-   * Update user profile
-   * Endpoint: PUT localhost:8080/api/user/profile
-   */
   async updateUserProfile(profileData: UpdateProfileRequest): Promise<UserProfile> {
     try {
-      console.log('Updating user profile:', profileData);
       const updatedProfile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile`, {
         method: 'PUT',
         body: JSON.stringify(profileData),
       });
-      console.log('Successfully updated profile for user:', updatedProfile.email);
       return updatedProfile;
     } catch (error) {
       console.error('Failed to update user profile:', error);
@@ -566,13 +836,8 @@ class ApiService {
     }
   }
 
-  /**
-   * Update user password
-   * Endpoint: PUT localhost:8080/api/user/profile/password
-   */
   async updatePassword(passwordData: UpdatePasswordRequest): Promise<void> {
     try {
-      console.log('Updating user password...');
       const queryParams = new URLSearchParams({
         userID: passwordData.userID,
         currentPassword: passwordData.currentPassword,
@@ -581,30 +846,23 @@ class ApiService {
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/user/profile/password?${queryParams.toString()}`, {
         method: 'PUT',
       });
-      console.log('Successfully updated password');
     } catch (error) {
       console.error('Failed to update password:', error);
       throw error;
     }
   }
 
-  /**
-   * Upload profile image
-   * Endpoint: POST localhost:8080/api/user/profile/pic/upload/{userId}
-   */
   async uploadProfileImage(userId: string, file: File): Promise<ProfileImageResponse> {
     if (!userId) {
       throw new ApiError('User ID is required for image upload', 400);
     }
     try {
-      console.log(`Uploading profile image for user ID: ${userId}`);
       const formData = new FormData();
       formData.append('file', file);
 
       const response = await fetch(`${API_BASE_URL}/user/profile/pic/upload/${userId}`, {
         method: 'POST',
         body: formData,
-        // Do NOT set Content-Type header for FormData, browser sets it automatically with boundary
       });
 
       if (!response.ok) {
@@ -616,7 +874,6 @@ class ApiService {
         );
       }
       const result = await response.json();
-      console.log('Successfully uploaded profile image:', result);
       return result;
     } catch (error) {
       console.error(`Failed to upload profile image for user ID ${userId}:`, error);
@@ -624,20 +881,12 @@ class ApiService {
     }
   }
 
-  // === NOTIFICATION API METHODS ===
-
-  /**
-   * Get notifications for a user
-   * Endpoint: GET localhost:8080/api/notifications/user/{userId}
-   */
   async getNotifications(userId: number): Promise<Notification[]> {
     if (!userId) {
       throw new ApiError('User ID is required to get notifications', 400);
     }
     try {
-      console.log(`Fetching notifications for user ID: ${userId}`);
       const notifications = await this.fetchWithErrorHandling<Notification[]>(`${API_BASE_URL}/notifications/user/${userId}`);
-      console.log(`Successfully fetched ${notifications.length} notifications for user ${userId}`);
       return notifications;
     } catch (error) {
       console.error(`Failed to fetch notifications for user ID ${userId}:`, error);
@@ -645,21 +894,15 @@ class ApiService {
     }
   }
 
-  /**
-   * Add a new notification
-   * Endpoint: POST localhost:8080/api/notifications?userId={userId}
-   */
   async addNotification(notification: Omit<Notification, 'id' | 'timestamp'>, userId: number): Promise<Notification> {
     if (!userId) {
       throw new ApiError('User ID is required to add notification', 400);
     }
     try {
-      console.log(`Adding notification for user ID: ${userId}`, notification);
       const newNotification = await this.fetchWithErrorHandling<Notification>(`${API_BASE_URL}/notifications?userId=${userId}`, {
         method: 'POST',
         body: JSON.stringify(notification),
       });
-      console.log('Successfully added notification:', newNotification.title);
       return newNotification;
     } catch (error) {
       console.error(`Failed to add notification for user ID ${userId}:`, error);
@@ -667,124 +910,297 @@ class ApiService {
     }
   }
 
-  /**
-   * Mark notification as read
-   * Endpoint: PUT localhost:8080/api/notifications/{id}/read
-   */
   async markNotificationAsRead(id: string): Promise<void> {
     if (!id) {
       throw new ApiError('Notification ID is required to mark as read', 400);
     }
     try {
-      console.log(`Marking notification ${id} as read`);
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/${id}/read`, {
         method: 'PUT',
       });
-      console.log('Successfully marked notification as read');
     } catch (error) {
       console.error(`Failed to mark notification ${id} as read:`, error);
       throw error;
     }
   }
 
-  /**
-   * Mark notification as unread
-   * Endpoint: PUT localhost:8080/api/notifications/{id}/unread
-   */
   async markNotificationAsUnread(id: string): Promise<void> {
     if (!id) {
       throw new ApiError('Notification ID is required to mark as unread', 400);
     }
     try {
-      console.log(`Marking notification ${id} as unread`);
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/${id}/unread`, {
         method: 'PUT',
       });
-      console.log('Successfully marked notification as unread');
     } catch (error) {
       console.error(`Failed to mark notification ${id} as unread:`, error);
       throw error;
     }
   }
 
-  /**
-   * Mark all notifications as read for a user
-   * Endpoint: PUT localhost:8080/api/notifications/user/{userId}/read-all
-   */
   async markAllNotificationsAsRead(userId: number): Promise<void> {
     if (!userId) {
       throw new ApiError('User ID is required to mark all as read', 400);
     }
     try {
-      console.log(`Marking all notifications as read for user ID: ${userId}`);
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/user/${userId}/read-all`, {
         method: 'PUT',
       });
-      console.log('Successfully marked all notifications as read');
     } catch (error) {
       console.error(`Failed to mark all notifications as read for user ID ${userId}:`, error);
       throw error;
     }
   }
 
-  /**
-   * Delete a notification
-   * Endpoint: DELETE localhost:8080/api/notifications/{id}
-   */
   async deleteNotification(id: string): Promise<void> {
     if (!id) {
       throw new ApiError('Notification ID is required for deletion', 400);
     }
     try {
-      console.log(`Deleting notification ${id}`);
       await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/${id}`, {
         method: 'DELETE',
       });
-      console.log('Successfully deleted notification');
     } catch (error) {
       console.error(`Failed to delete notification ${id}:`, error);
       throw error;
     }
   }
 
-  /**
-   * Get notification statistics for a user
-   * Endpoint: GET localhost:8080/api/notifications/user/{userId}/stats
-   */
   async getNotificationStats(userId: number): Promise<any> {
     if (!userId) {
       throw new ApiError('User ID is required to get notification stats', 400);
     }
     try {
-      console.log(`Fetching notification stats for user ID: ${userId}`);
       const stats = await this.fetchWithErrorHandling<any>(`${API_BASE_URL}/notifications/user/${userId}/stats`);
-      console.log(`Successfully fetched notification stats for user ${userId}`);
       return stats;
     } catch (error) {
       console.error(`Failed to fetch notification stats for user ID ${userId}:`, error);
       throw error;
     }
   }
+
+  // VideoController Methods
+  async uploadVideo(file: File, title: string, description: string): Promise<ApiVideoUploadResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      formData.append('description', description);
+
+      const response = await fetch(`${API_BASE_URL}/videos/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          `Video upload failed: ${response.status} ${response.statusText}`,
+          response.status,
+          errorData
+        );
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to upload video:', error);
+      throw error;
+    }
+  }
+
+  async getAllVideos(): Promise<ApiVideo[]> {
+    try {
+      const videos = await this.fetchWithErrorHandling<ApiVideo[]>(`${API_BASE_URL}/videos`);
+      return videos;
+    } catch (error) {
+      console.error('Failed to fetch all videos:', error);
+      throw error;
+    }
+  }
+
+  async deleteVideo(id: string): Promise<void> {
+    if (!id) {
+      throw new ApiError('Video ID is required for deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/videos/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to delete video ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // CertificateController Methods
+  async createCertificate(certificateData: ApiCertificateRequest): Promise<ApiCertificateResponse> {
+    try {
+      const formData = new FormData();
+      formData.append('learnerId', certificateData.learnerId.toString());
+      formData.append('courseId', certificateData.courseId.toString());
+      formData.append('instructorId', certificateData.instructorId.toString());
+      formData.append('dateOfCertificate', certificateData.dateOfCertificate);
+      if (certificateData.file) {
+        formData.append('file', certificateData.file);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/certificates`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          `Certificate creation failed: ${response.status} ${response.statusText}`,
+          response.status,
+          errorData
+        );
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to create certificate:', error);
+      throw error;
+    }
+  }
+
+  async getCertificateById(id: string): Promise<ApiCertificate> {
+    if (!id) {
+      throw new ApiError('Certificate ID is required', 400);
+    }
+    try {
+      const certificate = await this.fetchWithErrorHandling<ApiCertificate>(`${API_BASE_URL}/certificates/${id}`);
+      return certificate;
+    } catch (error) {
+      console.error(`Failed to fetch certificate with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getAllCertificates(): Promise<ApiCertificate[]> {
+    try {
+      const certificates = await this.fetchWithErrorHandling<ApiCertificate[]>(`${API_BASE_URL}/certificates`);
+      return certificates;
+    } catch (error) {
+      console.error('Failed to fetch all certificates:', error);
+      throw error;
+    }
+  }
+
+  async deleteCertificate(id: string): Promise<void> {
+    if (!id) {
+      throw new ApiError('Certificate ID is required for deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/certificates/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to delete certificate ${id}:`, error);
+      throw error;
+    }
+  }
+
+  // CheckoutController Methods
+  async createCheckoutSession(sessionData: ApiCheckoutSessionRequest): Promise<ApiCheckoutSessionResponse> {
+    try {
+      const response = await this.fetchWithErrorHandling<ApiCheckoutSessionResponse>(`${API_BASE_URL}/checkout/create-checkout-session`, {
+        method: 'POST',
+        body: JSON.stringify(sessionData),
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to create checkout session:', error);
+      throw error;
+    }
+  }
+
+  // InstructorController Methods
+  async createInstructor(instructorData: ApiInstructorRequest): Promise<ApiInstructor> {
+    try {
+      const newInstructor = await this.fetchWithErrorHandling<ApiInstructor>(`${API_BASE_URL}/instructors`, {
+        method: 'POST',
+        body: JSON.stringify(instructorData),
+      });
+      return newInstructor;
+    } catch (error) {
+      console.error('Failed to create instructor:', error);
+      throw error;
+    }
+  }
+
+  async getInstructorById(instructorId: string): Promise<ApiInstructor> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required', 400);
+    }
+    try {
+      const instructor = await this.fetchWithErrorHandling<ApiInstructor>(`${API_BASE_URL}/instructors/${instructorId}`);
+      return instructor;
+    } catch (error) {
+      console.error(`Failed to fetch instructor with ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateInstructor(instructorId: string, instructorData: ApiInstructorUpdate): Promise<ApiInstructor> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required for update', 400);
+    }
+    try {
+      const updatedInstructor = await this.fetchWithErrorHandling<ApiInstructor>(`${API_BASE_URL}/instructors/${instructorId}`, {
+        method: 'PUT',
+        body: JSON.stringify(instructorData),
+      });
+      return updatedInstructor;
+    } catch (error) {
+      console.error(`Failed to update instructor ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteInstructor(instructorId: string): Promise<void> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required for deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/instructors/${instructorId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to delete instructor ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async getAllInstructors(): Promise<ApiInstructor[]> {
+    try {
+      const instructors = await this.fetchWithErrorHandling<ApiInstructor[]>(`${API_BASE_URL}/instructors`);
+      return instructors;
+    } catch (error) {
+      console.error('Failed to fetch all instructors:', error);
+      throw error;
+    }
+  }
 }
 
-// Export singleton instance
 export const apiService = new ApiService();
 
-// Export individual functions for convenience
 export const getUserRoles = () => apiService.getUserRoles();
 export const getAllCourses = () => apiService.getAllCourses();
 export const getCourseById = (courseId: string) => apiService.getCourseById(courseId);
-export const getCourseIdByCourseCode = (courseCode: string) => apiService.getCourseIdByCourseCode(courseCode);
-export const getCourseByCourseCode = (courseCode: string) => apiService.getCourseByCourseCode(courseCode);
 export const createCourse = (courseData: ApiCourseRequest) => apiService.createCourse(courseData);
 export const updateCourse = (courseId: string, courseData: ApiCourseRequest) => apiService.updateCourse(courseId, courseData);
 export const deleteCourse = (courseId: string) => apiService.deleteCourse(courseId);
+export const createModule = (courseId: string, moduleData: ApiModuleRequest) => apiService.createModule(courseId, moduleData);
+export const updateModule = (moduleId: string, moduleData: ApiModuleRequest) => apiService.updateModule(moduleId, moduleData);
+export const deleteModule = (moduleId: string) => apiService.deleteModule(moduleId);
+export const createLesson = (moduleId: string, lessonData: ApiLessonRequest) => apiService.createLesson(moduleId, lessonData);
+export const updateLesson = (lessonId: string, lessonData: ApiLessonRequest) => apiService.updateLesson(lessonId, lessonData);
+export const deleteLesson = (lessonId: string) => apiService.deleteLesson(lessonId);
+export const getAllModulesForCourse = (courseId: string) => apiService.getAllModulesForCourse(courseId);
 export const getAllInstructors = () => apiService.getAllInstructors();
 export const enrollUserInCourse = (userId: string, courseId: string, instructorId?: number) => apiService.enrollUserInCourse(userId, courseId, instructorId);
 export const getUserEnrollments = (userId: string) => apiService.getUserEnrollments(userId);
 export const saveInvoice = (invoice: Invoice) => apiService.saveInvoice(invoice);
-
-// New profile related exports
 export const getUserId = () => apiService.getUserId();
 export const getUserProfile = (userId: string) => apiService.getUserProfile(userId);
 export const getProfileImageId = (userId: string) => apiService.getProfileImageId(userId);
@@ -795,8 +1211,6 @@ export const uploadProfileImage = (userId: string, file: File) => apiService.upl
 export const registerUser = (userData: { firstName: string; lastName: string; email: string; username: string; password: string; }) => apiService.registerUser(userData);
 export const sendPasswordResetLink = (email: string) => apiService.sendPasswordResetLink(email);
 export const login = (username: string, password: string) => apiService.login(username, password);
-
-// Notification related exports
 export const getNotifications = (userId: number) => apiService.getNotifications(userId);
 export const addNotification = (notification: Omit<Notification, 'id' | 'timestamp'>, userId: number) => apiService.addNotification(notification, userId);
 export const markNotificationAsRead = (id: string) => apiService.markNotificationAsRead(id);
@@ -804,3 +1218,23 @@ export const markNotificationAsUnread = (id: string) => apiService.markNotificat
 export const markAllNotificationsAsRead = (userId: number) => apiService.markAllNotificationsAsRead(userId);
 export const deleteNotification = (id: string) => apiService.deleteNotification(id);
 export const getNotificationStats = (userId: number) => apiService.getNotificationStats(userId);
+export const uploadVideo = (file: File, title: string, description: string) => apiService.uploadVideo(file, title, description);
+export const getAllVideos = () => apiService.getAllVideos();
+export const deleteVideo = (id: string) => apiService.deleteVideo(id);
+export const createCertificate = (certificateData: ApiCertificateRequest) => apiService.createCertificate(certificateData);
+export const getCertificateById = (id: string) => apiService.getCertificateById(id);
+export const getAllCertificates = () => apiService.getAllCertificates();
+export const deleteCertificate = (id: string) => apiService.deleteCertificate(id);
+export const createCheckoutSession = (sessionData: ApiCheckoutSessionRequest) => apiService.createCheckoutSession(sessionData);
+export const createInstructor = (instructorData: ApiInstructorRequest) => apiService.createInstructor(instructorData);
+export const getInstructorById = (instructorId: string) => apiService.getInstructorById(instructorId);
+export const updateInstructor = (instructorId: string, instructorData: ApiInstructorUpdate) => apiService.updateInstructor(instructorId, instructorData);
+export const deleteInstructor = (instructorId: string) => apiService.deleteInstructor(instructorId);
+export const addQuestionToQuiz = (quizId: string, questionData: ApiQuizQuestionRequest) => apiService.addQuestionToQuiz(quizId, questionData);
+export const getQuiz = (quizId: string) => apiService.getQuiz(quizId);
+export const submitAssignment = (assignmentId: string, userId: string, submissionData: ApiAssignmentSubmissionRequest) => apiService.submitAssignment(assignmentId, userId, submissionData);
+export const getSubmissionsForAssignment = (assignmentId: string) => apiService.getSubmissionsForAssignment(assignmentId);
+export const gradeSubmission = (submissionId: string, gradeData: ApiGradeSubmissionRequest) => apiService.gradeSubmission(submissionId, gradeData);
+export const getAllUsers = () => apiService.getAllUsers();
+export const deleteUserByUsername = (username: string) => apiService.deleteUserByUsername(username);
+export const changeUserRole = (userId: string, newRole: string) => apiService.changeUserRole(userId, newRole);
