@@ -140,9 +140,11 @@ const InstructorDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container max-w-screen mx-auto px-4 py-12">
-        {/* Welcome Section */}
-        <motion.div className="mb-8" variants={fadeInUp} initial="initial" animate="animate">
+      {/* Full-width header section */}
+      <div className="w-full py-12 px-6 lg:px-12 bg-gradient-to-r from-indigo-50 to-purple-50">
+        <div className="max-w-[2000px] mx-auto">
+          {/* Welcome Section */}
+          <motion.div className="mb-8" variants={fadeInUp} initial="initial" animate="animate">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div>
               <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
@@ -173,7 +175,11 @@ const InstructorDashboard: React.FC = () => {
             </div>
           </div>
         </motion.div>
+        </div>
+      </div>
 
+      {/* Content with padding */}
+      <div className="w-full max-w-[2000px] mx-auto px-6 lg:px-12 py-8">
         {/* Stats Overview */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12"
