@@ -296,7 +296,7 @@ export function ProfileForm() {
             
                 <div className="mb-6">
                     <Link
-                        href="/dashboard"
+                        href="/dashboard/user-home"
                         className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
                     >
                         <ArrowLeft className="mr-1 h-4 w-4" />
