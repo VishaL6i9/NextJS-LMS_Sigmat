@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Delete } from "@/components/ui/Delete";
 import { LessonList } from "./LessonList";
 import { ModuleForm } from "./ModuleForm";
 import { createModule as apiCreateModule, updateModule as apiUpdateModule, deleteModule as apiDeleteModule } from "@/app/components/services/api";
@@ -111,7 +112,9 @@ export const ModuleList = ({ modules, courseId, onModuleCreated }: ModuleListPro
                             <CardTitle>{module.title}</CardTitle>
                             <div className="flex gap-2">
                                 <Button variant="outline" size="sm" onClick={() => handleEditModule(module)}>Edit</Button>
-                                <Button variant="destructive" size="sm" onClick={() => handleDeleteModule(module.id)}>Delete</Button>
+                                <Button variant="destructive" size="sm" onClick={() => handleDeleteModule(module.id)}>
+                                    <Delete width={16} height={16} stroke="white" className="mr-1" /> Delete
+                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent>

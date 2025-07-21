@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
+import { Delete } from "@/components/ui/Delete";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,7 +29,7 @@ import {
 } from "@/app/components/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarIcon, ChevronsUpDown, PlusCircle, ArrowLeft } from "lucide-react";
+import { ChevronsUpDown, PlusCircle, ArrowLeft, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -328,7 +329,7 @@ export default function CoursesManagement() {
     const handleViewCourse = async (courseCode: string) => {
         setIsLoading(true);
         try {
-            const courseId  = await apiService.getCourseIdByCourseCode(courseCode);
+            const courseId = await apiService.getCourseIdByCourseCode(courseCode);
             const courseDetails = await apiGetCourseById(courseId.toString());
             const modules = await apiService.getAllModulesForCourse(courseId.toString());
             setSelectedCourse({
@@ -740,7 +741,7 @@ export default function CoursesManagement() {
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Code</th>
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Category</th>
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Mode</th>
-                                        
+
                                         <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
                                     </tr>
                                 </thead>
@@ -764,7 +765,7 @@ export default function CoursesManagement() {
                                                     <td className="px-4 py-3 whitespace-nowrap">
                                                         <Badge variant="outline">{course.courseMode}</Badge>
                                                     </td>
-                                                    
+
                                                     <td className="px-4 py-3 whitespace-nowrap">
                                                         <div className="flex gap-2">
                                                             <Button variant="outline" size="sm" onClick={() => handleViewCourse(course.courseCode)}>
@@ -779,7 +780,7 @@ export default function CoursesManagement() {
                                                                         Edit
                                                                     </Button>
                                                                     <Button variant="destructive" size="sm" onClick={() => deleteCourse(course.id!)}>
-                                                                        Delete
+                                                                        <Delete width={16} height={16} stroke="white" className="mr-1" /> Delete
                                                                     </Button>
                                                                 </>
                                                             )}
