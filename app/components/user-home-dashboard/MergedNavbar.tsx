@@ -18,7 +18,8 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LogOut, User, ChevronDown } from "lucide-react";
+import { Menu, LogOut, User } from "lucide-react";
+import { ChevronDown } from "@/components/ui/ChevronDown";
 import { useUser } from '@/app/contexts/UserContext';
 import { NotificationDropdown } from './NotificationDropdown';
 import { getUserRoles } from "@/app/components/services/api";
@@ -66,7 +67,7 @@ const MergedNavbar: React.FC = () => {
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost"
                             className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
-                            Home <ChevronDown size={16} />
+                            Home <ChevronDown width={16} height={16} />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
@@ -91,7 +92,7 @@ const MergedNavbar: React.FC = () => {
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
                         className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
-                        Courses <ChevronDown size={16} />
+                        Courses <ChevronDown width={16} height={16} />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
@@ -113,7 +114,7 @@ const MergedNavbar: React.FC = () => {
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
                         className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
-                        Reporting <ChevronDown size={16} />
+                        Reporting <ChevronDown width={16} height={16} />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
@@ -138,7 +139,7 @@ const MergedNavbar: React.FC = () => {
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
                         className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
-                        Configuration <ChevronDown size={16} />
+                        Configuration <ChevronDown width={16} height={16} />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
@@ -194,7 +195,7 @@ const MergedNavbar: React.FC = () => {
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right"
-                                className="w-[85vw] max-w-md flex flex-col gap-4 pt-10 overflow-y-auto">
+                                className="w-[85vw] max-w-md flex flex-col gap-4 pt-10 overflow-y-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                                 <SheetHeader>
                                     <SheetTitle className="sr-only">Mobile Navigation</SheetTitle>
                                 </SheetHeader>
@@ -214,9 +215,9 @@ const MergedNavbar: React.FC = () => {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                                        <Avatar className="h-9 w-9">
+                                        <Avatar className="h-9 w-9 border-2 border-white/50">
                                             <AvatarImage src={userProfile.profileImage || "/placeholder-avatar.jpg"} alt="User Avatar" />
-                                            <AvatarFallback>
+                                            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
                                                 {userProfile.firstName && userProfile.firstName[0]}
                                                 {userProfile.lastName && userProfile.lastName[0]}
                                             </AvatarFallback>
@@ -238,9 +239,8 @@ const MergedNavbar: React.FC = () => {
                             </DropdownMenu>
                         ) : (
                             <Button
-                                variant="default"
                                 onClick={handleLoginButtonClick}
-                                className="text-sm md:text-base"
+                                className="text-sm md:text-base bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-md"
                             >
                                 LOGIN
                             </Button>

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { CheckCircle, Circle, Trash2, MoreVertical, ExternalLink } from 'lucide-react';
+import { CheckCircle, Circle, MoreVertical, ExternalLink } from 'lucide-react';
+import { Delete } from '@/components/ui/Delete';
 import { useHomeNotifications, HomeNotificationWrapper } from './contexts/HomeNotificationContext';
 import { getNotificationIcon, getNotificationColor } from '@/app/components/utils/notificationUtils';
 import { Notification } from '@/app/components/user-home-dashboard/types/notification';
@@ -108,7 +109,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
                                     <span>Mark as {notification.isRead ? 'unread' : 'read'}</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => onDelete(notification.id)} className="text-red-600">
-                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <Delete width={16} height={16} stroke="currentColor" className="mr-2" />
                                     <span>Delete</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -130,16 +131,22 @@ export const NotificationCenter: React.FC = () => {
 
     return (
         <HomeNotificationWrapper>
-            <div className="notifications-container">
-                {notifications.map((notification) => (
-                    <NotificationItem 
-                        key={notification.id} 
-                        notification={notification}
-                        onMarkAsRead={markAsRead}
-                        onMarkAsUnread={markAsUnread}
-                        onDelete={deleteNotification}
-                    />
-                ))}
+            <div className="notifications-container bg-white/80 backdrop-blur-sm rounded-xl shadow-lg p-4">
+                {notifications.length > 0 ? (
+                    notifications.map((notification) => (
+                        <NotificationItem 
+                            key={notification.id} 
+                            notification={notification}
+                            onMarkAsRead={markAsRead}
+                            onMarkAsUnread={markAsUnread}
+                            onDelete={deleteNotification}
+                        />
+                    ))
+                ) : (
+                    <div className="text-center py-8 text-gray-500">
+                        No notifications to display
+                    </div>
+                )}
             </div>
         </HomeNotificationWrapper>
     );

@@ -36,9 +36,9 @@ export const NotificationDropdown = () => {
                 </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto">
-                <div className="p-4 border-b">
-                    <h3 className="font-semibold">Notifications</h3>
+            <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <div className="p-4 border-b bg-blue-50">
+                    <h3 className="font-semibold text-gray-900">Notifications</h3>
                 </div>
                 <div className="p-2">
                     {notifications.length > 0 ? (
@@ -73,9 +73,9 @@ export const NotificationDropdown = () => {
                         </div>
                     )}
                 </div>
-                <div className="p-4 border-t flex justify-center">
+                <div className="p-4 border-t flex justify-center bg-blue-50">
                     <Link href="/dashboard/user-notification" legacyBehavior>
-                        <a className="w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">View All Notifications</a>
+                        <a className="w-full text-center px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md">View All Notifications</a>
                     </Link>
                 </div>
             </DropdownMenuContent>

@@ -12,10 +12,10 @@ import {
     CheckCircle,
     Users,
     AlertTriangle,
-    Calendar,
     BarChart3,
     ChevronLeft
 } from 'lucide-react';
+import { Calendar1 as Calendar } from '@/components/ui/Calendar1';
 import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
 import { NotificationCenter } from '@/app/components/user-home-dashboard/NotificationCenter';
 import { Badge } from "@/components/ui/badge";
@@ -129,7 +129,7 @@ export const Dashboard = () => {
                         </motion.div>
                     </div>
                 </div>
-                
+
                 {/* Content with padding */}
                 <div className="w-full max-w-[2000px] mx-auto px-6 lg:px-12 py-8">
                     <NotificationCenter />
@@ -216,7 +216,7 @@ export const Dashboard = () => {
                             <CardContent className="space-y-3">
                                 <Button onClick={() => handleQuickAction('View Assignments')} className="w-full justify-start bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-md"><BookOpen className="mr-3 h-5 w-5" /> View Assignments</Button>
                                 <Button onClick={() => handleQuickAction('Check Grades')} className="w-full justify-start bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md"><BarChart3 className="mr-3 h-5 w-5" /> Check Grades</Button>
-                                <Button onClick={() => handleQuickAction('View Schedule')} className="w-full justify-start bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-md"><Calendar className="mr-3 h-5 w-5" /> View Schedule</Button>
+                                <Button onClick={() => handleQuickAction('View Schedule')} className="w-full justify-start bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-md"><Calendar width={20} height={20} stroke="white" className="mr-3" /> View Schedule</Button>
                             </CardContent>
                         </Card>
 
@@ -235,7 +235,7 @@ export const Dashboard = () => {
                                         <div className="text-right">
                                             <p className="text-sm font-semibold text-gray-800">{deadline.dueDate}</p>
                                             <Badge className={`mt-1 ${deadline.priority === 'high' ? 'bg-red-500' :
-                                                    deadline.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                                deadline.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
                                                 }`}>
                                                 {deadline.priority}
                                             </Badge>
