@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { Delete } from '@/components/ui/Delete';
 import { Invoice, InvoiceItem, User } from '../types/invoice';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -218,7 +219,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({ invoice, onInvoiceChan
                 <div className="w-24 text-right text-sm">${item.unitPrice.toFixed(2)}</div>
                 <div className="w-24 text-right font-medium">${item.total.toFixed(2)}</div>
                 <Button onClick={() => removeItem(item.id)} variant="ghost" size="icon">
-                  <Trash2 className="h-4 w-4 text-red-500" />
+                  <Delete width={16} height={16} stroke="#ef4444" />
                 </Button>
               </div>
             ))}
