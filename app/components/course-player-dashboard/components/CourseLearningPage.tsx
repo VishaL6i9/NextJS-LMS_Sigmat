@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CourseHeader } from './CourseHeader';
 import { VideoPlayer } from './VideoPlayer';
 import { CourseSidebar } from './CourseSidebar';
@@ -7,21 +7,95 @@ import { LessonQuiz } from './LessonQuiz';
 import { NotesPanel } from './NotesPanel';
 import { Course, Note } from '../types/course';
 import { useUser } from '@/app/contexts/UserContext';
-import { enrollUserInCourse, getUserEnrollments } from '@/app/components/services/api';
+import { enrollUserInCourse, getUserEnrollments, getCourseById, getAllModulesForCourse } from '@/app/components/services/api';
 import { Button } from '@/components/ui/button';
+import { useToast } from "@/hooks/use-toast";
 
 interface CourseLearningPageProps {
-  course: Course;
+  courseId: string;
   onBack?: () => void;
 }
 
-export const CourseLearningPage: React.FC<CourseLearningPageProps> = ({ 
-  course: initialCourse, 
+export const CourseLearningPage: React.FC<CourseLearningPageProps> = ({
+  courseId,
   onBack 
 }) => {
+  const { userProfile } = useUser();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [activeTab, setActiveTab] = useState<'resources' | 'quiz' | 'notes'>('resources');
+  const [currentVideoTime, setCurrentVideoTime] = useState(0);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
+
+  const { toast } = useToast();
+
   useEffect(() => {
-    setCourse(initialCourse);
-  }, [initialCourse]);
+    const fetchCourseDetails = async () => {
+      if (!courseId) {
+        setLoading(false);
+        setError("Course ID is missing.");
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const fetchedApiCourse = await getCourseById(courseId);
+        const fetchedModules = await getAllModulesForCourse(courseId);
+
+        // Map ApiCourse and ApiModule[] to Course type
+        const mappedLessons: Lesson[] = [];
+        fetchedModules.forEach(module => {
+          module.lessons.forEach(lesson => {
+            mappedLessons.push({
+              id: lesson.id,
+              title: lesson.title,
+              duration: 0, // Placeholder, API does not provide lesson duration directly
+              videoUrl: lesson.type === 'video' ? lesson.url : '', // Assuming 'url' exists for video lessons
+              completed: false, // Default to false
+              description: lesson.description, // Assuming description exists
+              resources: lesson.resources || [], // Assuming resources exist
+              quiz: lesson.quiz || undefined, // Assuming quiz exists
+            });
+          });
+        });
+
+        const mappedCourse: Course = {
+          id: fetchedApiCourse.courseId,
+          title: fetchedApiCourse.courseName,
+          instructor: "", // Placeholder, API does not provide instructor name directly
+          lessons: mappedLessons,
+          currentLessonIndex: 0, // Default to the first lesson
+          totalProgress: 0, // Default to 0
+          description: fetchedApiCourse.courseDescription,
+          category: fetchedApiCourse.courseCategory,
+          level: "Beginner", // Placeholder, API does not provide level directly
+          duration: fetchedApiCourse.courseDuration, // Assuming this is total course duration
+          rating: fetchedApiCourse.rating,
+          studentsEnrolled: fetchedApiCourse.studentsEnrolled ?? 0,
+          certificate: fetchedApiCourse.certificate,
+          lastAccessed: undefined, // Not available from API
+        };
+
+        setCourse(mappedCourse);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load course.');
+        toast({
+          title: "Error",
+          description: err.message || 'Failed to load course.',
+          variant: "destructive",
+        });
+        console.error('Error fetching course:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourseDetails();
+  }, [courseId]);
 
   useEffect(() => {
     const checkEnrollment = async () => {
@@ -42,14 +116,27 @@ export const CourseLearningPage: React.FC<CourseLearningPageProps> = ({
     };
     checkEnrollment();
   }, [userProfile?.id, course?.id]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [activeTab, setActiveTab] = useState<'resources' | 'quiz' | 'notes'>('resources');
-  const [currentVideoTime, setCurrentVideoTime] = useState(0);
-  const [isEnrolled, setIsEnrolled] = useState(false);
-  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
-  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
+
+  // Conditional rendering based on loading/error/data presence
+  if (loading) {
+    return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Loading course...</div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen bg-gray-100 flex items-center justify-center text-red-600">Error: {error}</div>;
+  }
+
+  if (!course) {
+    return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Course not found.</div>;
+  }
 
   const currentLesson = course.lessons[course.currentLessonIndex];
+
+  if (!currentLesson) {
+    return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Current lesson not found.</div>;
+  }
+
+
 
   const handleLessonSelect = (lessonIndex: number) => {
     setCourse(prev => ({
@@ -120,11 +207,19 @@ export const CourseLearningPage: React.FC<CourseLearningPageProps> = ({
 
   const handleEnroll = async () => {
     if (!userProfile?.id) {
-      alert("Please log in to enroll in the course.");
+      toast({
+        title: "Enrollment Error",
+        description: "Please log in to enroll in the course.",
+        variant: "destructive",
+      });
       return;
     }
-    if (!course?.id) {
-      alert("Course information is missing.");
+    if (!course.id) {
+      toast({
+        title: "Enrollment Error",
+        description: "Course information is missing.",
+        variant: "destructive",
+      });
       return;
     }
 

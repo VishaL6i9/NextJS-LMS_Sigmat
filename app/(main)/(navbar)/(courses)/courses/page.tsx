@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -124,6 +125,7 @@ export default function CoursesManagement() {
     const [selectedCourse, setSelectedCourse] = useState<CourseData | null>(null);
     const [isViewingCourse, setIsViewingCourse] = useState(false);
     const { toast } = useToast();
+    const router = useRouter();
 
     const form = useForm<CourseData>({
         resolver: zodResolver(courseSchema),
@@ -767,6 +769,9 @@ export default function CoursesManagement() {
                                                         <div className="flex gap-2">
                                                             <Button variant="outline" size="sm" onClick={() => handleViewCourse(course.courseCode)}>
                                                                 View
+                                                            </Button>
+                                                            <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/course-player?courseId=${course.id}`)}>
+                                                                Open in Dashboard
                                                             </Button>
                                                             {canManageCourses && (
                                                                 <>
