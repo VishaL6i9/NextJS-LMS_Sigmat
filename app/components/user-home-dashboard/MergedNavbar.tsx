@@ -18,18 +18,33 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LogOut, User } from "lucide-react";
+import { Menu, LogOut, User, ChevronDown } from "lucide-react";
 import { useUser } from '@/app/contexts/UserContext';
 import { NotificationDropdown } from './NotificationDropdown';
+import { getUserRoles } from "@/app/components/services/api";
 
 const MergedNavbar: React.FC = () => {
     const { userProfile, setUserProfile } = useUser();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
+    const [userRoles, setUserRoles] = useState<string[]>([]);
 
     useEffect(() => {
-        // This effect will run whenever userProfile changes
-        // No need for localStorage polling or custom events if UserContext is the source of truth
+        // Fetch user roles when userProfile changes
+        const fetchUserRoles = async () => {
+            if (userProfile) {
+                try {
+                    const roles = await getUserRoles();
+                    const roleNames = roles.map(role => role.name || role.toString());
+                    setUserRoles(roleNames);
+                } catch (error) {
+                    console.error('Failed to fetch user roles:', error);
+                    setUserRoles([]);
+                }
+            }
+        };
+
+        fetchUserRoles();
     }, [userProfile]);
 
     const handleLogout = async () => {
@@ -46,70 +61,89 @@ const MergedNavbar: React.FC = () => {
 
     const NavItems = () => (
         <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost"
-                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Home</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-full md:w-auto">
-                    <DropdownMenuItem asChild><Link href="/dashboard/user-home"
-                                                    className="w-full">User</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/dashboard/instructor-home"
-                                                    className="w-full">Instructor</Link></DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            {userProfile ? (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost"
+                            className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                            Home <ChevronDown size={16} />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                        {(userRoles.includes('USER') || userRoles.includes('ADMIN')) && (
+                            <DropdownMenuItem asChild><Link href="/dashboard/user-home"
+                                className="w-full">User</Link></DropdownMenuItem>
+                        )}
+                        {(userRoles.includes('INSTRUCTOR') || userRoles.includes('ADMIN')) && (
+                            <DropdownMenuItem asChild><Link href="/dashboard/instructor-home"
+                                className="w-full">Instructor</Link></DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ) : (
+                <Button variant="ghost" asChild
+                    className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                    <Link href="/">Home</Link>
+                </Button>
+            )}
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
-                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Courses</Button>
+                        className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                        Courses <ChevronDown size={16} />
+                    </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-full md:w-auto">
+                <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                     <DropdownMenuItem asChild><Link href="/courses" className="w-full">Courses</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/contents"
-                                                    className="w-full">Contents</Link></DropdownMenuItem>
+                        className="w-full">Contents</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reviews" className="w-full">Reviews</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/certificates"
-                                                    className="w-full">Certificates</Link></DropdownMenuItem>
+                        className="w-full">Certificates</Link></DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 
             <Button variant="ghost" asChild
-                    className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
                 <Link href="/forum">Forum</Link>
             </Button>
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
-                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Reporting</Button>
+                        className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                        Reporting <ChevronDown size={16} />
+                    </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-full md:w-auto">
+                <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                     <DropdownMenuItem asChild><Link href="/reporting/courses"
-                                                    className="w-full">Courses</Link></DropdownMenuItem>
+                        className="w-full">Courses</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/contents"
-                                                    className="w-full">Contents</Link></DropdownMenuItem>
+                        className="w-full">Contents</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/attendees"
-                                                    className="w-full">Attendees</Link></DropdownMenuItem>
+                        className="w-full">Attendees</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/reviews"
-                                                    className="w-full">Reviews</Link></DropdownMenuItem>
+                        className="w-full">Reviews</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/quizzes"
-                                                    className="w-full">Quizzes</Link></DropdownMenuItem>
+                        className="w-full">Quizzes</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/forum"
-                                                    className="w-full">Forum</Link></DropdownMenuItem>
+                        className="w-full">Forum</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/reporting/certifications"
-                                                    className="w-full">Certifications</Link></DropdownMenuItem>
+                        className="w-full">Certifications</Link></DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
-                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Configuration</Button>
+                        className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                        Configuration <ChevronDown size={16} />
+                    </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-full md:w-auto">
+                <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                     <DropdownMenuItem asChild><Link href="/configuration/settings"
-                                                    className="w-full">Settings</Link></DropdownMenuItem>
+                        className="w-full">Settings</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/configuration/course-groups" className="w-full">Course
                         Groups</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/configuration/content-tags" className="w-full">Content
@@ -118,12 +152,12 @@ const MergedNavbar: React.FC = () => {
             </DropdownMenu>
 
             <Button variant="ghost" asChild
-                    className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
                 <Link href="/dashboard/profile">Profile</Link>
             </Button>
 
             <Button variant="ghost" asChild
-                    className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
                 <Link href="/pricing">Pricing</Link>
             </Button>
         </>
@@ -189,7 +223,7 @@ const MergedNavbar: React.FC = () => {
                                         </Avatar>
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56" align="end" forceMount>
+                                <DropdownMenuContent className="w-56 bg-white/80 backdrop-blur-sm border-0 shadow-lg" align="end" forceMount>
                                     <DropdownMenuItem>
                                         <Link href="/dashboard/profile" className="flex items-center w-full">
                                             <User className="mr-2 h-4 w-4" />
