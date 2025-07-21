@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { Check, Trash2, MoreHorizontal, Clock, BookOpen, Trophy, Megaphone, Settings as SettingsIcon, Bell } from 'lucide-react';
+import { Check, MoreHorizontal, Clock, BookOpen, Trophy, Megaphone, Settings as SettingsIcon, Bell } from 'lucide-react';
+import { Delete } from '@/components/ui/Delete';
 import { useNotifications } from './contexts/NotificationContext';
 import { Notification } from './types/notification';
 
@@ -243,7 +244,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
                           className="p-1 rounded-full hover:bg-gray-200 transition-colors"
                           title="Delete notification"
                         >
-                          <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-600" />
+                          <Delete width={16} height={16} stroke="currentColor" className="text-gray-400 hover:text-red-600" />
                         </button>
                       </div>
                     </div>

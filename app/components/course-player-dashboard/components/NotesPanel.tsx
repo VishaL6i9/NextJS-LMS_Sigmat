@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, Clock } from 'lucide-react';
+import { Plus, Edit3, Clock } from 'lucide-react';
+import { Delete } from '@/components/ui/Delete';
 import { Note } from '../types/course';
 import { formatTime } from '../utils/timeUtils';
 
@@ -109,7 +110,7 @@ export const NotesPanel: React.FC<NotesPanelProps> = ({
                     className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                     title="Delete note"
                   >
-                    <Trash2 size={14} />
+                    <Delete width={14} height={14} stroke="currentColor" />
                   </button>
                 </div>
                 <p className="text-gray-700 text-sm leading-relaxed">{note.content}</p>
