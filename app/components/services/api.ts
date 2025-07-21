@@ -91,12 +91,25 @@ export interface ApiVideo {
 }
 
 export interface ApiCertificate {
-  id: string;
-  learnerId: string;
+  certificateId: string;
+  userProfileId: string;
+  userProfileFirstName: string;
   courseId: string;
+  courseName: string;
   instructorId: string;
+  instructorFirstName: string;
   dateOfCertificate: string;
-  fileUrl?: string;
+}
+
+export interface ApiEnrollment {
+  id: number;
+  userId: number;
+  username: string;
+  courseId: number;
+  courseName: string;
+  instructorId: number;
+  instructorName: string;
+  enrollmentDate: string;
 }
 
 export interface ApiCheckoutSessionRequest {
@@ -166,11 +179,10 @@ export interface ApiVideoUploadResponse {
 }
 
 export interface ApiCertificateRequest {
-  learnerId: number;
+  userProfileId: number;
   courseId: number;
   instructorId: number;
   dateOfCertificate: string;
-  file?: File;
 }
 
 export interface ApiCertificateResponse {
@@ -690,7 +702,7 @@ class ApiService {
     }
   }
 
-  async enrollUserInCourse(userId: string, courseId: string, instructorId?: number): Promise<void> {
+  async enrollUserInCourse(userId: string, courseId: string, instructorId?: number): Promise<ApiEnrollment> {
     if (!userId || !courseId) {
       throw new ApiError('User ID and Course ID are required for enrollment', 400);
     }
@@ -702,21 +714,22 @@ class ApiService {
       if (instructorId) {
         queryParams.append('instructorId', instructorId.toString());
       }
-      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/user/enroll?${queryParams.toString()}`, {
+      const enrollment = await this.fetchWithErrorHandling<ApiEnrollment>(`${API_BASE_URL}/user/enroll?${queryParams.toString()}`, {
         method: 'POST',
       });
+      return enrollment;
     } catch (error) {
       console.error(`Failed to enroll user ${userId} in course ${courseId}:`, error);
       throw error;
     }
   }
 
-  async getUserEnrollments(userId: string): Promise<ApiCourse[]> {
+  async getUserEnrollments(userId: string): Promise<ApiEnrollment[]> {
     if (!userId) {
       throw new ApiError('User ID is required to get enrollments', 400);
     }
     try {
-      const enrollments = await this.fetchWithErrorHandling<ApiCourse[]>(`${API_BASE_URL}/user/enrollments/${userId}`);
+      const enrollments = await this.fetchWithErrorHandling<ApiEnrollment[]>(`${API_BASE_URL}/user/enrollments/${userId}`);
       return enrollments;
     } catch (error) {
       console.error(`Failed to fetch enrollments for user ${userId}:`, error);
@@ -1035,13 +1048,10 @@ class ApiService {
   async createCertificate(certificateData: ApiCertificateRequest): Promise<ApiCertificateResponse> {
     try {
       const formData = new FormData();
-      formData.append('learnerId', certificateData.learnerId.toString());
+      formData.append('userProfileId', certificateData.userProfileId.toString());
       formData.append('courseId', certificateData.courseId.toString());
       formData.append('instructorId', certificateData.instructorId.toString());
       formData.append('dateOfCertificate', certificateData.dateOfCertificate);
-      if (certificateData.file) {
-        formData.append('file', certificateData.file);
-      }
 
       const response = await fetch(`${API_BASE_URL}/certificates`, {
         method: 'POST',
