@@ -89,14 +89,21 @@ export const Dashboard = () => {
 
     if (activeTab === 'notifications') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-10">
-                <div className="container mx-auto px-4">
-                    <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }}>
-                        <Button onClick={() => setActiveTab('overview')} variant="ghost" className="mb-8 text-indigo-600 hover:text-indigo-800">
-                            <ChevronLeft className="mr-2 h-5 w-5" />
-                            Back to Dashboard
-                        </Button>
-                    </motion.div>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+                {/* Full-width header section */}
+                <div className="w-full py-8 px-6 lg:px-12 bg-gradient-to-r from-indigo-50 to-purple-50">
+                    <div className="max-w-[2000px] mx-auto">
+                        <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }}>
+                            <Button onClick={() => setActiveTab('overview')} variant="ghost" className="mb-8 text-indigo-600 hover:text-indigo-800">
+                                <ChevronLeft className="mr-2 h-5 w-5" />
+                                Back to Dashboard
+                            </Button>
+                        </motion.div>
+                    </div>
+                </div>
+                
+                {/* Content with padding */}
+                <div className="w-full max-w-[2000px] mx-auto px-6 lg:px-12 py-8">
                     <NotificationCenter />
                 </div>
             </div>
@@ -105,15 +112,20 @@ export const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-            <div className="container mx-auto px-4 py-12">
-                {/* Header */}
-                <motion.div className="mb-12" variants={fadeInUp} initial="initial" animate="animate">
-                    <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                        Welcome, {userProfile?.firstName || 'Student'}!
-                    </h1>
-                    <p className="text-xl text-gray-600">Here's your learning snapshot for today.</p>
-                </motion.div>
+            {/* Full-width header section */}
+            <div className="w-full py-12 px-6 lg:px-12 bg-gradient-to-r from-indigo-50 to-purple-50">
+                <div className="max-w-[2000px] mx-auto">
+                    <motion.div className="mb-12" variants={fadeInUp} initial="initial" animate="animate">
+                        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                            Welcome, {userProfile?.firstName || 'Student'}!
+                        </h1>
+                        <p className="text-xl text-gray-600">Here's your learning snapshot for today.</p>
+                    </motion.div>
+                </div>
+            </div>
 
+            {/* Content with padding */}
+            <div className="w-full max-w-[2000px] mx-auto px-6 lg:px-12 py-8">
                 {/* Stats Grid */}
                 <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12" variants={staggerContainer} initial="initial" animate="animate">
                     {stats.map((stat) => (

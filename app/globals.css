@@ -55,11 +55,11 @@
   }
   
   html {
-    @apply h-full scroll-smooth antialiased;
+    @apply h-full scroll-smooth antialiased m-0 p-0;
   }
   
   body {
-    @apply bg-background text-foreground min-h-full flex flex-col;
+    @apply bg-background text-foreground min-h-full flex flex-col m-0 p-0;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }

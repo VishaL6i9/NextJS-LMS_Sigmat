@@ -13,7 +13,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 <HomeNotificationProvider>
                     {/* <DashboardNavbar /> */}
                     
-                    <main className="flex-1 w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <main className="flex-1 w-full">
                         {children}
                     </main>
                 </HomeNotificationProvider>
