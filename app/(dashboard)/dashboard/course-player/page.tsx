@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CourseLearningPage } from '@/app/components/course-player-dashboard/components/CourseLearningPage';
 import { useToast } from "@/hooks/use-toast";
@@ -27,10 +27,12 @@ function Page() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <CourseLearningPage 
-        courseId={courseId} 
-        onBack={() => console.log('Navigate back to course list')}
-      />
+      <Suspense fallback={<div>Loading course player...</div>}>
+        <CourseLearningPage 
+          courseId={courseId} 
+          onBack={() => console.log('Navigate back to course list')}
+        />
+      </Suspense>
     </div>
   );
 }
