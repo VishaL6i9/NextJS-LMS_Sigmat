@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { useUser } from '@/app/contexts/UserContext';
 import { toast } from '@/hooks/use-toast';
+import { getUserId, getUserEnrollments } from '@/app/components/services/api';
 
 const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -43,6 +44,8 @@ export const Dashboard = () => {
     const { userProfile } = useUser();
     const { notifications, unreadCount } = useNotifications();
     const [activeTab, setActiveTab] = useState<'overview' | 'notifications'>('overview');
+    const [activeCourses, setActiveCourses] = useState<number>(0);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     // Move token check to useEffect to avoid rendering issues
     useEffect(() => {
@@ -57,6 +60,31 @@ export const Dashboard = () => {
         }
     }, [router]);
 
+    // Fetch user enrollments to get active courses count
+    useEffect(() => {
+        const fetchEnrollments = async () => {
+            try {
+                setIsLoading(true);
+                const userId = await getUserId();
+                const enrollments = await getUserEnrollments(userId);
+                setActiveCourses(enrollments.length);
+            } catch (error) {
+                console.error("Failed to fetch enrollments:", error);
+                toast({
+                    title: "Error",
+                    description: "Failed to fetch your active courses.",
+                    variant: "destructive",
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        if (userProfile) {
+            fetchEnrollments();
+        }
+    }, [userProfile]);
+
     const recentAssignments = notifications.filter(n => n.category === 'assignment').length;
 
     const handleQuickAction = (action: string) => {
@@ -69,7 +97,7 @@ export const Dashboard = () => {
 
     const stats = [
         { name: 'Unread Notifications', value: unreadCount, icon: Bell, color: 'from-red-500 to-orange-500' },
-        { name: 'Active Courses', value: 6, icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
+        { name: 'Active Courses', value: isLoading ? '...' : activeCourses, icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
         { name: 'Pending Assignments', value: recentAssignments, icon: Target, color: 'from-yellow-500 to-amber-500' },
         { name: 'Average Grade', value: '92%', icon: Award, color: 'from-green-500 to-emerald-500' }
     ];
