@@ -176,7 +176,7 @@ export default function CoursesManagement() {
         try {
             const data = await apiGetAllCourses();
             setCourses(data.map(course => ({
-                id: course.id,
+                id: course.courseId,
                 courseName: course.courseName,
                 courseCode: course.courseCode,
                 courseDescription: course.courseDescription,
@@ -856,7 +856,7 @@ export default function CoursesManagement() {
                 transition={{ duration: 0.5 }}
                 className="flex flex-col md:flex-row justify-between items-center gap-4"
             >
-                <h1 className="text-4xl font-extrabold text-primary-foreground">Course Management</h1>
+                <h1 className="text-4xl font-bold text-black">Course Management</h1>
                 {canManageCourses && (
                     <Button onClick={() => loadCourseForm()} className="gap-2 px-6 py-3 text-lg">
                         <PlusCircle className="h-5 w-5" />
