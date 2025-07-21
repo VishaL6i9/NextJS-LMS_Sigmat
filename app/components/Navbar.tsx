@@ -18,7 +18,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Menu, LogOut, User, ChevronDown } from "lucide-react";
 import { useUser } from '@/app/contexts/UserContext';
-import { getProfileImageId, getProfileImage, ApiError, getUserId } from "@/app/components/services/api";
+import { getProfileImageId, getProfileImage, ApiError, getUserId, getUserRoles, Role } from "@/app/components/services/api";
 
 const Navbar: React.FC = () => {
     const { userProfile, setUserProfile } = useUser();
@@ -26,8 +26,19 @@ const Navbar: React.FC = () => {
     const [isOpen, setIsOpen] = React.useState(false);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const imageUrlToRevoke = useRef<string | null>(null);
+    const [userRoles, setUserRoles] = useState<string[]>([]);
 
     useEffect(() => {
+        const fetchUserRoles = async () => {
+            try {
+                const roles = await getUserRoles();
+                const roleNames = roles.map(role => role.name || role.toString());
+                setUserRoles(roleNames);
+            } catch (error) {
+                console.error('Failed to fetch user roles:', error);
+            }
+        };
+
         const fetchAvatar = async () => {
             if (userProfile && userProfile.id) {
                 try {
@@ -69,6 +80,7 @@ const Navbar: React.FC = () => {
             }
         };
 
+        fetchUserRoles();
         fetchAvatar();
 
         return () => {
@@ -97,17 +109,27 @@ const Navbar: React.FC = () => {
 
     const NavItems = ({ isMobile = false }: { isMobile?: boolean }) => (
         <>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
-                        Home <ChevronDown size={16} />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                    <DropdownMenuItem asChild><Link href="/dashboard/user-home" className="w-full">User</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/dashboard/instructor-home" className="w-full">Instructor</Link></DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            {userProfile ? (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                            Home <ChevronDown size={16} />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                        {(userRoles.includes('USER') || userRoles.includes('ADMIN')) && (
+                            <DropdownMenuItem asChild><Link href="/dashboard/user-home" className="w-full">User</Link></DropdownMenuItem>
+                        )}
+                        {(userRoles.includes('INSTRUCTOR') || userRoles.includes('ADMIN')) && (
+                            <DropdownMenuItem asChild><Link href="/dashboard/instructor-home" className="w-full">Instructor</Link></DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            ) : (
+                <Button variant="ghost" asChild className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                    <Link href="/">Home</Link>
+                </Button>
+            )}
 
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -156,49 +178,42 @@ const Navbar: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                <Button variant="ghost" className="relative h-11 w-11 rounded-full">
-                                    <Avatar className="h-11 w-11 border-2 border-white/50">
-                                        {/* Only use the image if avatarUrl is available, otherwise trigger the fallback */}
-                                        {avatarUrl ? (
-                                            <AvatarImage src={avatarUrl} alt="User Avatar" />
-                                        ) : (
-                                            <AvatarImage src="" alt="User Avatar" onError={(e) => {
-                                                console.log("Avatar image failed to load, using initials fallback");
-                                                e.currentTarget.style.display = 'none';
-                                            }} />
-                                        )}
-                                        <AvatarFallback className="bg-gradient-to-br from-orange-500 to-pink-600 text-white">
-                                            {userProfile ? `${userProfile.firstName?.[0] ?? ''}${userProfile.lastName?.[0] ?? ''}` : 'U'}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </motion.div>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 bg-white/80 backdrop-blur-sm border-0 shadow-lg mt-2" align="end" forceMount>
-                            {userProfile ? (
-                                <>
-                                    <DropdownMenuItem asChild>
-                                        <Link href="/dashboard/profile" className="flex items-center w-full cursor-pointer">
-                                            <User className="mr-2 h-4 w-4" />
-                                            <span>Profile</span>
-                                        </Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                                        <LogOut className="mr-2 h-4 w-4" />
-                                        <span>Log out</span>
-                                    </DropdownMenuItem>
-                                </>
-                            ) : (
-                                <DropdownMenuItem onClick={handleLoginButtonClick} className="cursor-pointer">
-                                    <User className="mr-2 h-4 w-4" />
-                                    <span>Login</span>
+                    {userProfile && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                    <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                                        <Avatar className="h-11 w-11 border-2 border-white/50">
+                                            {/* Only use the image if avatarUrl is available, otherwise trigger the fallback */}
+                                            {avatarUrl ? (
+                                                <AvatarImage src={avatarUrl} alt="User Avatar" />
+                                            ) : (
+                                                <AvatarImage src="" alt="User Avatar" onError={(e) => {
+                                                    console.log("Avatar image failed to load, using initials fallback");
+                                                    e.currentTarget.style.display = 'none';
+                                                }} />
+                                            )}
+                                            <AvatarFallback className="bg-gradient-to-br from-orange-500 to-pink-600 text-white">
+                                                {userProfile ? `${userProfile.firstName?.[0] ?? ''}${userProfile.lastName?.[0] ?? ''}` : 'U'}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </Button>
+                                </motion.div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56 bg-white/80 backdrop-blur-sm border-0 shadow-lg mt-2" align="end" forceMount>
+                                <DropdownMenuItem asChild>
+                                    <Link href="/dashboard/profile" className="flex items-center w-full cursor-pointer">
+                                        <User className="mr-2 h-4 w-4" />
+                                        <span>Profile</span>
+                                    </Link>
                                 </DropdownMenuItem>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Log out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
 
                     {!userProfile && (
                         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="hidden md:block">
