@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import {
-  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react"
+import { ChevronDown as ChevronDownIcon } from "@/components/ui/ChevronDown"
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
@@ -152,7 +152,7 @@ function Calendar({
           }
 
           return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
+            <ChevronDownIcon width={16} height={16} stroke="currentColor" className={cn("", className)} {...props} />
           )
         },
         DayButton: CalendarDayButton,

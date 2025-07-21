@@ -16,7 +16,8 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LogOut, User, ChevronDown } from "lucide-react";
+import { Menu, LogOut, User } from "lucide-react";
+import { ChevronDown } from "@/components/ui/ChevronDown";
 import { useUser } from '@/app/contexts/UserContext';
 import { getProfileImageId, getProfileImage, ApiError, getUserId, getUserRoles, Role } from "@/app/components/services/api";
 
@@ -113,7 +114,7 @@ const Navbar: React.FC = () => {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
-                            Home <ChevronDown size={16} />
+                            Home <ChevronDown width={16} height={16} />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
@@ -134,7 +135,7 @@ const Navbar: React.FC = () => {
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
-                        Courses <ChevronDown size={16} />
+                        Courses <ChevronDown width={16} height={16} />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
