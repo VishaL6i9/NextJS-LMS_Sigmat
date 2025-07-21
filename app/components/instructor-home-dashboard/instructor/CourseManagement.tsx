@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, MoreHorizontal, Users, BookOpen, Calendar, TrendingUp, ArrowRight } from 'lucide-react';
+import { Plus, Search, Filter, MoreHorizontal, Users, BookOpen, TrendingUp, ArrowRight } from 'lucide-react';
+import { Calendar1 as Calendar } from '@/components/ui/Calendar1';
 import { useInstructor } from '../contexts/InstructorContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,7 +132,7 @@ const CourseManagement: React.FC = () => {
 
                         <div className="flex items-center justify-between text-sm">
                           <div className="flex items-center text-gray-500">
-                            <Calendar className="w-4 h-4 mr-1" />
+                            <Calendar width={16} height={16} stroke="currentColor" className="mr-1" />
                             {course.startDate ? course.startDate.toLocaleDateString() : 'Not set'}
                           </div>
                           <div className="flex items-center text-green-600">

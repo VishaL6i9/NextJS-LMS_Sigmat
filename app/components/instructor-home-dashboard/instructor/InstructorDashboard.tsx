@@ -8,7 +8,6 @@ import {
   Clock,
   Award,
   AlertCircle,
-  Calendar,
   BarChart3,
   FileText,
   GraduationCap,
@@ -17,6 +16,7 @@ import {
   Search,
   RefreshCw
 } from 'lucide-react';
+import { Calendar1 as Calendar } from '@/components/ui/Calendar1';
 import { useInstructor } from '../contexts/InstructorContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -405,7 +405,7 @@ const InstructorDashboard: React.FC = () => {
                     <p className="text-sm text-gray-600 mb-3">{assignment.courseName}</p>
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center text-gray-500">
-                        <Calendar className="w-4 h-4 mr-1" />
+                        <Calendar width={16} height={16} stroke="currentColor" className="mr-1" />
                         {assignment.dueDate.toLocaleDateString()}
                       </div>
                       <div className="flex items-center space-x-2">
