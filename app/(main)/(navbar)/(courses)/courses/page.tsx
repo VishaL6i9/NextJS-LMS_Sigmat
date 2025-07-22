@@ -37,6 +37,9 @@ import { cn } from "@/lib/utils";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ModuleList } from '@/app/components/course-management/ModuleList';
 import { CourseCardList } from "./CourseCardList";
 import { CourseData } from "./types";
 
