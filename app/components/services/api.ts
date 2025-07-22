@@ -775,14 +775,29 @@ class ApiService {
     }
   }
 
-  async sendPasswordResetLink(email: string): Promise<void> {
+
+  async requestPasswordReset(email: string): Promise<string> {
     try {
-      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/public/forgot-password`, {
+      const response = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/public/password-reset/request`, {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
+      return response;
     } catch (error) {
-      console.error('Failed to send password reset link to:', email, error);
+      console.error('Failed to request password reset for:', email, error);
+      throw error;
+    }
+  }
+
+  async resetPassword(email: string, token: string, newPassword: string): Promise<string> {
+    try {
+      const response = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/public/password-reset/reset`, {
+        method: 'POST',
+        body: JSON.stringify({ email, token, newPassword }),
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to reset password for:', email, error);
       throw error;
     }
   }
@@ -836,9 +851,9 @@ class ApiService {
     }
   }
 
-  async updateUserProfile(profileData: UpdateProfileRequest): Promise<UserProfile> {
+  async updateUserProfile(userId: string, profileData: Omit<UpdateProfileRequest, 'id'>): Promise<UserProfile> {
     try {
-      const updatedProfile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile`, {
+      const updatedProfile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile/${userId}`, {
         method: 'PUT',
         body: JSON.stringify(profileData),
       });
@@ -1215,11 +1230,12 @@ export const getUserId = () => apiService.getUserId();
 export const getUserProfile = (userId: string) => apiService.getUserProfile(userId);
 export const getProfileImageId = (userId: string) => apiService.getProfileImageId(userId);
 export const getProfileImage = (profileImageID: string) => apiService.getProfileImage(profileImageID);
-export const updateUserProfile = (profileData: UpdateProfileRequest) => apiService.updateUserProfile(profileData);
+export const updateUserProfile = (userId: string, profileData: Omit<UpdateProfileRequest, 'id'>) => apiService.updateUserProfile(userId, profileData);
 export const updatePassword = (passwordData: UpdatePasswordRequest) => apiService.updatePassword(passwordData);
 export const uploadProfileImage = (userId: string, file: File) => apiService.uploadProfileImage(userId, file);
 export const registerUser = (userData: { firstName: string; lastName: string; email: string; username: string; password: string; }) => apiService.registerUser(userData);
-export const sendPasswordResetLink = (email: string) => apiService.sendPasswordResetLink(email);
+export const requestPasswordReset = (email: string) => apiService.requestPasswordReset(email);
+export const resetPassword = (email: string, token: string, newPassword: string) => apiService.resetPassword(email, token, newPassword);
 export const login = (username: string, password: string) => apiService.login(username, password);
 export const getNotifications = (userId: number) => apiService.getNotifications(userId);
 export const addNotification = (notification: Omit<Notification, 'id' | 'timestamp'>, userId: number) => apiService.addNotification(notification, userId);

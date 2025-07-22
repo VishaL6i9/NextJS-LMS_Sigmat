@@ -180,8 +180,8 @@ export function ProfileForm() {
                 throw new Error("User ID not found");
             }
 
-            const profileData: UpdateProfileRequest = { ...values, id: userId };
-            await updateUserProfile(profileData);
+            const profileData: Omit<UpdateProfileRequest, 'id'> = { ...values };
+            await updateUserProfile(userId, profileData);
 
             toast({
                 title: "Profile Updated",
