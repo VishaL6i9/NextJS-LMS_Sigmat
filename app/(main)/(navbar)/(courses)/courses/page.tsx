@@ -37,45 +37,8 @@ import { cn } from "@/lib/utils";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ModuleList } from '@/app/components/course-management/ModuleList';
-
-// Data interfaces
-interface Lesson {
-    id: string;
-    title: string;
-    type: 'video' | 'article' | 'quiz' | 'assignment';
-}
-
-interface Module {
-    id: string;
-    title: string;
-    description: string;
-    lessons: Lesson[];
-}
-
-interface CourseData {
-    id?: string;
-    courseName: string;
-    courseCode: string;
-    courseDescription: string;
-    courseCategory: string;
-    courseDuration: number;
-    courseMode: string;
-    maxEnrollments: number;
-    courseFee: number;
-    language: string;
-    enrolledStudents?: number;
-    totalAssignments?: number;
-    completedAssignments?: number;
-    averageGrade?: number;
-    status?: 'active' | 'draft' | 'archived';
-    startDate?: Date;
-    endDate?: Date;
-    thumbnail?: string;
-    modules?: Module[];
-}
+import { CourseCardList } from "./CourseCardList";
+import { CourseData } from "./types";
 
 const courseSchema = z.object({
     id: z.string().optional(),
@@ -733,74 +696,7 @@ export default function CoursesManagement() {
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-border">
-                                <thead className="bg-muted/50">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Course Name</th>
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Code</th>
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Category</th>
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Mode</th>
-
-                                        <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border">
-                                    <AnimatePresence>
-                                        {filteredCourses.length > 0 ? (
-                                            filteredCourses.map((course) => (
-                                                <motion.tr
-                                                    key={course.id}
-                                                    initial={{ opacity: 0, x: -20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    exit={{ opacity: 0, x: 20 }}
-                                                    transition={{ duration: 0.2 }}
-                                                    className="hover:bg-muted/50"
-                                                >
-                                                    <td className="px-4 py-3 whitespace-nowrap font-medium">{course.courseName}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                        <Badge variant="secondary">{course.courseCode}</Badge>
-                                                    </td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">{course.courseCategory}</td>
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                        <Badge variant="outline">{course.courseMode}</Badge>
-                                                    </td>
-
-                                                    <td className="px-4 py-3 whitespace-nowrap">
-                                                        <div className="flex gap-2">
-                                                            <Button variant="outline" size="sm" onClick={() => handleViewCourse(course.courseCode)}>
-                                                                View
-                                                            </Button>
-                                                            <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/course-player?courseId=${course.id}`)}>
-                                                                Open in Dashboard
-                                                            </Button>
-                                                            {canManageCourses && (
-                                                                <>
-                                                                    <Button variant="outline" size="sm" onClick={() => loadCourseForm(course)}>
-                                                                        Edit
-                                                                    </Button>
-                                                                    <Button variant="destructive" size="sm" onClick={() => deleteCourse(course.id!)}>
-                                                                        <Delete width={16} height={16} stroke="white" className="mr-1" /> Delete
-                                                                    </Button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </motion.tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={5} className="text-center py-8 text-muted-foreground">
-                                                    {isSearching
-                                                        ? "No courses found matching your search criteria."
-                                                        : "No courses available. Click 'Create New Course' to get started."}
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </AnimatePresence>
-                                </tbody>
-                            </table>
-                        </div>
+                        <CourseCardList courses={filteredCourses} onView={handleViewCourse} />
                     )}
                 </CardContent>
             </Card>
