@@ -245,7 +245,6 @@ export interface UserProfile {
 }
 
 export interface UpdateProfileRequest {
-  id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -265,6 +264,49 @@ export interface ProfileImageResponse {
   profileImageID: string;
 }
 
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  planType: 'LEARNER' | 'FACULTY';
+  learnerTier: 'FOUNDATION' | 'ESSENTIAL' | 'PROFESSIONAL' | 'MASTERY' | 'INSTITUTIONAL' | null;
+  facultyTier: 'STARTER' | 'EDUCATOR' | 'MENTOR' | 'INSTITUTIONAL' | null;
+  priceInr: number;
+  description: string;
+  features: string[];
+  bestSuitedFor: string;
+  active: boolean;
+  minimumDurationMonths: number;
+  customPricing: boolean;
+}
+
+export interface UserSubscription {
+  id: number;
+  userId: number;
+  username: string;
+  subscriptionPlan: {
+    id: number;
+    name: string;
+    planType: 'LEARNER' | 'FACULTY';
+    priceInr: number;
+  };
+  status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING';
+  startDate: string;
+  endDate: string;
+  autoRenew: boolean;
+  actualPrice: number;
+  discountApplied: number;
+  paymentReference: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscribeUserRequest {
+  planId: number;
+  autoRenew: boolean;
+  durationMonths: number;
+  discountApplied: number;
+  paymentReference: string;
+}
 
 // API Error Types
 export class ApiError extends Error {
@@ -851,7 +893,7 @@ class ApiService {
     }
   }
 
-  async updateUserProfile(userId: string, profileData: Omit<UpdateProfileRequest, 'id'>): Promise<UserProfile> {
+  async updateUserProfile(userId: string, profileData: UpdateProfileRequest): Promise<UserProfile> {
     try {
       const updatedProfile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile/${userId}`, {
         method: 'PUT',
@@ -879,6 +921,8 @@ class ApiService {
       throw error;
     }
   }
+
+  
 
   async uploadProfileImage(userId: string, file: File): Promise<ProfileImageResponse> {
     if (!userId) {
@@ -1205,6 +1249,219 @@ class ApiService {
       throw error;
     }
   }
+
+  // SubscriptionController Methods
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    try {
+      const plans = await this.fetchWithErrorHandling<SubscriptionPlan[]>(`${API_BASE_URL}/subscriptions/plans`);
+      return plans;
+    } catch (error) {
+      console.error('Failed to fetch subscription plans:', error);
+      throw error;
+    }
+  }
+
+  async getLearnerPlans(): Promise<SubscriptionPlan[]> {
+    try {
+      const plans = await this.fetchWithErrorHandling<SubscriptionPlan[]>(`${API_BASE_URL}/subscriptions/plans/learner`);
+      return plans;
+    } catch (error) {
+      console.error('Failed to fetch learner subscription plans:', error);
+      throw error;
+    }
+  }
+
+  async getFacultyPlans(): Promise<SubscriptionPlan[]> {
+    try {
+      const plans = await this.fetchWithErrorHandling<SubscriptionPlan[]>(`${API_BASE_URL}/subscriptions/plans/faculty`);
+      return plans;
+    } catch (error) {
+      console.error('Failed to fetch faculty subscription plans:', error);
+      throw error;
+    }
+  }
+
+  async getPlanById(planId: number): Promise<SubscriptionPlan> {
+    if (!planId) {
+      throw new ApiError('Plan ID is required', 400);
+    }
+    try {
+      const plan = await this.fetchWithErrorHandling<SubscriptionPlan>(`${API_BASE_URL}/subscriptions/plans/${planId}`);
+      return plan;
+    } catch (error) {
+      console.error(`Failed to fetch subscription plan with ID ${planId}:`, error);
+      throw error;
+    }
+  }
+
+  async subscribeUser(userId: string, subscriptionData: SubscribeUserRequest): Promise<UserSubscription> {
+    if (!userId) {
+      throw new ApiError('User ID is required to subscribe', 400);
+    }
+    try {
+      const subscription = await this.fetchWithErrorHandling<UserSubscription>(`${API_BASE_URL}/subscriptions/users/${userId}/subscribe`, {
+        method: 'POST',
+        body: JSON.stringify(subscriptionData),
+      });
+      return subscription;
+    } catch (error) {
+      console.error(`Failed to subscribe user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserSubscriptions(userId: string): Promise<UserSubscription[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get subscriptions', 400);
+    }
+    try {
+      const subscriptions = await this.fetchWithErrorHandling<UserSubscription[]>(`${API_BASE_URL}/subscriptions/users/${userId}`);
+      return subscriptions;
+    } catch (error) {
+      console.error(`Failed to fetch subscriptions for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getCurrentSubscription(userId: string): Promise<UserSubscription> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get current subscription', 400);
+    }
+    try {
+      const subscription = await this.fetchWithErrorHandling<UserSubscription>(`${API_BASE_URL}/subscriptions/users/${userId}/current`);
+      return subscription;
+    } catch (error) {
+      console.error(`Failed to fetch current subscription for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async cancelSubscription(subscriptionId: number): Promise<UserSubscription> {
+    if (!subscriptionId) {
+      throw new ApiError('Subscription ID is required to cancel', 400);
+    }
+    try {
+      const subscription = await this.fetchWithErrorHandling<UserSubscription>(`${API_BASE_URL}/subscriptions/${subscriptionId}/cancel`, {
+        method: 'PUT',
+      });
+      return subscription;
+    } catch (error) {
+      console.error(`Failed to cancel subscription ${subscriptionId}:`, error);
+      throw error;
+    }
+  }
+
+  // UserProfileController Subscription Methods
+  async getCurrentUserSubscription(userId: string): Promise<UserSubscription> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get current subscription', 400);
+    }
+    try {
+      const subscription = await this.fetchWithErrorHandling<UserSubscription>(`${API_BASE_URL}/user/subscription/${userId}`);
+      return subscription;
+    } catch (error) {
+      console.error(`Failed to fetch current subscription for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getAllUserSubscriptions(userId: string): Promise<UserSubscription[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get subscriptions', 400);
+    }
+    try {
+      const subscriptions = await this.fetchWithErrorHandling<UserSubscription[]>(`${API_BASE_URL}/user/subscriptions/${userId}`);
+      return subscriptions;
+    } catch (error) {
+      console.error(`Failed to fetch subscriptions for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // AdminSubscriptionController Methods
+  async getAllSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    try {
+      const plans = await this.fetchWithErrorHandling<SubscriptionPlan[]>(`${API_BASE_URL}/admin/subscriptions/plans/all`);
+      return plans;
+    } catch (error) {
+      console.error('Failed to fetch all subscription plans:', error);
+      throw error;
+    }
+  }
+
+  async createSubscriptionPlan(planData: Omit<SubscriptionPlan, 'id'>): Promise<SubscriptionPlan> {
+    try {
+      const plan = await this.fetchWithErrorHandling<SubscriptionPlan>(`${API_BASE_URL}/admin/subscriptions/plans`, {
+        method: 'POST',
+        body: JSON.stringify(planData),
+      });
+      return plan;
+    } catch (error) {
+      console.error('Failed to create subscription plan:', error);
+      throw error;
+    }
+  }
+
+  async updateSubscriptionPlan(planId: number, planData: Omit<SubscriptionPlan, 'id'>): Promise<SubscriptionPlan> {
+    if (!planId) {
+      throw new ApiError('Plan ID is required for update', 400);
+    }
+    try {
+      const plan = await this.fetchWithErrorHandling<SubscriptionPlan>(`${API_BASE_URL}/admin/subscriptions/plans/${planId}`, {
+        method: 'PUT',
+        body: JSON.stringify(planData),
+      });
+      return plan;
+    } catch (error) {
+      console.error(`Failed to update subscription plan ${planId}:`, error);
+      throw error;
+    }
+  }
+
+  async deactivateSubscriptionPlan(planId: number): Promise<void> {
+    if (!planId) {
+      throw new ApiError('Plan ID is required for deactivation', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/admin/subscriptions/plans/${planId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to deactivate subscription plan ${planId}:`, error);
+      throw error;
+    }
+  }
+
+  async getAllUserSubscriptionsAdmin(): Promise<UserSubscription[]> {
+    try {
+      const subscriptions = await this.fetchWithErrorHandling<UserSubscription[]>(`${API_BASE_URL}/admin/subscriptions/users/all`);
+      return subscriptions;
+    } catch (error) {
+      console.error('Failed to fetch all user subscriptions:', error);
+      throw error;
+    }
+  }
+
+  async getActiveUserSubscriptions(): Promise<UserSubscription[]> {
+    try {
+      const subscriptions = await this.fetchWithErrorHandling<UserSubscription[]>(`${API_BASE_URL}/admin/subscriptions/users/active`);
+      return subscriptions;
+    } catch (error) {
+      console.error('Failed to fetch active user subscriptions:', error);
+      throw error;
+    }
+  }
+
+  async expireAllSubscriptions(): Promise<void> {
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/admin/subscriptions/expire-all`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Failed to expire all subscriptions:', error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();
@@ -1230,7 +1487,7 @@ export const getUserId = () => apiService.getUserId();
 export const getUserProfile = (userId: string) => apiService.getUserProfile(userId);
 export const getProfileImageId = (userId: string) => apiService.getProfileImageId(userId);
 export const getProfileImage = (profileImageID: string) => apiService.getProfileImage(profileImageID);
-export const updateUserProfile = (userId: string, profileData: Omit<UpdateProfileRequest, 'id'>) => apiService.updateUserProfile(userId, profileData);
+export const updateUserProfile = (userId: string, profileData: UpdateProfileRequest) => apiService.updateUserProfile(userId, profileData);
 export const updatePassword = (passwordData: UpdatePasswordRequest) => apiService.updatePassword(passwordData);
 export const uploadProfileImage = (userId: string, file: File) => apiService.uploadProfileImage(userId, file);
 export const registerUser = (userData: { firstName: string; lastName: string; email: string; username: string; password: string; }) => apiService.registerUser(userData);
@@ -1264,3 +1521,21 @@ export const gradeSubmission = (submissionId: string, gradeData: ApiGradeSubmiss
 export const getAllUsers = () => apiService.getAllUsers();
 export const deleteUserByUsername = (username: string) => apiService.deleteUserByUsername(username);
 export const changeUserRole = (userId: string, newRole: string) => apiService.changeUserRole(userId, newRole);
+export const getSubscriptionPlans = () => apiService.getSubscriptionPlans();
+export const getLearnerPlans = () => apiService.getLearnerPlans();
+export const getFacultyPlans = () => apiService.getFacultyPlans();
+export const getPlanById = (planId: number) => apiService.getPlanById(planId);
+export const subscribeUser = (userId: string, subscriptionData: SubscribeUserRequest) => apiService.subscribeUser(userId, subscriptionData);
+export const getUserSubscriptions = (userId: string) => apiService.getUserSubscriptions(userId);
+export const getCurrentSubscription = (userId: string) => apiService.getCurrentSubscription(userId);
+export const cancelSubscription = (subscriptionId: number) => apiService.cancelSubscription(subscriptionId);
+export const getCurrentUserSubscription = (userId: string) => apiService.getCurrentUserSubscription(userId);
+export const getAllUserSubscriptions = (userId: string) => apiService.getAllUserSubscriptions(userId);
+export const getAllSubscriptionPlans = () => apiService.getAllSubscriptionPlans();
+export const createSubscriptionPlan = (planData: Omit<SubscriptionPlan, 'id'>) => apiService.createSubscriptionPlan(planData);
+export const updateSubscriptionPlan = (planId: number, planData: Omit<SubscriptionPlan, 'id'>) => apiService.updateSubscriptionPlan(planId, planData);
+export const deactivateSubscriptionPlan = (planId: number) => apiService.deactivateSubscriptionPlan(planId);
+export const getAllUserSubscriptionsAdmin = () => apiService.getAllUserSubscriptionsAdmin();
+export const getActiveUserSubscriptions = () => apiService.getActiveUserSubscriptions();
+export const expireAllSubscriptions = () => apiService.expireAllSubscriptions();
+
