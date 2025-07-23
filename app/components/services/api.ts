@@ -32,11 +32,11 @@ export interface ApiInstructor {
 }
 
 export interface ApiModule {
-    id: string;
-    title: string;
-    description: string;
-    moduleOrder: number;
-    lessons: ApiLesson[];
+  id: string;
+  title: string;
+  description: string;
+  moduleOrder: number;
+  lessons: ApiLesson[];
 }
 
 export interface ApiLesson {
@@ -113,7 +113,15 @@ export interface ApiEnrollment {
 }
 
 export interface ApiCheckoutSessionRequest {
-  tier: string;
+  // Legacy fields (for backward compatibility)
+  tier?: string;
+
+  // New subscription fields
+  planId?: number;
+  durationMonths?: number;
+  autoRenew?: boolean;
+
+  // Common fields
   successUrl: string;
   cancelUrl: string;
   userId: number;
@@ -122,7 +130,11 @@ export interface ApiCheckoutSessionRequest {
 }
 
 export interface ApiCheckoutSessionResponse {
-  url: string;
+  url?: string; // Legacy field
+  sessionUrl?: string; // New field
+  planId?: number;
+  userId?: number;
+  courseId?: number;
 }
 
 export interface ApiUser {
@@ -266,6 +278,7 @@ export interface ProfileImageResponse {
 
 export interface SubscriptionPlan {
   id: number;
+  courseId?: number | null; // Optional for course-specific plans
   name: string;
   planType: 'LEARNER' | 'FACULTY';
   learnerTier: 'FOUNDATION' | 'ESSENTIAL' | 'PROFESSIONAL' | 'MASTERY' | 'INSTITUTIONAL' | null;
@@ -289,6 +302,7 @@ export interface UserSubscription {
     planType: 'LEARNER' | 'FACULTY';
     priceInr: number;
   };
+  courseId?: number | null; // Optional for course-specific subscriptions
   status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING';
   startDate: string;
   endDate: string;
@@ -302,10 +316,31 @@ export interface UserSubscription {
 
 export interface SubscribeUserRequest {
   planId: number;
+  courseId?: number | null; // Optional for course-specific subscriptions
   autoRenew: boolean;
   durationMonths: number;
   discountApplied: number;
   paymentReference: string;
+}
+
+export interface StripeCheckoutRequest {
+  planId: number;
+  durationMonths: number;
+  successUrl: string;
+  cancelUrl: string;
+}
+
+export interface StripeCheckoutResponse {
+  sessionUrl: string;
+  planId: number;
+  userId: number;
+  courseId?: number;
+}
+
+export interface CheckoutSuccessResponse {
+  subscription: UserSubscription;
+  sessionId: string;
+  message: string;
 }
 
 // API Error Types
@@ -334,16 +369,16 @@ export interface ApiCourseRequest {
 }
 
 export interface ApiModuleRequest {
-    title: string;
-    description: string;
-    moduleOrder: number;
+  title: string;
+  description: string;
+  moduleOrder: number;
 }
 
 export interface ApiLessonRequest {
-    title: string;
-    type: 'video' | 'article' | 'quiz' | 'assignment';
-    lessonOrder: number;
-    [key: string]: any;
+  title: string;
+  type: 'video' | 'article' | 'quiz' | 'assignment';
+  lessonOrder: number;
+  [key: string]: any;
 }
 
 export interface ApiCourseUpdate extends ApiCourseRequest {
@@ -376,7 +411,7 @@ class ApiService {
           errorData
         );
       }
-      
+
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         return await response.json();
@@ -389,7 +424,7 @@ class ApiService {
       if (error instanceof ApiError) {
         throw error;
       }
-      
+
       console.error('API call failed:', error);
       throw new ApiError(
         'Network error or server unavailable',
@@ -530,63 +565,63 @@ class ApiService {
 
   async createModule(courseId: string, moduleData: ApiModuleRequest): Promise<ApiModule> {
     if (!courseId) {
-        throw new ApiError('Course ID is required to create a module', 400);
+      throw new ApiError('Course ID is required to create a module', 400);
     }
     try {
-        const newModule = await this.fetchWithErrorHandling<ApiModule>(`${API_BASE_URL}/courses/${courseId}/modules`, {
-            method: 'POST',
-            body: JSON.stringify(moduleData),
-        });
-        return newModule;
+      const newModule = await this.fetchWithErrorHandling<ApiModule>(`${API_BASE_URL}/courses/${courseId}/modules`, {
+        method: 'POST',
+        body: JSON.stringify(moduleData),
+      });
+      return newModule;
     } catch (error) {
-        console.error(`Failed to create module for course ${courseId}:`, error);
-        throw error;
+      console.error(`Failed to create module for course ${courseId}:`, error);
+      throw error;
     }
   }
 
   async updateModule(moduleId: string, moduleData: ApiModuleRequest): Promise<ApiModule> {
     if (!moduleId) {
-        throw new ApiError('Module ID is required for update', 400);
+      throw new ApiError('Module ID is required for update', 400);
     }
     try {
-        const updatedModule = await this.fetchWithErrorHandling<ApiModule>(`${API_BASE_URL}/modules/${moduleId}`, {
-            method: 'PUT',
-            body: JSON.stringify(moduleData),
-        });
-        return updatedModule;
+      const updatedModule = await this.fetchWithErrorHandling<ApiModule>(`${API_BASE_URL}/modules/${moduleId}`, {
+        method: 'PUT',
+        body: JSON.stringify(moduleData),
+      });
+      return updatedModule;
     } catch (error) {
-        console.error(`Failed to update module ${moduleId}:`, error);
-        throw error;
+      console.error(`Failed to update module ${moduleId}:`, error);
+      throw error;
     }
   }
 
   async deleteModule(moduleId: string): Promise<void> {
     if (!moduleId) {
-        throw new ApiError('Module ID is required for deletion', 400);
+      throw new ApiError('Module ID is required for deletion', 400);
     }
     try {
-        await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/modules/${moduleId}`, {
-            method: 'DELETE',
-        });
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/modules/${moduleId}`, {
+        method: 'DELETE',
+      });
     } catch (error) {
-        console.error(`Failed to delete module ${moduleId}:`, error);
-        throw error;
+      console.error(`Failed to delete module ${moduleId}:`, error);
+      throw error;
     }
   }
 
   async createLesson(moduleId: string, lessonData: ApiLessonRequest): Promise<ApiLesson> {
     if (!moduleId) {
-        throw new ApiError('Module ID is required to create a lesson', 400);
+      throw new ApiError('Module ID is required to create a lesson', 400);
     }
     try {
-        const newLesson = await this.fetchWithErrorHandling<ApiLesson>(`${API_BASE_URL}/lessons/module/${moduleId}`, {
-            method: 'POST',
-            body: JSON.stringify(lessonData),
-        });
-        return newLesson;
+      const newLesson = await this.fetchWithErrorHandling<ApiLesson>(`${API_BASE_URL}/lessons/module/${moduleId}`, {
+        method: 'POST',
+        body: JSON.stringify(lessonData),
+      });
+      return newLesson;
     } catch (error) {
-        console.error(`Failed to create lesson for module ${moduleId}:`, error);
-        throw error;
+      console.error(`Failed to create lesson for module ${moduleId}:`, error);
+      throw error;
     }
   }
 
@@ -605,31 +640,31 @@ class ApiService {
 
   async updateLesson(lessonId: string, lessonData: ApiLessonRequest): Promise<ApiLesson> {
     if (!lessonId) {
-        throw new ApiError('Lesson ID is required for update', 400);
+      throw new ApiError('Lesson ID is required for update', 400);
     }
     try {
-        const updatedLesson = await this.fetchWithErrorHandling<ApiLesson>(`${API_BASE_URL}/lessons/${lessonId}`, {
-            method: 'PUT',
-            body: JSON.stringify(lessonData),
-        });
-        return updatedLesson;
+      const updatedLesson = await this.fetchWithErrorHandling<ApiLesson>(`${API_BASE_URL}/lessons/${lessonId}`, {
+        method: 'PUT',
+        body: JSON.stringify(lessonData),
+      });
+      return updatedLesson;
     } catch (error) {
-        console.error(`Failed to update lesson ${lessonId}:`, error);
-        throw error;
+      console.error(`Failed to update lesson ${lessonId}:`, error);
+      throw error;
     }
   }
 
   async deleteLesson(lessonId: string): Promise<void> {
     if (!lessonId) {
-        throw new ApiError('Lesson ID is required for deletion', 400);
+      throw new ApiError('Lesson ID is required for deletion', 400);
     }
     try {
-        await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/lessons/${lessonId}`, {
-            method: 'DELETE',
-        });
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/lessons/${lessonId}`, {
+        method: 'DELETE',
+      });
     } catch (error) {
-        console.error(`Failed to delete lesson ${lessonId}:`, error);
-        throw error;
+      console.error(`Failed to delete lesson ${lessonId}:`, error);
+      throw error;
     }
   }
 
@@ -922,7 +957,7 @@ class ApiService {
     }
   }
 
-  
+
 
   async uploadProfileImage(userId: string, file: File): Promise<ProfileImageResponse> {
     if (!userId) {
@@ -1169,7 +1204,7 @@ class ApiService {
     }
   }
 
-  // CheckoutController Methods
+  // CheckoutController Methods (Legacy - Deprecated)
   async createCheckoutSession(sessionData: ApiCheckoutSessionRequest): Promise<ApiCheckoutSessionResponse> {
     try {
       const response = await this.fetchWithErrorHandling<ApiCheckoutSessionResponse>(`${API_BASE_URL}/checkout/create-checkout-session`, {
@@ -1179,6 +1214,54 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Failed to create checkout session:', error);
+      throw error;
+    }
+  }
+
+  // NEW: Stripe Checkout Integration Methods
+  async createPlatformSubscriptionCheckout(userId: string, checkoutData: StripeCheckoutRequest): Promise<StripeCheckoutResponse> {
+    if (!userId) {
+      throw new ApiError('User ID is required for platform subscription checkout', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<StripeCheckoutResponse>(`${API_BASE_URL}/subscriptions/users/${userId}/checkout`, {
+        method: 'POST',
+        body: JSON.stringify(checkoutData),
+      });
+      return response;
+    } catch (error) {
+      console.error(`Failed to create platform subscription checkout for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async createCourseSubscriptionCheckout(courseId: string, userId: string, checkoutData: StripeCheckoutRequest): Promise<StripeCheckoutResponse> {
+    if (!courseId || !userId) {
+      throw new ApiError('Course ID and User ID are required for course subscription checkout', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<StripeCheckoutResponse>(`${API_BASE_URL}/subscriptions/courses/${courseId}/users/${userId}/checkout`, {
+        method: 'POST',
+        body: JSON.stringify(checkoutData),
+      });
+      return response;
+    } catch (error) {
+      console.error(`Failed to create course subscription checkout for user ${userId} and course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async handleCheckoutSuccess(sessionId: string, userId: string): Promise<CheckoutSuccessResponse> {
+    if (!sessionId || !userId) {
+      throw new ApiError('Session ID and User ID are required for checkout success', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<CheckoutSuccessResponse>(`${API_BASE_URL}/subscriptions/checkout/success?sessionId=${sessionId}&userId=${userId}`, {
+        method: 'POST',
+      });
+      return response;
+    } catch (error) {
+      console.error(`Failed to handle checkout success for session ${sessionId}:`, error);
       throw error;
     }
   }
@@ -1251,9 +1334,10 @@ class ApiService {
   }
 
   // SubscriptionController Methods
-  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+  async getSubscriptionPlans(courseId?: number): Promise<SubscriptionPlan[]> {
     try {
-      const plans = await this.fetchWithErrorHandling<SubscriptionPlan[]>(`${API_BASE_URL}/subscriptions/plans`);
+      const queryParams = courseId ? `?courseId=${courseId}` : '';
+      const plans = await this.fetchWithErrorHandling<SubscriptionPlan[]>(`${API_BASE_URL}/subscriptions/plans${queryParams}`);
       return plans;
     } catch (error) {
       console.error('Failed to fetch subscription plans:', error);
@@ -1347,6 +1431,36 @@ class ApiService {
       return subscription;
     } catch (error) {
       console.error(`Failed to cancel subscription ${subscriptionId}:`, error);
+      throw error;
+    }
+  }
+
+  // Course-specific subscription methods
+  async subscribeToCourse(courseId: string, userId: string, subscriptionData: SubscribeUserRequest): Promise<UserSubscription> {
+    if (!courseId || !userId) {
+      throw new ApiError('Course ID and User ID are required for course subscription', 400);
+    }
+    try {
+      const subscription = await this.fetchWithErrorHandling<UserSubscription>(`${API_BASE_URL}/subscriptions/courses/${courseId}/users/${userId}/subscribe`, {
+        method: 'POST',
+        body: JSON.stringify(subscriptionData),
+      });
+      return subscription;
+    } catch (error) {
+      console.error(`Failed to subscribe user ${userId} to course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async getCurrentCourseSubscription(courseId: string, userId: string): Promise<UserSubscription> {
+    if (!courseId || !userId) {
+      throw new ApiError('Course ID and User ID are required to get current course subscription', 400);
+    }
+    try {
+      const subscription = await this.fetchWithErrorHandling<UserSubscription>(`${API_BASE_URL}/subscriptions/courses/${courseId}/users/${userId}/current`);
+      return subscription;
+    } catch (error) {
+      console.error(`Failed to fetch current course subscription for user ${userId} and course ${courseId}:`, error);
       throw error;
     }
   }
@@ -1509,6 +1623,9 @@ export const getCertificateById = (id: string) => apiService.getCertificateById(
 export const getAllCertificates = () => apiService.getAllCertificates();
 export const deleteCertificate = (id: string) => apiService.deleteCertificate(id);
 export const createCheckoutSession = (sessionData: ApiCheckoutSessionRequest) => apiService.createCheckoutSession(sessionData);
+export const createPlatformSubscriptionCheckout = (userId: string, checkoutData: StripeCheckoutRequest) => apiService.createPlatformSubscriptionCheckout(userId, checkoutData);
+export const createCourseSubscriptionCheckout = (courseId: string, userId: string, checkoutData: StripeCheckoutRequest) => apiService.createCourseSubscriptionCheckout(courseId, userId, checkoutData);
+export const handleCheckoutSuccess = (sessionId: string, userId: string) => apiService.handleCheckoutSuccess(sessionId, userId);
 export const createInstructor = (instructorData: ApiInstructorRequest) => apiService.createInstructor(instructorData);
 export const getInstructorById = (instructorId: string) => apiService.getInstructorById(instructorId);
 export const updateInstructor = (instructorId: string, instructorData: ApiInstructorUpdate) => apiService.updateInstructor(instructorId, instructorData);
@@ -1521,7 +1638,7 @@ export const gradeSubmission = (submissionId: string, gradeData: ApiGradeSubmiss
 export const getAllUsers = () => apiService.getAllUsers();
 export const deleteUserByUsername = (username: string) => apiService.deleteUserByUsername(username);
 export const changeUserRole = (userId: string, newRole: string) => apiService.changeUserRole(userId, newRole);
-export const getSubscriptionPlans = () => apiService.getSubscriptionPlans();
+export const getSubscriptionPlans = (courseId?: number) => apiService.getSubscriptionPlans(courseId);
 export const getLearnerPlans = () => apiService.getLearnerPlans();
 export const getFacultyPlans = () => apiService.getFacultyPlans();
 export const getPlanById = (planId: number) => apiService.getPlanById(planId);
@@ -1538,4 +1655,6 @@ export const deactivateSubscriptionPlan = (planId: number) => apiService.deactiv
 export const getAllUserSubscriptionsAdmin = () => apiService.getAllUserSubscriptionsAdmin();
 export const getActiveUserSubscriptions = () => apiService.getActiveUserSubscriptions();
 export const expireAllSubscriptions = () => apiService.expireAllSubscriptions();
+export const subscribeToCourse = (courseId: string, userId: string, subscriptionData: SubscribeUserRequest) => apiService.subscribeToCourse(courseId, userId, subscriptionData);
+export const getCurrentCourseSubscription = (courseId: string, userId: string) => apiService.getCurrentCourseSubscription(courseId, userId);
 
