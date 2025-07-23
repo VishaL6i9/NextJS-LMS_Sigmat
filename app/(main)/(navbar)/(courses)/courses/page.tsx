@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -25,11 +24,17 @@ import {
     ApiCourseRequest,
     ApiInstructor,
     getUserRoles,
-    getCourseById as apiGetCourseById
+    getCourseById as apiGetCourseById,
+    getSubscriptionPlans,
+    createCourseSubscriptionCheckout,
+    getCurrentCourseSubscription,
+    SubscriptionPlan,
+    UserSubscription,
+    StripeCheckoutRequest
 } from "@/app/components/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronsUpDown, PlusCircle, ArrowLeft, CalendarIcon } from "lucide-react";
+import { ChevronsUpDown, PlusCircle, ArrowLeft, CalendarIcon, CreditCard, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -91,6 +96,11 @@ export default function CoursesManagement() {
     const [userRoles, setUserRoles] = useState<string[]>([]);
     const [selectedCourse, setSelectedCourse] = useState<CourseData | null>(null);
     const [isViewingCourse, setIsViewingCourse] = useState(false);
+    const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+    const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(null);
+    const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+    const [selectedCourseForSubscription, setSelectedCourseForSubscription] = useState<CourseData | null>(null);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -180,7 +190,17 @@ export default function CoursesManagement() {
         fetchCourses();
         fetchInstructors();
         fetchUserRoles();
+        fetchCurrentUserId();
     }, []);
+
+    const fetchCurrentUserId = async () => {
+        try {
+            const userId = await apiService.getUserId();
+            setCurrentUserId(userId);
+        } catch (error) {
+            console.error('Failed to fetch current user ID:', error);
+        }
+    };
 
     useEffect(() => {
         if (!isSearching) {
@@ -298,6 +318,18 @@ export default function CoursesManagement() {
             const courseId = await apiService.getCourseIdByCourseCode(courseCode);
             const courseDetails = await apiGetCourseById(courseId.toString());
             const modules = await apiService.getAllModulesForCourse(courseId.toString());
+
+            // Check current subscription for this course
+            if (currentUserId) {
+                try {
+                    const subscription = await getCurrentCourseSubscription(courseId.toString(), currentUserId);
+                    setCurrentSubscription(subscription);
+                } catch (error) {
+                    // No subscription found, which is fine
+                    setCurrentSubscription(null);
+                }
+            }
+
             setSelectedCourse({
                 ...courseDetails,
                 modules: modules || [],
@@ -308,6 +340,88 @@ export default function CoursesManagement() {
             toast({
                 title: "Error",
                 description: "Failed to load course details.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSubscribeToCourse = async (course: CourseData) => {
+        if (!currentUserId) {
+            toast({
+                title: "Error",
+                description: "Please log in to subscribe to courses.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setSelectedCourseForSubscription(course);
+
+        try {
+            // Fetch course-specific subscription plans
+            const courseIdNum = parseInt(course.id!);
+            const plans = await getSubscriptionPlans(courseIdNum);
+            setSubscriptionPlans(plans);
+            setShowSubscriptionModal(true);
+        } catch (error) {
+            console.error('Failed to fetch subscription plans:', error);
+            toast({
+                title: "Error",
+                description: "Failed to load subscription plans.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const handleSubscriptionSubmit = async (planId: number, durationMonths: number, plan: SubscriptionPlan) => {
+        if (!selectedCourseForSubscription || !currentUserId) return;
+
+        setIsLoading(true);
+        try {
+            // Handle free plans differently
+            if (plan.priceInr === 0) {
+                toast({
+                    title: "Free Plan",
+                    description: "Free plan activated! You now have access to the course.",
+                });
+                setShowSubscriptionModal(false);
+                setSelectedCourseForSubscription(null);
+                return;
+            }
+
+            // Handle custom pricing plans
+            if (plan.customPricing) {
+                toast({
+                    title: "Custom Pricing",
+                    description: "Please contact sales for custom pricing options.",
+                });
+                setShowSubscriptionModal(false);
+                setSelectedCourseForSubscription(null);
+                return;
+            }
+
+            const checkoutData: StripeCheckoutRequest = {
+                planId,
+                durationMonths,
+                successUrl: `${window.location.origin}/subscription/success`,
+                cancelUrl: `${window.location.origin}/subscription/cancel`,
+            };
+
+            const response = await createCourseSubscriptionCheckout(
+                selectedCourseForSubscription.id!,
+                currentUserId,
+                checkoutData
+            );
+
+            // Redirect to Stripe Checkout
+            window.location.href = response.sessionUrl;
+        } catch (error: any) {
+            console.error('Failed to initiate checkout:', error);
+            toast({
+                title: "Error",
+                description: error.message || "Failed to initiate checkout. Please try again.",
                 variant: "destructive",
             });
         } finally {
@@ -699,7 +813,12 @@ export default function CoursesManagement() {
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
                     ) : (
-                        <CourseCardList courses={filteredCourses} onView={handleViewCourse} />
+                        <CourseCardList
+                            courses={filteredCourses}
+                            onView={handleViewCourse}
+                            onSubscribe={handleSubscribeToCourse}
+                            currentUserId={currentUserId}
+                        />
                     )}
                 </CardContent>
             </Card>
@@ -730,10 +849,40 @@ export default function CoursesManagement() {
                 </Button>
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-3xl font-bold">{course.courseName}</CardTitle>
-                        <p className="text-muted-foreground">{course.courseDescription}</p>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle className="text-3xl font-bold">{course.courseName}</CardTitle>
+                                <p className="text-muted-foreground">{course.courseDescription}</p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                {currentSubscription ? (
+                                    <Badge variant="default" className="flex items-center gap-1">
+                                        <CheckCircle className="h-4 w-4" />
+                                        Subscribed ({currentSubscription.status})
+                                    </Badge>
+                                ) : (
+                                    <Button
+                                        onClick={() => handleSubscribeToCourse(course)}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <CreditCard className="h-4 w-4" />
+                                        Subscribe to Course
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
+                        {currentSubscription && (
+                            <Alert className="mb-4">
+                                <CheckCircle className="h-4 w-4" />
+                                <AlertTitle>Active Subscription</AlertTitle>
+                                <AlertDescription>
+                                    You have an active {currentSubscription.subscriptionPlan.name} subscription
+                                    until {new Date(currentSubscription.endDate).toLocaleDateString()}
+                                </AlertDescription>
+                            </Alert>
+                        )}
                         <ModuleList
                             courseId={course.id!}
                             modules={course.modules || []}
@@ -742,6 +891,107 @@ export default function CoursesManagement() {
                     </CardContent>
                 </Card>
             </motion.div>
+        );
+    };
+
+    const SubscriptionModal = () => {
+        if (!showSubscriptionModal || !selectedCourseForSubscription) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+                >
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-2xl font-bold">Subscribe to {selectedCourseForSubscription.courseName}</h2>
+                        <Button
+                            variant="ghost"
+                            onClick={() => {
+                                setShowSubscriptionModal(false);
+                                setSelectedCourseForSubscription(null);
+                            }}
+                        >
+                            ×
+                        </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                        {subscriptionPlans.length === 0 ? (
+                            <p className="text-muted-foreground">No subscription plans available for this course.</p>
+                        ) : (
+                            subscriptionPlans.map((plan) => (
+                                <Card key={plan.id} className="border-2 hover:border-primary transition-colors">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <h3 className="text-lg font-semibold">{plan.name}</h3>
+                                                <p className="text-sm text-muted-foreground">{plan.description}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                {plan.customPricing ? (
+                                                    <p className="text-2xl font-bold text-indigo-600">Custom</p>
+                                                ) : plan.priceInr === 0 ? (
+                                                    <p className="text-2xl font-bold text-green-600">FREE</p>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-2xl font-bold">₹{plan.priceInr}</p>
+                                                        <p className="text-sm text-muted-foreground">per month</p>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="mb-4">
+                                            <h4 className="font-medium mb-2">Features:</h4>
+                                            <ul className="text-sm space-y-1">
+                                                {plan.features.map((feature, index) => (
+                                                    <li key={index} className="flex items-center gap-2">
+                                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                                        {feature}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+
+                                        {!plan.customPricing && plan.priceInr > 0 && (
+                                            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                                                <div className="flex justify-between text-sm">
+                                                    <span>Monthly cost:</span>
+                                                    <span>₹{plan.priceInr}</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span>Duration:</span>
+                                                    <span>{plan.minimumDurationMonths} months</span>
+                                                </div>
+                                                <div className="flex justify-between font-semibold text-base border-t pt-2 mt-2">
+                                                    <span>Total:</span>
+                                                    <span>₹{plan.priceInr * plan.minimumDurationMonths}</span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                onClick={() => handleSubscriptionSubmit(plan.id, plan.minimumDurationMonths, plan)}
+                                                disabled={isLoading}
+                                                className="flex-1"
+                                            >
+                                                {isLoading ? 'Processing...' :
+                                                    plan.priceInr === 0 ? 'Get Free Access' :
+                                                        plan.customPricing ? 'Contact Sales' :
+                                                            `Subscribe for ${plan.minimumDurationMonths} months`}
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
+                    </div>
+                </motion.div>
+            </div>
         );
     };
 
@@ -790,6 +1040,8 @@ export default function CoursesManagement() {
                     )}
                 </AnimatePresence>
             </Tabs>
+
+            <SubscriptionModal />
         </div>
     );
 }
