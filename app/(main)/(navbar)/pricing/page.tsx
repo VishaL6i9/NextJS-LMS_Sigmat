@@ -2,43 +2,55 @@
 
 import React, { useState, useEffect } from 'react';
 import { Check, Sparkles, GraduationCap, UserCheck, Award, Building, Book, Users, Zap, Crown, Shield, ArrowRight, ChevronRight } from 'lucide-react';
+import { getLearnerPlans, getFacultyPlans, subscribeUser, SubscriptionPlan, SubscribeUserRequest, getUserId } from '@/app/components/services/api';
 
 /* ---------- TYPES ---------- */
-interface PricingCardProps {
-  tier: string;
-  price: number | string;
-  features: string[];
+interface PricingCardProps extends SubscriptionPlan {
   bgColor: string;
-  description: string;
   icon: React.ElementType;
   isPopular?: boolean;
-  courseId?: string;
-  instructorId?: number | null;
-  isFree?: boolean;
 }
 
 /* ---------- HOOK PLACEHOLDER ---------- */
-// Replace this with your actual hook/context
-const useUser = () => ({
-  userProfile: { id: 'demo-user' }, // stub
-});
+const useUser = () => {
+  const [userProfile, setUserProfile] = useState<{ id: string | null }>({ id: null });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const userId = await getUserId();
+        setUserProfile({ id: userId });
+      } catch (error) {
+        console.error("Failed to fetch user ID:", error);
+        setUserProfile({ id: null });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserId();
+  }, []);
+
+  return { userProfile, loading };
+};
 
 /* ---------- ENHANCED PRICING CARD ---------- */
 const PricingCard: React.FC<PricingCardProps> = ({
-  tier,
-  price,
+  id,
+  name,
+  priceInr,
   features,
   bgColor,
   description,
   icon: Icon,
   isPopular,
-  courseId,
-  instructorId,
-  isFree,
+  minimumDurationMonths,
+  customPricing,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const { userProfile } = useUser();
+  const { userProfile, loading } = useUser();
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
@@ -51,37 +63,33 @@ const PricingCard: React.FC<PricingCardProps> = ({
       return;
     }
 
-    const successUrl = 'https://example.com/order/success';
-    const cancelUrl = 'https://example.com/order/cancel';
+    if (customPricing) {
+      // Handle custom pricing logic, e.g., redirect to a contact form
+      alert('Please contact sales for custom pricing.');
+      return;
+    }
+
+    const subscriptionData: SubscribeUserRequest = {
+      planId: id,
+      autoRenew: true, // Or get this from user input
+      durationMonths: minimumDurationMonths,
+      discountApplied: 0, // Or calculate discount
+      paymentReference: 'stripe_payment_123', // This would come from your payment provider
+    };
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/create-checkout-session`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tier: tier.toLowerCase(),
-            successUrl,
-            cancelUrl,
-            userId: userProfile.id,
-            courseId: courseId || '1',
-            instructorId: instructorId ?? null,
-          }),
-        }
-      );
-
-      const sessionUrl = await res.text();
-      window.location.href = sessionUrl;
+      await subscribeUser(userProfile.id, subscriptionData);
+      alert('Subscription successful!');
+      // Redirect to a success page or dashboard
     } catch (err) {
       console.error(err);
-      alert('Failed to create checkout session.');
+      alert('Failed to subscribe.');
     }
   };
 
   const getButtonText = () => {
-    if (isFree || price === 0) return 'Get Started Free';
-    if (typeof price === 'string') return 'Contact Sales';
+    if (customPricing) return 'Contact Sales';
+    if (priceInr === 0) return 'Get Started Free';
     return 'Start Subscription';
   };
 
@@ -91,7 +99,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
         ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white shadow-2xl transform -translate-y-1 scale-105'
         : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg';
     }
-    if (isFree || price === 0) {
+    if (customPricing || priceInr === 0) {
       return isHovered
         ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-xl transform -translate-y-1'
         : 'bg-green-500 text-white shadow-md';
@@ -152,15 +160,15 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
           <h3 className={`mb-4 text-center text-2xl font-bold transition-colors duration-300 ${isPopular ? 'text-purple-900' : 'text-gray-900'
             }`}>
-            {tier}
+            {name}
           </h3>
 
           <div className="flex items-baseline justify-center mb-4">
-            {typeof price === 'string' ? (
+            {customPricing ? (
               <span className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                {price}
+                Custom
               </span>
-            ) : price === 0 ? (
+            ) : priceInr === 0 ? (
               <span className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 FREE
               </span>
@@ -169,7 +177,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
                 <span className="text-2xl font-semibold text-gray-600">₹</span>
                 <span className={`text-5xl font-extrabold tracking-tight transition-colors duration-300 ${isPopular ? 'text-purple-900' : 'text-gray-900'
                   }`}>
-                  {price.toLocaleString()}
+                  {priceInr.toLocaleString()}
                 </span>
                 <span className="ml-2 text-lg font-medium text-gray-500">/month</span>
               </>
@@ -213,7 +221,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500 italic">
-              {isFree || price === 0
+              {customPricing || priceInr === 0
                 ? 'No credit card required'
                 : 'Cancel anytime • 30-day money back guarantee'
               }
@@ -228,161 +236,80 @@ const PricingCard: React.FC<PricingCardProps> = ({
 /* ---------- MAIN PAGE ---------- */
 export default function PricingPage() {
   const [activeTab, setActiveTab] = useState<'learner' | 'faculty'>('learner');
+  const [learnerPlans, setLearnerPlans] = useState<PricingCardProps[]>([]);
+  const [facultyPlans, setFacultyPlans] = useState<PricingCardProps[]>([]);
 
-  const learnerPlans: PricingCardProps[] = [
-    {
-      tier: 'Foundation',
-      price: 0,
-      description: 'Perfect for exploring our platform',
-      features: [
-        'Access to public course catalog',
-        'Attend one free course',
-        'Community forum participation',
-        'Basic learning resources',
-      ],
-      bgColor: 'bg-gradient-to-b from-green-50 to-green-100',
-      icon: Book,
-      isFree: true,
-      courseId: 'foundation-course-id',
-      instructorId: null,
-    },
-    {
-      tier: 'Essential',
-      price: 849,
-      description: 'Ideal for self-paced learners',
-      features: [
-        'Unlimited course access',
-        'Assignment submission & grading',
-        'Discussion forums & peer interaction',
-        'Downloadable certificates',
-        'Progress tracking dashboard',
-      ],
-      bgColor: 'bg-gradient-to-b from-blue-50 to-blue-100',
-      icon: GraduationCap,
-      courseId: 'essential-course-id',
-      instructorId: null,
-    },
-    {
-      tier: 'Professional',
-      price: 1899,
-      description: 'Built for working professionals',
-      features: [
-        'Advanced progress analytics',
-        'Direct instructor Q&A sessions',
-        'Offline content downloads',
-        'Mobile app access',
-        'Priority email support',
-        'Career guidance resources',
-      ],
-      bgColor: 'bg-gradient-to-b from-purple-50 to-purple-100',
-      icon: Users,
-      isPopular: true,
-      courseId: 'professional-course-id',
-      instructorId: null,
-    },
-    {
-      tier: 'Mastery',
-      price: 3799,
-      description: 'For serious skill development',
-      features: [
-        'Live webinar participation',
-        'Batch-based collaborative learning',
-        'Real-time instructor chat support',
-        'Industry-recognized certifications',
-        'Personalized learning paths',
-        'Job placement assistance',
-      ],
-      bgColor: 'bg-gradient-to-b from-indigo-50 to-indigo-100',
-      icon: Award,
-      courseId: 'mastery-course-id',
-      instructorId: null,
-    },
-    {
-      tier: 'Institutional',
-      price: 'Custom Pricing',
-      description: 'Enterprise & academic solutions',
-      features: [
-        'Bulk user enrollment',
-        'Advanced analytics & reporting',
-        'Custom learning pathways',
-        'Compliance & audit tracking',
-        'Dedicated account manager',
-        'White-label options',
-      ],
-      bgColor: 'bg-gradient-to-b from-gray-50 to-gray-100',
-      icon: Building,
-      courseId: 'institutional-course-id',
-      instructorId: null,
-    },
-  ];
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const learnerPlansData = await getLearnerPlans();
+        const facultyPlansData = await getFacultyPlans();
 
-  const facultyPlans: PricingCardProps[] = [
-    {
-      tier: 'Starter',
-      price: 0,
-      description: 'Perfect for first-time course creators',
-      features: [
-        'Create & publish one course',
-        'Upload videos, PDFs & presentations',
-        'Basic learner progress tracking',
-        'Community support access',
-      ],
-      bgColor: 'bg-gradient-to-b from-green-50 to-green-100',
-      icon: Book,
-      isFree: true,
-      courseId: 'faculty-starter-id',
-      instructorId: null,
-    },
-    {
-      tier: 'Educator',
-      price: 1299,
-      description: 'For independent instructors & tutors',
-      features: [
-        'Unlimited course creation',
-        'Advanced quiz & assessment builder',
-        'Automated grading system',
-        'Discussion forum management',
-        'Student messaging system',
-      ],
-      bgColor: 'bg-gradient-to-b from-blue-50 to-blue-100',
-      icon: UserCheck,
-      courseId: 'educator-course-id',
-      instructorId: null,
-    },
-    {
-      tier: 'Mentor',
-      price: 2599,
-      description: 'Designed for subject matter experts',
-      features: [
-        'Live webinar & session hosting',
-        'Bulk certificate generation',
-        'Advanced student analytics',
-        'Direct learner messaging',
-        'Revenue tracking dashboard',
-      ],
-      bgColor: 'bg-gradient-to-b from-purple-50 to-purple-100',
-      icon: Award,
-      isPopular: true,
-      courseId: 'mentor-course-id',
-      instructorId: null,
-    },
-    {
-      tier: 'Institutional',
-      price: 4999,
-      description: 'Enterprise solution for organizations',
-      features: [
-        'Multi-role team access management',
-        'Institution-wide analytics & reporting',
-        'Automated secure backups',
-        'Dedicated success manager',
-        'Custom branding options',
-      ],
-      bgColor: 'bg-gradient-to-b from-indigo-50 to-indigo-100',
-      icon: Building,
-      courseId: 'faculty-institutional-id',
-      instructorId: null,
-    },
-  ];
+        const learnerPlansWithUI: PricingCardProps[] = learnerPlansData.map(plan => ({
+          ...plan,
+          bgColor: getPlanBgColor(plan.learnerTier),
+          icon: getPlanIcon(plan.learnerTier),
+          isPopular: plan.learnerTier === 'PROFESSIONAL',
+        }));
+
+        const facultyPlansWithUI: PricingCardProps[] = facultyPlansData.map(plan => ({
+            ...plan,
+            bgColor: getPlanBgColor(plan.facultyTier),
+            icon: getPlanIcon(plan.facultyTier),
+            isPopular: plan.facultyTier === 'MENTOR',
+        }));
+
+        setLearnerPlans(learnerPlansWithUI);
+        setFacultyPlans(facultyPlansWithUI);
+      } catch (error) {
+        console.error("Failed to fetch pricing plans:", error);
+      }
+    };
+
+    fetchPlans();
+  }, []);
+
+  const getPlanBgColor = (tier: string | null) => {
+    switch (tier) {
+      case 'FOUNDATION':
+      case 'STARTER':
+        return 'bg-gradient-to-b from-green-50 to-green-100';
+      case 'ESSENTIAL':
+      case 'EDUCATOR':
+        return 'bg-gradient-to-b from-blue-50 to-blue-100';
+      case 'PROFESSIONAL':
+      case 'MENTOR':
+        return 'bg-gradient-to-b from-purple-50 to-purple-100';
+      case 'MASTERY':
+        return 'bg-gradient-to-b from-indigo-50 to-indigo-100';
+      case 'INSTITUTIONAL':
+        return 'bg-gradient-to-b from-gray-50 to-gray-100';
+      default:
+        return 'bg-gradient-to-b from-gray-50 to-gray-100';
+    }
+  };
+
+  const getPlanIcon = (tier: string | null) => {
+    switch (tier) {
+      case 'FOUNDATION':
+      case 'STARTER':
+        return Book;
+      case 'ESSENTIAL':
+        return GraduationCap;
+      case 'EDUCATOR':
+        return UserCheck;
+      case 'PROFESSIONAL':
+        return Users;
+      case 'MENTOR':
+        return Award;
+      case 'MASTERY':
+        return Award;
+      case 'INSTITUTIONAL':
+        return Building;
+      default:
+        return Book;
+    }
+  };
 
   const currentPlans = activeTab === 'learner' ? learnerPlans : facultyPlans;
 
@@ -441,13 +368,13 @@ export default function PricingPage() {
             ? 'lg:grid-cols-2 xl:grid-cols-4 max-w-6xl mx-auto'
             : 'lg:grid-cols-3 xl:grid-cols-5'
           }`}>
-          {currentPlans.map((tier, index) => (
+          {currentPlans.map((plan, index) => (
             <div
-              key={tier.tier}
+              key={plan.id}
               style={{ animationDelay: `${index * 100}ms` }}
               className="animate-fade-in-up"
             >
-              <PricingCard {...tier} />
+              <PricingCard {...plan} />
             </div>
           ))}
         </div>
