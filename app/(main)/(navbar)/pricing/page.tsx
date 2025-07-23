@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Check, Sparkles, GraduationCap, UserCheck, Award, Building, Book, Users, Zap, Crown, Shield, ArrowRight, ChevronRight } from 'lucide-react';
-import { getLearnerPlans, getFacultyPlans, subscribeUser, SubscriptionPlan, SubscribeUserRequest, getUserId } from '@/app/components/services/api';
+import { Check, Sparkles, GraduationCap, UserCheck, Award, Building, Book, Users, Zap, Crown, Shield, ArrowRight, ChevronRight, Loader2 } from 'lucide-react';
+import { getLearnerPlans, getFacultyPlans, createPlatformSubscriptionCheckout, SubscriptionPlan, StripeCheckoutRequest, getUserId } from '@/app/components/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 /* ---------- TYPES ---------- */
 interface PricingCardProps extends SubscriptionPlan {
@@ -50,7 +51,9 @@ const PricingCard: React.FC<PricingCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { userProfile, loading } = useUser();
+  const { toast } = useToast();
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
@@ -59,41 +62,69 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
   const handleCheckout = async () => {
     if (!userProfile?.id) {
-      alert('Please log in to proceed with checkout.');
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to proceed with checkout.",
+        variant: "destructive",
+      });
       return;
     }
 
     if (customPricing) {
       // Handle custom pricing logic, e.g., redirect to a contact form
-      alert('Please contact sales for custom pricing.');
+      toast({
+        title: "Custom Pricing",
+        description: "Please contact our sales team for custom pricing options.",
+      });
       return;
     }
 
-    const subscriptionData: SubscribeUserRequest = {
+    if (priceInr === 0) {
+      // Handle free plan - could directly create subscription or redirect to dashboard
+      toast({
+        title: "Free Plan Activated",
+        description: "You now have access to the free plan features!",
+      });
+      // You might want to create a free subscription here or redirect to dashboard
+      return;
+    }
+
+    setIsProcessing(true);
+
+    const checkoutData: StripeCheckoutRequest = {
       planId: id,
-      autoRenew: true, // Or get this from user input
       durationMonths: minimumDurationMonths,
-      discountApplied: 0, // Or calculate discount
-      paymentReference: 'stripe_payment_123', // This would come from your payment provider
+      successUrl: `${window.location.origin}/subscription/success`,
+      cancelUrl: `${window.location.origin}/subscription/cancel`,
     };
 
     try {
-      await subscribeUser(userProfile.id, subscriptionData);
-      alert('Subscription successful!');
-      // Redirect to a success page or dashboard
-    } catch (err) {
-      console.error(err);
-      alert('Failed to subscribe.');
+      const response = await createPlatformSubscriptionCheckout(userProfile.id, checkoutData);
+      // Redirect to Stripe Checkout
+      window.location.href = response.sessionUrl;
+    } catch (err: any) {
+      console.error('Checkout failed:', err);
+      toast({
+        title: "Checkout Failed",
+        description: err.message || 'Failed to initiate checkout. Please try again.',
+        variant: "destructive",
+      });
+      setIsProcessing(false);
     }
   };
 
   const getButtonText = () => {
+    if (isProcessing) return 'Processing...';
     if (customPricing) return 'Contact Sales';
     if (priceInr === 0) return 'Get Started Free';
     return 'Start Subscription';
   };
 
   const getButtonStyle = () => {
+    if (isProcessing) {
+      return 'bg-gray-400 text-white cursor-not-allowed';
+    }
+    
     if (isPopular) {
       return isHovered
         ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white shadow-2xl transform -translate-y-1 scale-105'
@@ -207,15 +238,42 @@ const PricingCard: React.FC<PricingCardProps> = ({
             ))}
           </ul>
 
+          {/* Subscription Duration & Total */}
+          {!customPricing && priceInr > 0 && (
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex justify-between text-sm">
+                <span>Monthly cost:</span>
+                <span>₹{priceInr.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Duration:</span>
+                <span>{minimumDurationMonths} months</span>
+              </div>
+              <div className="flex justify-between font-semibold text-base border-t pt-2 mt-2">
+                <span>Total:</span>
+                <span>₹{(priceInr * minimumDurationMonths).toLocaleString()}</span>
+              </div>
+            </div>
+          )}
+
           {/* CTA Button */}
           <button
             onClick={handleCheckout}
+            disabled={isProcessing || loading}
             className={`group w-full rounded-2xl px-6 py-4 font-bold text-sm transition-all duration-300 ${getButtonStyle()}`}
           >
             <span className="flex items-center justify-center gap-2">
-              {getButtonText()}
-              <ArrowRight className={`h-4 w-4 transition-transform duration-300 ${isHovered ? 'translate-x-1' : ''
-                }`} />
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  {getButtonText()}
+                  <ArrowRight className={`h-4 w-4 transition-transform duration-300 ${isHovered ? 'translate-x-1' : ''}`} />
+                </>
+              )}
             </span>
           </button>
 
@@ -238,9 +296,12 @@ export default function PricingPage() {
   const [activeTab, setActiveTab] = useState<'learner' | 'faculty'>('learner');
   const [learnerPlans, setLearnerPlans] = useState<PricingCardProps[]>([]);
   const [facultyPlans, setFacultyPlans] = useState<PricingCardProps[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchPlans = async () => {
+      setIsLoading(true);
       try {
         const learnerPlansData = await getLearnerPlans();
         const facultyPlansData = await getFacultyPlans();
@@ -253,21 +314,28 @@ export default function PricingPage() {
         }));
 
         const facultyPlansWithUI: PricingCardProps[] = facultyPlansData.map(plan => ({
-            ...plan,
-            bgColor: getPlanBgColor(plan.facultyTier),
-            icon: getPlanIcon(plan.facultyTier),
-            isPopular: plan.facultyTier === 'MENTOR',
+          ...plan,
+          bgColor: getPlanBgColor(plan.facultyTier),
+          icon: getPlanIcon(plan.facultyTier),
+          isPopular: plan.facultyTier === 'MENTOR',
         }));
 
         setLearnerPlans(learnerPlansWithUI);
         setFacultyPlans(facultyPlansWithUI);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to fetch pricing plans:", error);
+        toast({
+          title: "Error Loading Plans",
+          description: error.message || "Failed to load subscription plans. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchPlans();
-  }, []);
+  }, [toast]);
 
   const getPlanBgColor = (tier: string | null) => {
     switch (tier) {
@@ -336,15 +404,15 @@ export default function PricingPage() {
           <div className="relative flex rounded-2xl bg-white/80 backdrop-blur-sm p-2 shadow-xl border border-white/20">
             <div
               className={`absolute top-2 bottom-2 rounded-xl bg-gradient-to-r transition-all duration-300 ease-out ${activeTab === 'learner'
-                  ? 'from-indigo-500 to-purple-600 left-2 right-1/2 mr-1'
-                  : 'from-purple-500 to-indigo-600 left-1/2 right-2 ml-1'
+                ? 'from-indigo-500 to-purple-600 left-2 right-1/2 mr-1'
+                : 'from-purple-500 to-indigo-600 left-1/2 right-2 ml-1'
                 }`}
             />
             <button
               onClick={() => setActiveTab('learner')}
               className={`relative z-10 flex items-center gap-2 rounded-xl px-8 py-4 text-sm font-bold transition-all duration-300 ${activeTab === 'learner'
-                  ? 'text-white'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'text-white'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               <GraduationCap className="h-5 w-5" />
@@ -353,8 +421,8 @@ export default function PricingPage() {
             <button
               onClick={() => setActiveTab('faculty')}
               className={`relative z-10 flex items-center gap-2 rounded-xl px-8 py-4 text-sm font-bold transition-all duration-300 ${activeTab === 'faculty'
-                  ? 'text-white'
-                  : 'text-gray-600 hover:text-gray-800'
+                ? 'text-white'
+                : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
               <UserCheck className="h-5 w-5" />
@@ -363,21 +431,29 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Pricing Cards Grid - Centered for Faculty */}
-        <div className={`grid gap-8 ${activeTab === 'faculty'
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mb-4"></div>
+            <p className="text-xl text-indigo-800 font-medium">Loading subscription plans...</p>
+          </div>
+        ) : (
+          /* Pricing Cards Grid - Centered for Faculty */
+          <div className={`grid gap-8 ${activeTab === 'faculty'
             ? 'lg:grid-cols-2 xl:grid-cols-4 max-w-6xl mx-auto'
             : 'lg:grid-cols-3 xl:grid-cols-5'
-          }`}>
-          {currentPlans.map((plan, index) => (
-            <div
-              key={plan.id}
-              style={{ animationDelay: `${index * 100}ms` }}
-              className="animate-fade-in-up"
-            >
-              <PricingCard {...plan} />
-            </div>
-          ))}
-        </div>
+            }`}>
+            {currentPlans.map((plan, index) => (
+              <div
+                key={plan.id}
+                style={{ animationDelay: `${index * 100}ms` }}
+                className="animate-fade-in-up"
+              >
+                <PricingCard {...plan} />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Enhanced Footer */}
         <div className="mt-20 text-center">
