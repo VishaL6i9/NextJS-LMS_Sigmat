@@ -7,13 +7,23 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { CourseData } from "./types";
+import { CreditCard, Eye, Play, Info } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface CourseCardProps {
     course: CourseData;
     onView: (courseCode: string) => void;
+    onSubscribe?: (course: CourseData) => void;
+    currentUserId?: string | null;
 }
 
-export function CourseCard({ course, onView }: CourseCardProps) {
+export function CourseCard({ course, onView, onSubscribe, currentUserId }: CourseCardProps) {
+    const router = useRouter();
+
+    const handleViewCourse = () => {
+        // Navigate to course-player with courseId as query parameter
+        router.push(`/dashboard/course-player?courseId=${course.id}`);
+    };
     return (
         <motion.div
             layout
@@ -43,9 +53,35 @@ export function CourseCard({ course, onView }: CourseCardProps) {
                     </p>
                 </CardContent>
                 <CardFooter className="p-4">
-                    <Button onClick={() => onView(course.courseCode)} className="w-full">
-                        View Course
-                    </Button>
+                    <div className="flex flex-col gap-2 w-full">
+                        <div className="flex gap-2 w-full">
+                            <Button
+                                onClick={handleViewCourse}
+                                className="flex-1"
+                            >
+                                <Play className="h-4 w-4 mr-2" />
+                                View Course
+                            </Button>
+                            <Button
+                                onClick={() => onView(course.courseCode)}
+                                variant="outline"
+                                className="flex-1"
+                            >
+                                <Info className="h-4 w-4 mr-2" />
+                                Details
+                            </Button>
+                        </div>
+                        {onSubscribe && currentUserId && (
+                            <Button
+                                onClick={() => onSubscribe(course)}
+                                variant="secondary"
+                                className="w-full"
+                            >
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Subscribe
+                            </Button>
+                        )}
+                    </div>
                 </CardFooter>
             </Card>
         </motion.div>
