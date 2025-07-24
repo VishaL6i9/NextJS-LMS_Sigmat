@@ -1,6 +1,4 @@
 
-"use client";
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,9 +13,10 @@ interface CourseCardProps {
     onView: (courseCode: string) => void;
     onSubscribe?: (course: CourseData) => void;
     currentUserId?: string | null;
+    isSubscribed: boolean;
 }
 
-export function CourseCard({ course, onView, onSubscribe, currentUserId }: CourseCardProps) {
+export function CourseCard({ course, onView, onSubscribe, currentUserId, isSubscribed }: CourseCardProps) {
     const router = useRouter();
 
     const handleViewCourse = () => {
@@ -55,23 +54,26 @@ export function CourseCard({ course, onView, onSubscribe, currentUserId }: Cours
                 <CardFooter className="p-4">
                     <div className="flex flex-col gap-2 w-full">
                         <div className="flex gap-2 w-full">
-                            <Button
-                                onClick={handleViewCourse}
-                                className="flex-1"
-                            >
-                                <Play className="h-4 w-4 mr-2" />
-                                View Course
-                            </Button>
-                            <Button
-                                onClick={() => onView(course.courseCode)}
-                                variant="outline"
-                                className="flex-1"
-                            >
-                                <Info className="h-4 w-4 mr-2" />
-                                Details
-                            </Button>
+                            {isSubscribed ? (
+                                <Button
+                                    onClick={handleViewCourse}
+                                    className="flex-1"
+                                >
+                                    <Play className="h-4 w-4 mr-2" />
+                                    View Course
+                                </Button>
+                            ) : (
+                                <Button
+                                    onClick={() => onView(course.courseCode)}
+                                    variant="outline"
+                                    className="flex-1"
+                                >
+                                    <Info className="h-4 w-4 mr-2" />
+                                    Details
+                                </Button>
+                            )}
                         </div>
-                        {onSubscribe && currentUserId && (
+                        {onSubscribe && currentUserId && !isSubscribed && (
                             <Button
                                 onClick={() => onSubscribe(course)}
                                 variant="secondary"

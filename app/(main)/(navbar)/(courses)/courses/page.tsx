@@ -98,6 +98,7 @@ export default function CoursesManagement() {
     const [isViewingCourse, setIsViewingCourse] = useState(false);
     const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
     const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(null);
+    const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>([]);
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
     const [selectedCourseForSubscription, setSelectedCourseForSubscription] = useState<CourseData | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -192,6 +193,28 @@ export default function CoursesManagement() {
         fetchUserRoles();
         fetchCurrentUserId();
     }, []);
+
+    const fetchUserSubscriptions = async () => {
+        if (!currentUserId) return;
+        try {
+            const subscriptions = await getAllUserSubscriptions(currentUserId);
+            setUserSubscriptions(subscriptions);
+        } catch (error) {
+            console.error('Failed to fetch user subscriptions:', error);
+        }
+    };
+
+    useEffect(() => {
+        if (currentUserId) {
+            fetchUserSubscriptions();
+        }
+    }, [currentUserId]);
+
+    useEffect(() => {
+        if (currentUserId) {
+            fetchUserSubscriptions();
+        }
+    }, [currentUserId]);
 
     const fetchCurrentUserId = async () => {
         try {
@@ -818,6 +841,7 @@ export default function CoursesManagement() {
                             onView={handleViewCourse}
                             onSubscribe={handleSubscribeToCourse}
                             currentUserId={currentUserId}
+                            userSubscriptions={userSubscriptions}
                         />
                     )}
                 </CardContent>
