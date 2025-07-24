@@ -1,5 +1,5 @@
 import { Invoice } from '../invoiceGenerator/types/invoice';
-import { Notification } from '../user-home-dashboard/types/notification';
+import { Notification } from '../user-notification-dashboard/types/notification';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -414,7 +414,17 @@ class ApiService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData = {};
+        try {
+          const errorText = await response.text();
+          if (errorText.trim()) {
+            errorData = JSON.parse(errorText);
+          }
+        } catch (parseError) {
+          console.warn('Could not parse error response as JSON:', parseError);
+          errorData = { message: 'Invalid error response format' };
+        }
+        
         throw new ApiError(
           `API request failed: ${response.status} ${response.statusText}`,
           response.status,
@@ -424,7 +434,20 @@ class ApiService {
 
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
-        return await response.json();
+        try {
+          const responseText = await response.text();
+          if (!responseText.trim()) {
+            throw new Error('Empty JSON response');
+          }
+          return JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('JSON Parse Error in API service:', parseError);
+          throw new ApiError(
+            `Invalid JSON response: ${parseError.message}`,
+            response.status,
+            { parseError: parseError.message }
+          );
+        }
       } else if (contentType && contentType.startsWith("image/")) {
         return await response.blob() as T;
       } else {
@@ -1011,6 +1034,19 @@ class ApiService {
     }
   }
 
+  async getUnreadNotifications(userId: number): Promise<Notification[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get unread notifications', 400);
+    }
+    try {
+      const notifications = await this.fetchWithErrorHandling<Notification[]>(`${API_BASE_URL}/notifications/user/${userId}/unread`);
+      return notifications;
+    } catch (error) {
+      console.error(`Failed to fetch unread notifications for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
   async addNotification(notification: Omit<Notification, 'id' | 'timestamp'>, userId: number): Promise<Notification> {
     if (!userId) {
       throw new ApiError('User ID is required to add notification', 400);
@@ -1023,6 +1059,22 @@ class ApiService {
       return newNotification;
     } catch (error) {
       console.error(`Failed to add notification for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async addBulkNotifications(notification: Omit<Notification, 'id' | 'timestamp'>, userIds: number[]): Promise<Notification[]> {
+    if (!userIds || userIds.length === 0) {
+      throw new ApiError('User IDs are required to send bulk notifications', 400);
+    }
+    try {
+      const newNotifications = await this.fetchWithErrorHandling<Notification[]>(`${API_BASE_URL}/notifications/bulk?userIds=${userIds.join(',')}`, {
+        method: 'POST',
+        body: JSON.stringify(notification),
+      });
+      return newNotifications;
+    } catch (error) {
+      console.error(`Failed to send bulk notifications to users ${userIds.join(',')}:`, error);
       throw error;
     }
   }
@@ -1041,20 +1093,6 @@ class ApiService {
     }
   }
 
-  async markNotificationAsUnread(id: string): Promise<void> {
-    if (!id) {
-      throw new ApiError('Notification ID is required to mark as unread', 400);
-    }
-    try {
-      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/${id}/unread`, {
-        method: 'PUT',
-      });
-    } catch (error) {
-      console.error(`Failed to mark notification ${id} as unread:`, error);
-      throw error;
-    }
-  }
-
   async markAllNotificationsAsRead(userId: number): Promise<void> {
     if (!userId) {
       throw new ApiError('User ID is required to mark all as read', 400);
@@ -1065,20 +1103,6 @@ class ApiService {
       });
     } catch (error) {
       console.error(`Failed to mark all notifications as read for user ID ${userId}:`, error);
-      throw error;
-    }
-  }
-
-  async deleteNotification(id: string): Promise<void> {
-    if (!id) {
-      throw new ApiError('Notification ID is required for deletion', 400);
-    }
-    try {
-      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/notifications/${id}`, {
-        method: 'DELETE',
-      });
-    } catch (error) {
-      console.error(`Failed to delete notification ${id}:`, error);
       throw error;
     }
   }
@@ -1619,11 +1643,11 @@ export const requestPasswordReset = (email: string) => apiService.requestPasswor
 export const resetPassword = (email: string, token: string, newPassword: string) => apiService.resetPassword(email, token, newPassword);
 export const login = (username: string, password: string) => apiService.login(username, password);
 export const getNotifications = (userId: number) => apiService.getNotifications(userId);
+export const getUnreadNotifications = (userId: number) => apiService.getUnreadNotifications(userId);
 export const addNotification = (notification: Omit<Notification, 'id' | 'timestamp'>, userId: number) => apiService.addNotification(notification, userId);
+export const addBulkNotifications = (notification: Omit<Notification, 'id' | 'timestamp'>, userIds: number[]) => apiService.addBulkNotifications(notification, userIds);
 export const markNotificationAsRead = (id: string) => apiService.markNotificationAsRead(id);
-export const markNotificationAsUnread = (id: string) => apiService.markNotificationAsUnread(id);
 export const markAllNotificationsAsRead = (userId: number) => apiService.markAllNotificationsAsRead(userId);
-export const deleteNotification = (id: string) => apiService.deleteNotification(id);
 export const getNotificationStats = (userId: number) => apiService.getNotificationStats(userId);
 export const uploadVideo = (file: File, title: string, description: string) => apiService.uploadVideo(file, title, description);
 export const getAllVideos = () => apiService.getAllVideos();

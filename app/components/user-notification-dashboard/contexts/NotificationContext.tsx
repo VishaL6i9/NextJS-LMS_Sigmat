@@ -12,7 +12,16 @@ import {
   ToastNotification,
   NotificationStats,
 } from '../types/notification';
-import { getNotificationStats } from '@/app/components/services/api';
+import {
+  getUserId,
+  getNotifications,
+  getUnreadNotifications,
+  addNotification as apiAddNotification,
+  addBulkNotifications as apiAddBulkNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getNotificationStats,
+} from '@/app/components/services/api';
 
 // === State and Action Types ===
 
@@ -47,12 +56,10 @@ interface NotificationContextType {
   addToast: (toast: Omit<ToastNotification, 'id' | 'timestamp'>) => void;
   removeToast: (id: string) => void;
   markAsRead: (id: string) => Promise<void>;
-  markAsUnread: (id: string) => void;
   markAllAsRead: () => Promise<void>;
-  deleteNotification: (id: string) => void;
   clearAllNotifications: () => void;
-  fetchNotifications: () => Promise<void>;
-  fetchUnreadNotifications: () => Promise<void>;
+  fetchNotifications: (userId?: number) => Promise<void>;
+  fetchUnreadNotifications: (userId?: number) => Promise<void>;
 }
 
 // === Reducer ===
@@ -78,20 +85,10 @@ function notificationReducer(state: NotificationState, action: NotificationActio
         ...state,
         notifications: state.notifications.map(n => n.id === action.payload ? { ...n, isRead: true } : n),
       };
-    case 'MARK_AS_UNREAD':
-      return {
-        ...state,
-        notifications: state.notifications.map(n => n.id === action.payload ? { ...n, isRead: false } : n),
-      };
     case 'MARK_ALL_AS_READ':
       return {
         ...state,
         notifications: state.notifications.map(n => ({ ...n, isRead: true })),
-      };
-    case 'DELETE_NOTIFICATION':
-      return {
-        ...state,
-        notifications: state.notifications.filter(n => n.id !== action.payload),
       };
     case 'CLEAR_ALL_NOTIFICATIONS':
       return { ...state, notifications: [] };
@@ -137,7 +134,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       type: 'ADD_TOAST',
       payload: {
         ...toast,
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
         timestamp: new Date(),
         duration: toast.duration || 5000,
         autoClose: toast.autoClose !== false,
@@ -152,96 +149,82 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Fetch user ID on mount
   useEffect(() => {
     const fetchUserId = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/user/profile/getuserID`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) throw new Error('Failed to fetch user ID');
-        const id = await res.text();
-        dispatch({ type: 'SET_USER_ID', payload: Number(id) });
+        const id = await getUserId();
+        const parsedId = Number(id);
+        console.log('User ID fetched:', parsedId);
+        dispatch({ type: 'SET_USER_ID', payload: parsedId });
       } catch (err) {
-        console.error('Failed to fetch user ID:', err);
+        console.error('Error fetching user ID:', err);
       }
     };
 
     fetchUserId();
   }, []);
 
-  // Fetch notifications and stats when userId changes
-  useEffect(() => {
-    if (state.userId) {
-      fetchNotifications();
-      updateStats();
-    }
-  }, [state.userId]);
-
-  const updateStats = useCallback(async () => {
-    if (!state.userId) return;
+  const updateStats = useCallback(async (userId: number) => {
+    if (!userId) return;
 
     try {
-      const stats = await getNotificationStats(state.userId);
+      const stats = await getNotificationStats(userId);
       dispatch({ type: 'SET_STATS', payload: stats });
     } catch (error) {
       console.error('Failed to fetch stats:', error);
     }
-  }, [state.userId]);
+  }, []);
 
-  const fetchNotifications = useCallback(async () => {
-    if (!state.userId) return;
+  const fetchNotifications = useCallback(async (userId: number) => {
+    if (!userId) return;
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/user/${state.userId}`);
-      if (!res.ok) throw new Error('Failed to fetch notifications');
-      const data = await res.json();
+      console.log('Fetching notifications for user:', userId);
+      const data = await getNotifications(userId);
+      console.log('Notifications fetched successfully:', data);
       dispatch({ type: 'SET_NOTIFICATIONS', payload: data });
-      await updateStats(); // Update stats after fetching notifications
+      await updateStats(userId); // Update stats after fetching notifications
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      console.error('Error in fetchNotifications:', err);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch notifications' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [state.userId, updateStats]);
+  }, [updateStats]);
 
-  const fetchUnreadNotifications = useCallback(async () => {
+  const fetchUnreadNotifications = useCallback(async (userId?: number) => {
+    const targetUserId = userId || state.userId;
+    if (!targetUserId) return;
+
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/user/${state.userId}/unread`);
-      if (!res.ok) throw new Error();
-      const data = await res.json();
+      const data = await getUnreadNotifications(targetUserId);
       dispatch({ type: 'SET_NOTIFICATIONS', payload: data });
-      await updateStats();
+      await updateStats(targetUserId);
     } catch (err) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch unread notifications' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [state.userId, updateStats]);
+  }, [updateStats, state.userId]);
+
+  // Fetch notifications and stats when userId changes
+  useEffect(() => {
+    if (state.userId) {
+      fetchNotifications(state.userId);
+      updateStats(state.userId);
+    }
+  }, [state.userId, fetchNotifications, updateStats]);
 
   const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp'>) => {
-    if (!state.userId) return;
+    const currentUserId = state.userId;
+    if (!currentUserId) return;
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}?userId=${state.userId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(notification),
-      });
-
-      if (!res.ok) throw new Error('Failed to add notification');
-      const data = await res.json();
+      const data = await apiAddNotification(notification, currentUserId);
 
       dispatch({ type: 'ADD_NOTIFICATION', payload: data });
-      await updateStats(); // Update stats after adding notification
+      await updateStats(currentUserId); // Update stats after adding notification
 
       // Show toast for new notification
       /* showToast({
@@ -256,33 +239,27 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [state.userId, updateStats]);
+  }, [updateStats]);
 
   const addBulkNotifications = useCallback(async (notification: Omit<Notification, 'id' | 'timestamp'>, userIds: number[]) => {
-    if (!state.userId) return;
+    const currentUserId = state.userId;
+    if (!currentUserId) return;
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/bulk?userIds=${userIds.join(',')}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(notification),
-      });
-
-      if (!res.ok) throw new Error('Failed to send bulk notifications');
-      const data = await res.json();
+      const data = await apiAddBulkNotifications(notification, userIds);
 
       // Add all notifications to the state
       data.forEach((notification: Notification) => {
         dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
       });
 
-      await updateStats();
+      await updateStats(currentUserId);
 
       addToast({
         title: 'Success',
         message: `Sent notifications to ${userIds.length} users`,
-        type: 'success'
+        type: 'SUCCESS'
       });
     } catch (error) {
       console.error('Failed to send bulk notifications:', error);
@@ -291,24 +268,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       addToast({
         title: 'Error',
         message: 'Failed to send bulk notifications',
-        type: 'error'
+        type: 'ERROR'
       });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [state.userId, updateStats, addToast]);
+  }, [updateStats, addToast]);
 
   const markAsRead = useCallback(async (id: string) => {
+    const currentUserId = state.userId;
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/${id}/read`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!res.ok) throw new Error('Failed to mark as read');
+      await markNotificationAsRead(id);
       dispatch({ type: 'MARK_AS_READ', payload: id });
-      await updateStats(); // Update stats after marking as read
+      if (currentUserId) await updateStats(currentUserId); // Update stats after marking as read
     } catch (error) {
       console.error('Failed to mark as read:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to mark as read' });
@@ -317,73 +290,47 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [updateStats]);
 
-  const markAsUnread = useCallback(async (id: string) => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/${id}/unread`, { method: 'PUT' });
-      if (!res.ok) throw new Error();
-      dispatch({ type: 'MARK_AS_UNREAD', payload: id });
-      await updateStats();
-    } catch {
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to mark as unread' });
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
-  }, [updateStats]);
-
   const markAllAsRead = useCallback(async () => {
-    if (!state.userId) return;
+    const currentUserId = state.userId;
+    if (!currentUserId) return;
 
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/user/${state.userId}/read-all`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!res.ok) throw new Error('Failed to mark all as read');
+      await markAllNotificationsAsRead(currentUserId);
       dispatch({ type: 'MARK_ALL_AS_READ' });
-      await updateStats(); // Update stats after marking all as read
+      await updateStats(currentUserId); // Update stats after marking all as read
     } catch (error) {
       console.error('Failed to mark all as read:', error);
       dispatch({ type: 'SET_ERROR', payload: 'Failed to mark all as read' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [state.userId, updateStats]);
-
-  const deleteNotification = useCallback(async (id: string) => {
-    try {
-      dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
-      dispatch({ type: 'DELETE_NOTIFICATION', payload: id });
-      await updateStats();
-    } catch {
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to delete notification' });
-    } finally {
-      dispatch({ type: 'SET_LOADING', payload: false });
-    }
   }, [updateStats]);
 
   const clearAllNotifications = useCallback(async () => {
+    const currentUserId = state.userId;
+    if (!currentUserId) return;
+
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const res = await fetch(`${API_BASE_URL}/user/${state.userId}/clear`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE_URL}/user/${currentUserId}/clear`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       dispatch({ type: 'CLEAR_ALL_NOTIFICATIONS' });
-      await updateStats();
+      await updateStats(currentUserId);
     } catch {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to clear notifications' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [state.userId, updateStats]);
+  }, [updateStats]);
 
-  // Add console logs for debugging
-  useEffect(() => {
-    console.log('Current state:', state);
-  }, [state]);
+  // Wrapper functions to maintain the original interface
+  const fetchNotificationsWrapper = useCallback(async (userId?: number) => {
+    const targetUserId = userId || state.userId;
+    if (targetUserId) {
+      await fetchNotifications(targetUserId);
+    }
+  }, [fetchNotifications]);
 
   const value: NotificationContextType = {
     state,
@@ -392,12 +339,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     addToast,
     removeToast,
     markAsRead,
-    markAsUnread,
     markAllAsRead,
-    deleteNotification,
     clearAllNotifications,
-    fetchNotifications,
-    fetchUnreadNotifications,
+    fetchNotifications: fetchNotificationsWrapper,
+    fetchUnreadNotifications: fetchUnreadNotifications,
   };
 
   return (
