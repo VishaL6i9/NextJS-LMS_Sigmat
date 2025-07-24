@@ -2,12 +2,12 @@ export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+  type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
   timestamp: Date;
   isRead: boolean;
-  category?: 'assignment' | 'grade' | 'announcement' | 'system' | 'reminder' | 'ASSIGNMENT' | 'GRADE' | 'ANNOUNCEMENT' | 'SYSTEM' | 'REMINDER';
+  category?: 'ASSIGNMENT' | 'GRADE' | 'ANNOUNCEMENT' | 'SYSTEM' | 'REMINDER';
   actionUrl?: string;
-  priority?: 'low' | 'medium' | 'high' | 'LOW' | 'MEDIUM' | 'HIGH';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
 }
 
 export interface ToastNotification extends Omit<Notification, 'isRead'> {
