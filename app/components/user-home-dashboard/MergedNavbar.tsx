@@ -231,6 +231,12 @@ const MergedNavbar: React.FC = () => {
                                             <span>Profile</span>
                                         </Link>
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                        <Link href="/dashboard/subscription" className="flex items-center w-full">
+                                            <User className="mr-2 h-4 w-4" />
+                                            <span>Billing & Subscription</span>
+                                        </Link>
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onClick={handleLogout}>
                                         <LogOut className="mr-2 h-4 w-4" />
                                         <span>Log out</span>
