@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect } from 'react';
 import { X, AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 import { useNotifications } from './contexts/NotificationContext';
@@ -19,11 +21,11 @@ const ToastCenter: React.FC = () => {
 
   const getToastIcon = (type: string) => {
     switch (type) {
-      case 'success':
+      case 'SUCCESS':
         return <CheckCircle className="w-5 h-5" />;
-      case 'warning':
+      case 'WARNING':
         return <AlertTriangle className="w-5 h-5" />;
-      case 'error':
+      case 'ERROR':
         return <AlertCircle className="w-5 h-5" />;
       default:
         return <Info className="w-5 h-5" />;
@@ -32,11 +34,11 @@ const ToastCenter: React.FC = () => {
 
   const getToastStyles = (type: string) => {
     switch (type) {
-      case 'success':
+      case 'SUCCESS':
         return 'bg-green-50 border-green-200 text-green-800';
-      case 'warning':
+      case 'WARNING':
         return 'bg-yellow-50 border-yellow-200 text-yellow-800';
-      case 'error':
+      case 'ERROR':
         return 'bg-red-50 border-red-200 text-red-800';
       default:
         return 'bg-blue-50 border-blue-200 text-blue-800';
@@ -45,11 +47,11 @@ const ToastCenter: React.FC = () => {
 
   const getIconStyles = (type: string) => {
     switch (type) {
-      case 'success':
+      case 'SUCCESS':
         return 'text-green-600';
-      case 'warning':
+      case 'WARNING':
         return 'text-yellow-600';
-      case 'error':
+      case 'ERROR':
         return 'text-red-600';
       default:
         return 'text-blue-600';
@@ -84,7 +86,7 @@ const ToastCenter: React.FC = () => {
           </div>
           {toast.autoClose && toast.duration && (
             <div className="h-1 bg-black/10 rounded-b-lg overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-current opacity-50 animate-pulse"
                 style={{
                   animation: `shrink ${toast.duration}ms linear forwards`
