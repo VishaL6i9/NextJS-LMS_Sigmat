@@ -16,7 +16,7 @@ import {
     ChevronLeft
 } from 'lucide-react';
 import { Calendar1 as Calendar } from '@/components/ui/Calendar1';
-import { useNotifications } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
+import { useNotifications } from '@/app/components/user-notification-dashboard/contexts/NotificationContext';
 import { NotificationCenter } from '@/app/components/user-home-dashboard/NotificationCenter';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -42,7 +42,7 @@ const staggerContainer = {
 export const Dashboard = () => {
     const router = useRouter();
     const { userProfile } = useUser();
-    const { notifications, unreadCount } = useNotifications();
+    const { state } = useNotifications();
     const [activeTab, setActiveTab] = useState<'overview' | 'notifications'>('overview');
     const [activeCourses, setActiveCourses] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -85,7 +85,7 @@ export const Dashboard = () => {
         }
     }, [userProfile]);
 
-    const recentAssignments = notifications.filter(n => n.category === 'assignment').length;
+    const recentAssignments = state.notifications.filter(n => n.category === 'ASSIGNMENT').length;
 
     const handleQuickAction = (action: string) => {
         toast({
@@ -96,7 +96,7 @@ export const Dashboard = () => {
     };
 
     const stats = [
-        { name: 'Unread Notifications', value: unreadCount, icon: Bell, color: 'from-red-500 to-orange-500' },
+        { name: 'Unread Notifications', value: state.stats.unread, icon: Bell, color: 'from-red-500 to-orange-500' },
         { name: 'Active Courses', value: isLoading ? '...' : activeCourses, icon: BookOpen, color: 'from-blue-500 to-cyan-500' },
         { name: 'Pending Assignments', value: recentAssignments, icon: Target, color: 'from-yellow-500 to-amber-500' },
         { name: 'Average Grade', value: '92%', icon: Award, color: 'from-green-500 to-emerald-500' }

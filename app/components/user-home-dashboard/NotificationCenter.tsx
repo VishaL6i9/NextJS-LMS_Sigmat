@@ -6,7 +6,7 @@ import { CheckCircle, Circle, MoreVertical, ExternalLink } from 'lucide-react';
 import { Delete } from '@/components/ui/Delete';
 import { useHomeNotifications, HomeNotificationWrapper } from './contexts/HomeNotificationContext';
 import { getNotificationIcon, getNotificationColor } from '@/app/components/utils/notificationUtils';
-import { Notification } from '@/app/components/user-home-dashboard/types/notification';
+import { Notification } from '@/app/components/user-notification-dashboard/types/notification';
 import { Checkbox } from "@/components/ui/checkbox";
 import {
     DropdownMenu,
@@ -85,7 +85,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
                                         href={notification.actionUrl}
                                         className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center space-x-1"
                                     >
-                                        <span>{notification.actionText}</span>
+                                        <span>{notification.message}</span>
                                         <ExternalLink className="h-3 w-3" />
                                     </a>
                                 )}

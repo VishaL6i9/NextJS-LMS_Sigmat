@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { Notification } from '@/app/components/user-home-dashboard/types/notification';
+import { Notification } from '@/app/components/user-notification-dashboard/types/notification';
 import { toast } from '@/hooks/use-toast';
 
 // === Constants ===
@@ -10,23 +10,21 @@ const initialNotifications: Notification[] = [
         id: '1',
         title: 'Assignment Due Soon',
         message: 'Your Chemistry Lab Report is due in 2 days. Make sure to submit it on time.',
-        type: 'warning',
-        category: 'assignment',
+        type: 'WARNING',
+        category: 'ASSIGNMENT',
         isRead: false,
         timestamp: new Date(Date.now() - 1000 * 60 * 30),
         actionUrl: '/assignments/chemistry-lab',
-        actionText: 'View Assignment'
     },
     {
         id: '2',
         title: 'New Grade Posted',
         message: 'Your grade for Mathematics Quiz #3 has been posted. You scored 95/100!',
-        type: 'success',
-        category: 'grade',
+        type: 'SUCCESS',
+        category: 'GRADE',
         isRead: false,
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
         actionUrl: '/grades',
-        actionText: 'View Grades'
     },
 ];
 

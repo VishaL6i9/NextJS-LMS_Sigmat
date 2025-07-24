@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useNotifications } from './contexts/NotificationContext';
+import { useNotifications } from '@/app/components/user-notification-dashboard/contexts/NotificationContext';
 import { Bell } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,8 @@ import {
 import Link from 'next/link';
 
 export const NotificationDropdown = () => {
-    const { notifications, unreadCount } = useNotifications();
+    const { state } = useNotifications();
+    const { notifications, unreadCount } = state;
 
     return (
         <DropdownMenu>

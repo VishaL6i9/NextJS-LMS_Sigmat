@@ -1,4 +1,4 @@
-import { NotificationProvider } from '@/app/components/user-home-dashboard/contexts/NotificationContext';
+import { NotificationProvider } from '@/app/components/user-notification-dashboard/contexts/NotificationContext';
 import { HomeNotificationProvider } from '@/app/components/user-home-dashboard/contexts/HomeNotificationContext';
 
 const ProfileLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
