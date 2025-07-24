@@ -141,6 +141,8 @@ export interface ApiUser {
   id: string;
   username: string;
   email: string;
+  firstName: string;
+  lastName: string;
   roles: Role[];
 }
 
@@ -252,8 +254,16 @@ export interface UserProfile {
   lastName: string;
   email: string;
   phone?: string;
-  timezone: string;
+  address?: string;
   language: string;
+  timezone: string;
+  profileImage?: {
+    id: number;
+    imageName: string;
+    contentType: string;
+    imageData: string;
+  };
+  user: ApiUser;
 }
 
 export interface UpdateProfileRequest {
