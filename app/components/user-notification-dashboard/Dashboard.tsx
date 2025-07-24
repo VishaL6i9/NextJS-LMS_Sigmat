@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, TrendingUp, Clock, CheckCircle, AlertTriangle, BookOpen, Trophy, Megaphone, Plus, X, Send } from 'lucide-react';
 import { useNotifications } from './contexts/NotificationContext';
 import SendNotificationForm from './SendNotificationForm';
+import ApiDiagnostics from './ApiDiagnostics';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,18 +38,125 @@ const Dashboard: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const base_url = process.env.NEXT_PUBLIC_BASE_URL;
 
+  const hasFetchedUsers = useRef(false);
+
   useEffect(() => {
-    const fetchUsers = async () => {
+    if (hasFetchedUsers.current) {
+      return;
+    }
+
+    const fetchUsersWithRetry = async (retryCount = 0) => {
       try {
-        const response = await fetch(`${base_url}/api/public/users`);
-        if (!response.ok) throw new Error('Failed to fetch users');
-        const data = await response.json();
+        console.log('Fetching users from:', `${base_url}/api/public/users`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        const response = await fetch(`${base_url}/api/public/users`, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // Check content type before parsing
+        const contentType = response.headers.get("content-type");
+        console.log('Content-Type:', contentType);
+        
+        if (!contentType || !contentType.includes("application/json")) {
+          const responseText = await response.text();
+          console.error('Non-JSON response:', responseText.substring(0, 1000));
+          
+          // Check if it's an HTML error page
+          if (responseText.trim().toLowerCase().startsWith('<!doctype html') || 
+              responseText.trim().toLowerCase().startsWith('<html')) {
+            throw new Error('Server returned HTML error page instead of JSON. Check if the API server is running correctly.');
+          }
+          
+          throw new Error(`Expected JSON response, got ${contentType || 'unknown'}. Response: ${responseText.substring(0, 200)}...`);
+        }
+        
+        // Get response text first to check for issues
+        const responseText = await response.text();
+        console.log('Response length:', responseText.length, 'characters');
+        
+        // Check if response is empty
+        if (!responseText.trim()) {
+          throw new Error('Empty response from server');
+        }
+        
+        // Log large responses
+        if (responseText.length > 100000) { // 100KB
+          console.warn('Large response detected:', responseText.length, 'characters');
+        }
+        
+        // Try to parse JSON with better error handling
+        let data;
+        try {
+          data = JSON.parse(responseText);
+          console.log('Successfully parsed JSON. Users count:', Array.isArray(data) ? data.length : 'Not an array');
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError);
+          console.error('Response text (first 1000 chars):', responseText.substring(0, 1000));
+          console.error('Response text (around error position):', responseText.substring(Math.max(0, 102200), 102300));
+          console.error('Response text (last 1000 chars):', responseText.substring(Math.max(0, responseText.length - 1000)));
+          
+          // Try to find the issue in the JSON
+          const lines = responseText.split('\n');
+          console.error('Response has', lines.length, 'lines');
+          
+          throw new Error(`JSON Parse Error at position ~102203: ${parseError.message}`);
+        }
+        
+        // Validate the data structure
+        if (!Array.isArray(data)) {
+          console.warn('Expected array of users, got:', typeof data);
+          throw new Error('Invalid response format: expected array of users');
+        }
+        
         setUsers(data);
+        hasFetchedUsers.current = true;
+        console.log('Successfully loaded', data.length, 'users');
+        
       } catch (error) {
         console.error('Error fetching users:', error);
-        addToast({ title: 'Error', message: 'Failed to fetch users', type: 'error' });
+        
+        // Provide fallback empty array to prevent UI issues
+        setUsers([]);
+        
+        let errorMessage = 'Failed to fetch users';
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out - server may be slow';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Retry logic for network errors
+        if (retryCount < 2 && (error.name === 'AbortError' || error.message.includes('fetch'))) {
+          console.log(`Retrying fetch users (attempt ${retryCount + 2}/3)...`);
+          setTimeout(() => fetchUsersWithRetry(retryCount + 1), 1000 * (retryCount + 1));
+          return;
+        }
+        
+        addToast({ 
+          title: 'Error', 
+          message: errorMessage, 
+          type: 'ERROR' 
+        });
       }
     };
+
+    const fetchUsers = () => fetchUsersWithRetry();
     fetchUsers();
   }, [base_url, addToast]);
 
@@ -105,6 +213,9 @@ const Dashboard: React.FC = () => {
                     </Button>
                 </motion.div>
             </motion.div>
+
+            {/* API Diagnostics - Temporary for debugging */}
+            <ApiDiagnostics />
 
             <AnimatePresence>
                 {showForm && (
