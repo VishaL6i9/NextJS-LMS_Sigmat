@@ -2,30 +2,33 @@
 import { AnimatePresence } from "framer-motion";
 import { CourseCard } from "./CourseCard";
 import { CourseData } from "./types";
-import { UserSubscription } from "@/app/components/services/api";
+import { CoursePurchase } from "@/app/components/services/api";
 
 interface CourseCardListProps {
     courses: CourseData[];
     onView: (courseCode: string) => void;
-    onSubscribe?: (course: CourseData) => void;
+    onPurchase?: (course: CourseData) => void;
     currentUserId?: string | null;
-    userSubscriptions: UserSubscription[];
+    userPurchases: CoursePurchase[];
 }
 
-export function CourseCardList({ courses, onView, onSubscribe, currentUserId, userSubscriptions }: CourseCardListProps) {
+export function CourseCardList({ courses, onView, onPurchase, currentUserId, userPurchases }: CourseCardListProps) {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             <AnimatePresence>
                 {courses.map((course) => {
-                    const isSubscribed = userSubscriptions.some(sub => sub.courseId?.toString() === course.id && sub.status === 'ACTIVE');
+                    const isPurchased = userPurchases.some(purchase => 
+                        purchase.courseId.toString() === course.id && 
+                        purchase.status === 'COMPLETED'
+                    );
                     return (
                         <CourseCard 
                             key={course.id} 
                             course={course} 
                             onView={onView} 
-                            onSubscribe={onSubscribe}
+                            onPurchase={onPurchase}
                             currentUserId={currentUserId}
-                            isSubscribed={isSubscribed}
+                            isPurchased={isPurchased}
                         />
                     )
                 })}

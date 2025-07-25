@@ -25,12 +25,12 @@ import {
     ApiInstructor,
     getUserRoles,
     getCourseById as apiGetCourseById,
-    getSubscriptionPlans,
-    createCourseSubscriptionCheckout,
-    getCurrentCourseSubscription,
-    SubscriptionPlan,
-    UserSubscription,
-    StripeCheckoutRequest
+    createCourseCheckoutSession,
+    hasUserPurchasedCourse,
+    getUserCoursePurchases,
+    CoursePurchaseRequest,
+    CoursePurchase,
+    HasPurchasedResponse
 } from "@/app/components/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -96,12 +96,11 @@ export default function CoursesManagement() {
     const [userRoles, setUserRoles] = useState<string[]>([]);
     const [selectedCourse, setSelectedCourse] = useState<CourseData | null>(null);
     const [isViewingCourse, setIsViewingCourse] = useState(false);
-    const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
-    const [currentSubscription, setCurrentSubscription] = useState<UserSubscription | null>(null);
-    const [userSubscriptions, setUserSubscriptions] = useState<UserSubscription[]>([]);
-    const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-    const [selectedCourseForSubscription, setSelectedCourseForSubscription] = useState<CourseData | null>(null);
+    const [userPurchases, setUserPurchases] = useState<CoursePurchase[]>([]);
+    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+    const [selectedCourseForPurchase, setSelectedCourseForPurchase] = useState<CourseData | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [hasPurchasedCourse, setHasPurchasedCourse] = useState<boolean>(false);
     const { toast } = useToast();
     const router = useRouter();
 
@@ -194,25 +193,19 @@ export default function CoursesManagement() {
         fetchCurrentUserId();
     }, []);
 
-    const fetchUserSubscriptions = async () => {
+    const fetchUserPurchases = async () => {
         if (!currentUserId) return;
         try {
-            const subscriptions = await getAllUserSubscriptions(currentUserId);
-            setUserSubscriptions(subscriptions);
+            const purchases = await getUserCoursePurchases(currentUserId);
+            setUserPurchases(purchases);
         } catch (error) {
-            console.error('Failed to fetch user subscriptions:', error);
+            console.error('Failed to fetch user purchases:', error);
         }
     };
 
     useEffect(() => {
         if (currentUserId) {
-            fetchUserSubscriptions();
-        }
-    }, [currentUserId]);
-
-    useEffect(() => {
-        if (currentUserId) {
-            fetchUserSubscriptions();
+            fetchUserPurchases();
         }
     }, [currentUserId]);
 
@@ -339,17 +332,17 @@ export default function CoursesManagement() {
         setIsLoading(true);
         try {
             const courseId = await apiService.getCourseIdByCourseCode(courseCode);
-            const courseDetails = await apiGetCourseById(courseId.toString());
-            const modules = await apiService.getAllModulesForCourse(courseId.toString());
+            const courseDetails = await apiGetCourseById(courseId.id);
+            const modules = await apiService.getAllModulesForCourse(courseId.id);
 
-            // Check current subscription for this course
+            // Check if user has purchased this course
             if (currentUserId) {
                 try {
-                    const subscription = await getCurrentCourseSubscription(courseId.toString(), currentUserId);
-                    setCurrentSubscription(subscription);
+                    const purchaseStatus = await hasUserPurchasedCourse(courseId.id, currentUserId);
+                    setHasPurchasedCourse(purchaseStatus.hasPurchased);
                 } catch (error) {
-                    // No subscription found, which is fine
-                    setCurrentSubscription(null);
+                    // No purchase found, which is fine
+                    setHasPurchasedCourse(false);
                 }
             }
 
@@ -370,81 +363,71 @@ export default function CoursesManagement() {
         }
     };
 
-    const handleSubscribeToCourse = async (course: CourseData) => {
+    const handlePurchaseCourse = async (course: CourseData) => {
         if (!currentUserId) {
             toast({
                 title: "Error",
-                description: "Please log in to subscribe to courses.",
+                description: "Please log in to purchase courses.",
                 variant: "destructive",
             });
             return;
         }
 
-        setSelectedCourseForSubscription(course);
-
+        // Check if user has already purchased this course
         try {
-            // Fetch course-specific subscription plans
-            const courseIdNum = parseInt(course.id!);
-            const plans = await getSubscriptionPlans(courseIdNum);
-            setSubscriptionPlans(plans);
-            setShowSubscriptionModal(true);
+            const purchaseStatus = await hasUserPurchasedCourse(course.id!, currentUserId);
+            if (purchaseStatus.hasPurchased) {
+                toast({
+                    title: "Already Purchased",
+                    description: "You have already purchased this course.",
+                    variant: "default",
+                });
+                return;
+            }
         } catch (error) {
-            console.error('Failed to fetch subscription plans:', error);
-            toast({
-                title: "Error",
-                description: "Failed to load subscription plans.",
-                variant: "destructive",
-            });
+            console.error('Failed to check purchase status:', error);
         }
+
+        setSelectedCourseForPurchase(course);
+        setShowPurchaseModal(true);
     };
 
-    const handleSubscriptionSubmit = async (planId: number, durationMonths: number, plan: SubscriptionPlan) => {
-        if (!selectedCourseForSubscription || !currentUserId) return;
+    const handlePurchaseSubmit = async (discountApplied: number = 0, couponCode?: string) => {
+        if (!selectedCourseForPurchase || !currentUserId) return;
 
         setIsLoading(true);
         try {
-            // Handle free plans differently
-            if (plan.priceInr === 0) {
-                toast({
-                    title: "Free Plan",
-                    description: "Free plan activated! You now have access to the course.",
-                });
-                setShowSubscriptionModal(false);
-                setSelectedCourseForSubscription(null);
-                return;
-            }
-
-            // Handle custom pricing plans
-            if (plan.customPricing) {
-                toast({
-                    title: "Custom Pricing",
-                    description: "Please contact sales for custom pricing options.",
-                });
-                setShowSubscriptionModal(false);
-                setSelectedCourseForSubscription(null);
-                return;
-            }
-
-            const checkoutData: StripeCheckoutRequest = {
-                planId,
-                durationMonths,
-                successUrl: `${window.location.origin}/subscription/success`,
-                cancelUrl: `${window.location.origin}/subscription/cancel`,
+            const purchaseData: CoursePurchaseRequest = {
+                successUrl: `${window.location.origin}/subscription/purchase/success`,
+                cancelUrl: `${window.location.origin}/subscription/purchase/cancel`,
+                discountApplied,
+                couponCode,
             };
 
-            const response = await createCourseSubscriptionCheckout(
-                selectedCourseForSubscription.id!,
+            console.log('Purchase data being sent:', {
+                courseId: selectedCourseForPurchase.id,
+                userId: currentUserId,
+                purchaseData
+            });
+
+            const response = await createCourseCheckoutSession(
+                selectedCourseForPurchase.id!,
                 currentUserId,
-                checkoutData
+                purchaseData
             );
 
             // Redirect to Stripe Checkout
             window.location.href = response.sessionUrl;
         } catch (error: any) {
-            console.error('Failed to initiate checkout:', error);
+            console.error('Failed to initiate course purchase:', error);
+            console.error('Error details:', {
+                courseId: selectedCourseForPurchase.id,
+                userId: currentUserId,
+                error: error.message
+            });
             toast({
                 title: "Error",
-                description: error.message || "Failed to initiate checkout. Please try again.",
+                description: error.message || "Failed to initiate purchase. Please try again.",
                 variant: "destructive",
             });
         } finally {
@@ -839,9 +822,9 @@ export default function CoursesManagement() {
                         <CourseCardList
                             courses={filteredCourses}
                             onView={handleViewCourse}
-                            onSubscribe={handleSubscribeToCourse}
+                            onPurchase={handlePurchaseCourse}
                             currentUserId={currentUserId}
-                            userSubscriptions={userSubscriptions}
+                            userPurchases={userPurchases}
                         />
                     )}
                 </CardContent>
@@ -877,33 +860,37 @@ export default function CoursesManagement() {
                             <div>
                                 <CardTitle className="text-3xl font-bold">{course.courseName}</CardTitle>
                                 <p className="text-muted-foreground">{course.courseDescription}</p>
+                                <div className="flex items-center gap-4 mt-2">
+                                    <Badge variant="secondary">₹{course.courseFee}</Badge>
+                                    <Badge variant="outline">{course.courseCategory}</Badge>
+                                    <Badge variant="outline">{course.language}</Badge>
+                                </div>
                             </div>
                             <div className="flex flex-col gap-2">
-                                {currentSubscription ? (
+                                {hasPurchasedCourse ? (
                                     <Badge variant="default" className="flex items-center gap-1">
                                         <CheckCircle className="h-4 w-4" />
-                                        Subscribed ({currentSubscription.status})
+                                        Purchased
                                     </Badge>
                                 ) : (
                                     <Button
-                                        onClick={() => handleSubscribeToCourse(course)}
+                                        onClick={() => handlePurchaseCourse(course)}
                                         className="flex items-center gap-2"
                                     >
                                         <CreditCard className="h-4 w-4" />
-                                        Subscribe to Course
+                                        Purchase Course - ₹{course.courseFee}
                                     </Button>
                                 )}
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent>
-                        {currentSubscription && (
+                        {hasPurchasedCourse && (
                             <Alert className="mb-4">
                                 <CheckCircle className="h-4 w-4" />
-                                <AlertTitle>Active Subscription</AlertTitle>
+                                <AlertTitle>Course Purchased</AlertTitle>
                                 <AlertDescription>
-                                    You have an active {currentSubscription.subscriptionPlan.name} subscription
-                                    until {new Date(currentSubscription.endDate).toLocaleDateString()}
+                                    You have purchased this course and have full access to all content.
                                 </AlertDescription>
                             </Alert>
                         )}
@@ -918,8 +905,37 @@ export default function CoursesManagement() {
         );
     };
 
-    const SubscriptionModal = () => {
-        if (!showSubscriptionModal || !selectedCourseForSubscription) return null;
+    const PurchaseModal = () => {
+        const [couponCode, setCouponCode] = useState('');
+        const [discountApplied, setDiscountApplied] = useState(0);
+
+        if (!showPurchaseModal || !selectedCourseForPurchase) return null;
+
+        const originalPrice = selectedCourseForPurchase.courseFee;
+        const finalPrice = Math.max(0, originalPrice - discountApplied);
+
+        const applyCoupon = () => {
+            // Simple coupon logic - in real app, this would call an API
+            if (couponCode.toUpperCase() === 'DISCOUNT10') {
+                setDiscountApplied(originalPrice * 0.1);
+                toast({
+                    title: "Coupon Applied",
+                    description: "10% discount applied successfully!",
+                });
+            } else if (couponCode.toUpperCase() === 'SAVE50') {
+                setDiscountApplied(50);
+                toast({
+                    title: "Coupon Applied",
+                    description: "₹50 discount applied successfully!",
+                });
+            } else if (couponCode) {
+                toast({
+                    title: "Invalid Coupon",
+                    description: "The coupon code you entered is not valid.",
+                    variant: "destructive",
+                });
+            }
+        };
 
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -927,15 +943,17 @@ export default function CoursesManagement() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+                    className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
                 >
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-2xl font-bold">Subscribe to {selectedCourseForSubscription.courseName}</h2>
+                        <h2 className="text-2xl font-bold">Purchase Course</h2>
                         <Button
                             variant="ghost"
                             onClick={() => {
-                                setShowSubscriptionModal(false);
-                                setSelectedCourseForSubscription(null);
+                                setShowPurchaseModal(false);
+                                setSelectedCourseForPurchase(null);
+                                setCouponCode('');
+                                setDiscountApplied(0);
                             }}
                         >
                             ×
@@ -943,76 +961,83 @@ export default function CoursesManagement() {
                     </div>
 
                     <div className="space-y-4">
-                        {subscriptionPlans.length === 0 ? (
-                            <p className="text-muted-foreground">No subscription plans available for this course.</p>
-                        ) : (
-                            subscriptionPlans.map((plan) => (
-                                <Card key={plan.id} className="border-2 hover:border-primary transition-colors">
-                                    <CardContent className="p-4">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <h3 className="text-lg font-semibold">{plan.name}</h3>
-                                                <p className="text-sm text-muted-foreground">{plan.description}</p>
-                                            </div>
-                                            <div className="text-right">
-                                                {plan.customPricing ? (
-                                                    <p className="text-2xl font-bold text-indigo-600">Custom</p>
-                                                ) : plan.priceInr === 0 ? (
-                                                    <p className="text-2xl font-bold text-green-600">FREE</p>
-                                                ) : (
-                                                    <>
-                                                        <p className="text-2xl font-bold">₹{plan.priceInr}</p>
-                                                        <p className="text-sm text-muted-foreground">per month</p>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                            <h3 className="font-semibold text-lg">{selectedCourseForPurchase.courseName}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">{selectedCourseForPurchase.courseDescription}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="outline">{selectedCourseForPurchase.courseCategory}</Badge>
+                                <Badge variant="outline">{selectedCourseForPurchase.language}</Badge>
+                            </div>
+                        </div>
 
-                                        <div className="mb-4">
-                                            <h4 className="font-medium mb-2">Features:</h4>
-                                            <ul className="text-sm space-y-1">
-                                                {plan.features.map((feature, index) => (
-                                                    <li key={index} className="flex items-center gap-2">
-                                                        <CheckCircle className="h-4 w-4 text-green-500" />
-                                                        {feature}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="couponCode">Coupon Code (Optional)</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="couponCode"
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value)}
+                                    placeholder="Enter coupon code"
+                                />
+                                <Button onClick={applyCoupon} variant="outline">
+                                    Apply
+                                </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Try: DISCOUNT10 (10% off) or SAVE50 (₹50 off)
+                            </p>
+                        </div>
 
-                                        {!plan.customPricing && plan.priceInr > 0 && (
-                                            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                                                <div className="flex justify-between text-sm">
-                                                    <span>Monthly cost:</span>
-                                                    <span>₹{plan.priceInr}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span>Duration:</span>
-                                                    <span>{plan.minimumDurationMonths} months</span>
-                                                </div>
-                                                <div className="flex justify-between font-semibold text-base border-t pt-2 mt-2">
-                                                    <span>Total:</span>
-                                                    <span>₹{plan.priceInr * plan.minimumDurationMonths}</span>
-                                                </div>
-                                            </div>
-                                        )}
+                        <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+                            <div className="flex justify-between">
+                                <span>Course Price:</span>
+                                <span>₹{originalPrice}</span>
+                            </div>
+                            {discountApplied > 0 && (
+                                <div className="flex justify-between text-green-600">
+                                    <span>Discount:</span>
+                                    <span>-₹{discountApplied}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between font-bold text-lg border-t pt-2">
+                                <span>Total:</span>
+                                <span>₹{finalPrice}</span>
+                            </div>
+                        </div>
 
-                                        <div className="flex gap-2">
-                                            <Button
-                                                onClick={() => handleSubscriptionSubmit(plan.id, plan.minimumDurationMonths, plan)}
-                                                disabled={isLoading}
-                                                className="flex-1"
-                                            >
-                                                {isLoading ? 'Processing...' :
-                                                    plan.priceInr === 0 ? 'Get Free Access' :
-                                                        plan.customPricing ? 'Contact Sales' :
-                                                            `Subscribe for ${plan.minimumDurationMonths} months`}
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))
-                        )}
+                        <div className="space-y-2">
+                            <h4 className="font-medium">What you'll get:</h4>
+                            <ul className="text-sm space-y-1">
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    Lifetime access to course content
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    All video lectures and materials
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    Assignments and quizzes
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    Certificate of completion
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    Community forum access
+                                </li>
+                            </ul>
+                        </div>
+
+                        <Button
+                            onClick={() => handlePurchaseSubmit(discountApplied, couponCode)}
+                            disabled={isLoading}
+                            className="w-full"
+                        >
+                            {isLoading ? 'Processing...' : `Purchase for ₹${finalPrice}`}
+                        </Button>
                     </div>
                 </motion.div>
             </div>
@@ -1065,7 +1090,7 @@ export default function CoursesManagement() {
                 </AnimatePresence>
             </Tabs>
 
-            <SubscriptionModal />
+            <PurchaseModal />
         </div>
     );
 }
