@@ -353,6 +353,57 @@ export interface CheckoutSuccessResponse {
   message: string;
 }
 
+// Course Purchase Types
+export interface CoursePurchaseRequest {
+  successUrl: string;
+  cancelUrl: string;
+  discountApplied?: number;
+  couponCode?: string;
+}
+
+export interface CoursePurchaseCheckoutResponse {
+  sessionUrl: string;
+  purchaseId: number;
+  courseId: number;
+  userId: number;
+  finalAmount: number;
+}
+
+export interface CoursePurchase {
+  id: number;
+  userId: number;
+  username: string;
+  courseId: number;
+  courseName: string;
+  courseCode: string;
+  purchasePrice: number;
+  discountApplied: number;
+  finalAmount: number;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED' | 'CANCELLED';
+  paymentReference: string;
+  stripeSessionId?: string;
+  purchaseDate: string;
+  accessGrantedDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CoursePurchaseSuccessResponse {
+  purchase: CoursePurchase;
+  sessionId: string;
+  message: string;
+}
+
+export interface HasPurchasedResponse {
+  hasPurchased: boolean;
+}
+
+export interface CourseRevenueResponse {
+  courseId: number;
+  totalRevenue: number;
+  totalEnrollments: number;
+}
+
 // API Error Types
 export class ApiError extends Error {
   constructor(
@@ -424,7 +475,7 @@ class ApiService {
           console.warn('Could not parse error response as JSON:', parseError);
           errorData = { message: 'Invalid error response format' };
         }
-        
+
         throw new ApiError(
           `API request failed: ${response.status} ${response.statusText}`,
           response.status,
@@ -1610,6 +1661,103 @@ class ApiService {
       throw error;
     }
   }
+
+  // Course Purchase Methods
+  async createCourseCheckoutSession(courseId: string, userId: string, purchaseData: CoursePurchaseRequest): Promise<CoursePurchaseCheckoutResponse> {
+    if (!courseId || !userId) {
+      throw new ApiError('Course ID and User ID are required for course checkout', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<CoursePurchaseCheckoutResponse>(`${API_BASE_URL}/courses/${courseId}/users/${userId}/checkout`, {
+        method: 'POST',
+        body: JSON.stringify(purchaseData),
+      });
+      return response;
+    } catch (error) {
+      console.error(`Failed to create course checkout session for user ${userId} and course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async handleCourseCheckoutSuccess(sessionId: string, userId: string): Promise<CoursePurchaseSuccessResponse> {
+    if (!sessionId || !userId) {
+      throw new ApiError('Session ID and User ID are required for course checkout success', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<CoursePurchaseSuccessResponse>(`${API_BASE_URL}/courses/checkout/success?sessionId=${sessionId}&userId=${userId}`, {
+        method: 'POST',
+      });
+      return response;
+    } catch (error) {
+      console.error(`Failed to handle course checkout success for session ${sessionId}:`, error);
+      throw error;
+    }
+  }
+
+  async getCoursePurchaseStatus(courseId: string, userId: string): Promise<CoursePurchase> {
+    if (!courseId || !userId) {
+      throw new ApiError('Course ID and User ID are required to get purchase status', 400);
+    }
+    try {
+      const purchase = await this.fetchWithErrorHandling<CoursePurchase>(`${API_BASE_URL}/courses/${courseId}/users/${userId}/purchase`);
+      return purchase;
+    } catch (error) {
+      console.error(`Failed to get purchase status for user ${userId} and course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async hasUserPurchasedCourse(courseId: string, userId: string): Promise<HasPurchasedResponse> {
+    if (!courseId || !userId) {
+      throw new ApiError('Course ID and User ID are required to check purchase status', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<HasPurchasedResponse>(`${API_BASE_URL}/courses/${courseId}/users/${userId}/has-purchased`);
+      return response;
+    } catch (error) {
+      console.error(`Failed to check if user ${userId} has purchased course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserCoursePurchases(userId: string): Promise<CoursePurchase[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get course purchases', 400);
+    }
+    try {
+      const purchases = await this.fetchWithErrorHandling<CoursePurchase[]>(`${API_BASE_URL}/courses/users/${userId}/purchases`);
+      return purchases;
+    } catch (error) {
+      console.error(`Failed to get course purchases for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getCoursePurchaseAnalytics(courseId: string): Promise<CoursePurchase[]> {
+    if (!courseId) {
+      throw new ApiError('Course ID is required to get purchase analytics', 400);
+    }
+    try {
+      const purchases = await this.fetchWithErrorHandling<CoursePurchase[]>(`${API_BASE_URL}/courses/${courseId}/purchases`);
+      return purchases;
+    } catch (error) {
+      console.error(`Failed to get purchase analytics for course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async getCourseRevenue(courseId: string): Promise<CourseRevenueResponse> {
+    if (!courseId) {
+      throw new ApiError('Course ID is required to get course revenue', 400);
+    }
+    try {
+      const revenue = await this.fetchWithErrorHandling<CourseRevenueResponse>(`${API_BASE_URL}/courses/${courseId}/revenue`);
+      return revenue;
+    } catch (error) {
+      console.error(`Failed to get revenue for course ${courseId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();
@@ -1691,4 +1839,13 @@ export const getActiveUserSubscriptions = () => apiService.getActiveUserSubscrip
 export const expireAllSubscriptions = () => apiService.expireAllSubscriptions();
 export const subscribeToCourse = (courseId: string, userId: string, subscriptionData: SubscribeUserRequest) => apiService.subscribeToCourse(courseId, userId, subscriptionData);
 export const getCurrentCourseSubscription = (courseId: string, userId: string) => apiService.getCurrentCourseSubscription(courseId, userId);
+
+// Course Purchase exports
+export const createCourseCheckoutSession = (courseId: string, userId: string, purchaseData: CoursePurchaseRequest) => apiService.createCourseCheckoutSession(courseId, userId, purchaseData);
+export const handleCourseCheckoutSuccess = (sessionId: string, userId: string) => apiService.handleCourseCheckoutSuccess(sessionId, userId);
+export const getCoursePurchaseStatus = (courseId: string, userId: string) => apiService.getCoursePurchaseStatus(courseId, userId);
+export const hasUserPurchasedCourse = (courseId: string, userId: string) => apiService.hasUserPurchasedCourse(courseId, userId);
+export const getUserCoursePurchases = (userId: string) => apiService.getUserCoursePurchases(userId);
+export const getCoursePurchaseAnalytics = (courseId: string) => apiService.getCoursePurchaseAnalytics(courseId);
+export const getCourseRevenue = (courseId: string) => apiService.getCourseRevenue(courseId);
 
