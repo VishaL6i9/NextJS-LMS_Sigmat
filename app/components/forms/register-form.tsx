@@ -14,20 +14,37 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import { registerUser, ApiError } from "@/app/components/services/api";
+import { registerUser, registerInstructor, ApiError, InstructorRegistrationDTO } from "@/app/components/services/api";
 
 const formSchema = z.object({
+    role: z.enum(["User", "Instructor", "Institution"]),
     firstName: z.string().min(2, "First name must be at least 2 characters"),
     lastName: z.string().min(2, "Last name must be at least 2 characters"),
     email: z.string().email("Invalid email address"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
+    phoneNo: z.string().optional(),
+    bankName: z.string().optional(),
+    accountNumber: z.string().optional(),
+    routingNumber: z.string().optional(),
+    accountHolderName: z.string().optional(),
+    dateOfJoining: z.string().optional()
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
+}).refine((data) => data.role !== "Instructor" || (data.phoneNo && data.bankName && data.accountNumber && data.routingNumber && data.accountHolderName && data.dateOfJoining), {
+    message: "All instructor fields must be filled",
+    path: ["phoneNo", "bankName", "accountNumber", "routingNumber", "accountHolderName", "dateOfJoining"],
 });
 
 export function RegisterForm() {
@@ -38,11 +55,18 @@ export function RegisterForm() {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            role: "User",
             firstName: "",
             lastName: "",
             email: "",
             password: "",
             confirmPassword: "",
+            phoneNo: "",
+            bankName: "",
+            accountNumber: "",
+            routingNumber: "",
+            accountHolderName: "",
+            dateOfJoining: ""
         },
     });
 
@@ -53,13 +77,29 @@ export function RegisterForm() {
         setSuccessMessage("");
 
         try {
-            await registerUser({
-                firstName: values.firstName,
-                lastName: values.lastName,
-                email: values.email,
-                username: values.email,
-                password: values.password,
-            });
+            if (values.role === "Instructor") {
+                await registerInstructor({
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    email: values.email,
+                    username: values.email,
+                    password: values.password,
+                    phoneNo: values.phoneNo!,
+                    bankName: values.bankName!,
+                    accountNumber: values.accountNumber!,
+                    routingNumber: values.routingNumber!,
+                    accountHolderName: values.accountHolderName!,
+                    dateOfJoining: values.dateOfJoining!,
+                });
+            } else {
+                await registerUser({
+                    firstName: values.firstName,
+                    lastName: values.lastName,
+                    email: values.email,
+                    username: values.email,
+                    password: values.password,
+                });
+            }
 
             setSuccessMessage("🎉 Registration Successful! Check Your Mailbox for a confirmation email.");
         } catch (error) {
@@ -100,6 +140,29 @@ export function RegisterForm() {
                                 <AlertDescription>{successMessage}</AlertDescription>
                             </Alert>
                         )}
+
+                        <FormField
+                            control={form.control}
+                            name="role"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Role</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a role" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="User">User</SelectItem>
+                                            <SelectItem value="Instructor">Instructor</SelectItem>
+                                            <SelectItem value="Institution">Institution</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <div className="grid grid-cols-2 gap-4">
                             <FormField
@@ -172,7 +235,97 @@ export function RegisterForm() {
                             )}
                         />
 
-                        <Button 
+                        {form.watch("role") === "Instructor" && (
+                            <>
+                                <FormField
+                                    control={form.control}
+                                    name="phoneNo"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Phone Number</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="+1 234 567 8900" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="bankName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Bank Name</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Bank Name" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="accountNumber"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Account Number</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Account Number" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="routingNumber"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Routing Number</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Routing Number" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="accountHolderName"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Account Holder Name</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Account Holder Name" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                
+                                <FormField
+                                    control={form.control}
+                                    name="dateOfJoining"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Date of Joining</FormLabel>
+                                            <FormControl>
+                                                <Input type="date" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </>
+                        )}
+
+                        <Button
                             type="submit" 
                             disabled={isLoading}
                             className="w-full"
