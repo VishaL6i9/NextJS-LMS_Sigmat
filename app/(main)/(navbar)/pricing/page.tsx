@@ -124,17 +124,18 @@ const PricingCard: React.FC<PricingCardProps> = ({
     if (isProcessing) {
       return 'bg-gray-400 text-white cursor-not-allowed';
     }
-    
+
     if (isPopular) {
       return isHovered
         ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white shadow-2xl transform -translate-y-1 scale-105'
         : 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg';
     }
-    if (customPricing || priceInr === 0) {
+    if (customPricing) {
       return isHovered
         ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-xl transform -translate-y-1'
         : 'bg-green-500 text-white shadow-md';
     }
+    // Free tier and regular tiers use the same styling
     return isHovered
       ? 'bg-gradient-to-r from-gray-800 to-gray-900 text-white shadow-xl transform -translate-y-1'
       : 'bg-gray-700 text-white shadow-md hover:bg-gray-800';
@@ -160,8 +161,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
       <div
         className={`group relative flex h-full flex-col overflow-hidden rounded-3xl shadow-2xl transition-all duration-500 ${isPopular
-            ? 'bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 border-2 border-purple-200'
-            : 'bg-white border border-gray-200'
+          ? 'bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 border-2 border-purple-200'
+          : 'bg-white border border-gray-200'
           } ${isHovered
             ? isPopular
               ? 'border-purple-400 shadow-purple-200/50'
@@ -221,7 +222,7 @@ const PricingCard: React.FC<PricingCardProps> = ({
         </div>
 
         {/* Features Section */}
-        <div className="relative flex-1 bg-white/80 backdrop-blur-sm px-8 py-8">
+        <div className="relative flex-1 bg-white/80 backdrop-blur-sm px-8 py-8 flex flex-col justify-between">
           <ul className="space-y-4 mb-8">
             {features.map((feature, index) => (
               <li
@@ -238,52 +239,36 @@ const PricingCard: React.FC<PricingCardProps> = ({
             ))}
           </ul>
 
-          {/* Subscription Duration & Total */}
-          {!customPricing && priceInr > 0 && (
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <div className="flex justify-between text-sm">
-                <span>Monthly cost:</span>
-                <span>₹{priceInr.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Duration:</span>
-                <span>{minimumDurationMonths} months</span>
-              </div>
-              <div className="flex justify-between font-semibold text-base border-t pt-2 mt-2">
-                <span>Total:</span>
-                <span>₹{(priceInr * minimumDurationMonths).toLocaleString()}</span>
-              </div>
+          <div className="mt-auto">
+            {/* CTA Button */}
+            <button
+              onClick={handleCheckout}
+              disabled={isProcessing || loading}
+              className={`group w-full rounded-2xl px-6 py-4 font-bold text-sm transition-all duration-300 ${getButtonStyle()}`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    {getButtonText()}
+                    <ArrowRight className={`h-4 w-4 transition-transform duration-300 ${isHovered ? 'translate-x-1' : ''}`} />
+                  </>
+                )}
+              </span>
+            </button>
+
+            <div className="mt-6 text-center">
+              <p className="text-xs text-gray-500 italic">
+                {customPricing || priceInr === 0
+                  ? 'No credit card required'
+                  : 'Cancel anytime • 30-day money back guarantee'
+                }
+              </p>
             </div>
-          )}
-
-          {/* CTA Button */}
-          <button
-            onClick={handleCheckout}
-            disabled={isProcessing || loading}
-            className={`group w-full rounded-2xl px-6 py-4 font-bold text-sm transition-all duration-300 ${getButtonStyle()}`}
-          >
-            <span className="flex items-center justify-center gap-2">
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  {getButtonText()}
-                  <ArrowRight className={`h-4 w-4 transition-transform duration-300 ${isHovered ? 'translate-x-1' : ''}`} />
-                </>
-              )}
-            </span>
-          </button>
-
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500 italic">
-              {customPricing || priceInr === 0
-                ? 'No credit card required'
-                : 'Cancel anytime • 30-day money back guarantee'
-              }
-            </p>
           </div>
         </div>
       </div>
@@ -439,7 +424,7 @@ export default function PricingPage() {
           </div>
         ) : (
           /* Pricing Cards Grid - Centered for Faculty */
-          <div className={`grid gap-8 ${activeTab === 'faculty'
+          <div className={`grid gap-8 items-stretch ${activeTab === 'faculty'
             ? 'lg:grid-cols-2 xl:grid-cols-4 max-w-6xl mx-auto'
             : 'lg:grid-cols-3 xl:grid-cols-5'
             }`}>
@@ -447,7 +432,7 @@ export default function PricingPage() {
               <div
                 key={plan.id}
                 style={{ animationDelay: `${index * 100}ms` }}
-                className="animate-fade-in-up"
+                className="animate-fade-in-up h-full"
               >
                 <PricingCard {...plan} />
               </div>
@@ -460,7 +445,7 @@ export default function PricingPage() {
           <div className="inline-flex items-center gap-2 rounded-full bg-white/60 backdrop-blur-sm px-6 py-3 shadow-lg border border-white/20 mb-6">
             <Shield className="h-5 w-5 text-green-600" />
             <span className="text-sm font-semibold text-gray-700">
-              30-day money-back guarantee • Cancel anytime
+              Flexible Subscriptions • Cancel anytime
             </span>
           </div>
           <p className="text-base text-gray-600 mb-4">
