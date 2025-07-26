@@ -24,10 +24,11 @@ import {toast, useToast} from "@/hooks/use-toast";
 import {useRouter} from "next/navigation";
 
 const InstructorDashboard: React.FC = () => {
-  const { state } = useInstructor();
+  const { state, refreshAllData, getCurrentInstructor } = useInstructor();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [instructorName, setInstructorName] = useState('Instructor');
 
   const fadeInUp = {
     initial: { opacity: 0, y: 60 },
@@ -54,8 +55,15 @@ const InstructorDashboard: React.FC = () => {
         description: "Please Login Before Proceeding.",
         variant: "default",
       });
+    } else {
+      // Load instructor name
+      getCurrentInstructor().then(instructor => {
+        if (instructor) {
+          setInstructorName(`${instructor.firstName} ${instructor.lastName}`);
+        }
+      });
     }
-  }, [router]);
+  }, [router, getCurrentInstructor]);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -126,16 +134,27 @@ const InstructorDashboard: React.FC = () => {
     course.courseCode.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Debug logs
+  console.log('InstructorDashboard - state.courses:', state.courses);
+  console.log('InstructorDashboard - filteredCourses:', filteredCourses);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    // Simulate data refresh
-    setTimeout(() => {
-      setIsRefreshing(false);
+    try {
+      await refreshAllData();
       toast({
         title: "Dashboard Refreshed",
         description: "Latest data has been loaded.",
       });
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh dashboard data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -148,7 +167,7 @@ const InstructorDashboard: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
             <div>
               <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                Welcome back, Dr. Wilson
+                Welcome back, {instructorName}
               </h1>
               <p className="text-xl text-gray-600">Here's what's happening with your courses today</p>
             </div>

@@ -1,125 +1,261 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {Bell, BookOpen, LogOut, Menu, Plus, Search, Settings, User} from 'lucide-react';
-import {useInstructor} from '../contexts/InstructorContext';
+'use client'
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Bell, BookOpen, LogOut, Menu, Plus, Search, Settings, User, Target, Users, BarChart3 } from 'lucide-react';
+import { useInstructor } from '../contexts/InstructorContext';
+import { useUser } from '@/app/contexts/UserContext';
+import { getProfileImageId, getProfileImage, ApiError, getUserId, getUserRoles, Role } from "@/app/components/services/api";
 
-const InstructorHeader: React.FC = () => {
+interface InstructorHeaderProps {
+    activeTab?: string;
+    onTabChange?: (tab: string) => void;
+}
+
+const InstructorHeader: React.FC<InstructorHeaderProps> = ({
+    activeTab = 'overview',
+    onTabChange
+}) => {
     const { state } = useInstructor();
+    const { userProfile, setUserProfile } = useUser();
+    const router = useRouter();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const imageUrlToRevoke = useRef<string | null>(null);
+    const [userRoles, setUserRoles] = useState<string[]>([]);
     const profileRef = useRef<HTMLDivElement>(null);
 
+    const fadeInUp = {
+        initial: { opacity: 0, y: -20 },
+        animate: { opacity: 1, y: 0 },
+        transition: { duration: 0.5 }
+    };
+
+    const handleTabClick = (tab: string) => {
+        if (onTabChange) {
+            onTabChange(tab);
+        }
+    };
+
+    const handleLogout = async () => {
+        localStorage.removeItem("token");
+        setUserProfile(null);
+        router.push("/");
+    };
+
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
-                setIsProfileOpen(false);
+        const fetchUserRoles = async () => {
+            try {
+                const roles = await getUserRoles();
+                const roleNames = roles.map(role => role.name || role.toString());
+                setUserRoles(roleNames);
+            } catch (error) {
+                console.error('Failed to fetch user roles:', error);
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+        const fetchAvatar = async () => {
+            if (userProfile && userProfile.id) {
+                try {
+                    const userID = await getUserId();
+                    const profileImageID = await getProfileImageId(userID);
+
+                    // Check if profileImageID is valid before trying to fetch the image
+                    if (profileImageID && profileImageID.trim() !== '') {
+                        const imageBlob = await getProfileImage(profileImageID);
+
+                        if (imageUrlToRevoke.current) {
+                            URL.revokeObjectURL(imageUrlToRevoke.current);
+                        }
+                        const url = URL.createObjectURL(imageBlob);
+                        setAvatarUrl(url);
+                        imageUrlToRevoke.current = url;
+                    } else {
+                        // No valid profile image ID, use fallback
+                        console.log("No profile image ID found, using fallback with initials:",
+                            userProfile.firstName?.[0], userProfile.lastName?.[0]);
+                        setAvatarUrl(null);
+                    }
+                } catch (error) {
+                    console.log("Profile image fetch failed, using fallback with initials:",
+                        userProfile.firstName?.[0], userProfile.lastName?.[0], error);
+                    // Clean up any existing URL
+                    if (imageUrlToRevoke.current) {
+                        URL.revokeObjectURL(imageUrlToRevoke.current);
+                        imageUrlToRevoke.current = null;
+                    }
+                    setAvatarUrl(null); // This will trigger the fallback with first letters
+                }
+            } else {
+                if (imageUrlToRevoke.current) {
+                    URL.revokeObjectURL(imageUrlToRevoke.current);
+                    imageUrlToRevoke.current = null;
+                }
+                setAvatarUrl(null);
+            }
+        };
+
+        fetchUserRoles();
+        fetchAvatar();
+
+        return () => {
+            if (imageUrlToRevoke.current) {
+                URL.revokeObjectURL(imageUrlToRevoke.current);
+                imageUrlToRevoke.current = null;
+            }
+        };
+    }, [userProfile]);
 
     return (
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-40 backdrop-blur-sm bg-white/95">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    {/* Logo and Navigation */}
-                    <div className="flex items-center space-x-8">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-lg flex items-center justify-center">
-                                <BookOpen className="w-4 h-4 text-white" />
-                            </div>
-                            <h1 className="text-xl font-bold text-gray-900">Instructor Portal</h1>
-                        </div>
+        <header className="bg-gradient-to-r from-indigo-600 to-purple-600 sticky top-0 z-50 shadow-sm">
+            <div className="max-w-[2000px] mx-auto px-6 lg:px-12">
+                <div className="flex items-center justify-between h-20">
+                    <motion.div {...fadeInUp}>
+                        <Link href="/" className="flex items-center gap-2">
+                            <img
+                                src="/sigmat_logo.jpg"
+                                alt="SIGMAT Logo"
+                                className="h-10 w-auto rounded-md"
+                            />
+                            <span className="text-white text-2xl md:text-3xl font-bold">eLearning</span>
+                        </Link>
+                    </motion.div>
 
-                        <nav className="hidden md:flex space-x-6">
-                            <a href="#" className="text-indigo-600 hover:text-indigo-800 px-3 py-2 rounded-md text-sm font-medium transition-colors border-b-2 border-indigo-600">
-                                Dashboard
-                            </a>
-                            <a href="#" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                Courses
-                            </a>
-                            <a href="#" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                Students
-                            </a>
-                            <a href="#" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                Assignments
-                            </a>
-                            <a href="#" className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                                Analytics
-                            </a>
-                        </nav>
-                    </div>
+                        {/* Professional Navigation Pills */}
+                        <div className="hidden lg:flex ml-8">
+                            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/50 shadow-lg rounded-full p-1">
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => handleTabClick('overview')}
+                                        className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeTab === 'overview'
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md'
+                                            : 'text-slate-600 hover:bg-blue-50/80 hover:text-blue-700'
+                                            }`}
+                                    >
+                                        <BookOpen className="w-4 h-4" />
+                                        <span>Overview</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleTabClick('management')}
+                                        className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeTab === 'management'
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md'
+                                            : 'text-slate-600 hover:bg-blue-50/80 hover:text-blue-700'
+                                            }`}
+                                    >
+                                        <Target className="w-4 h-4" />
+                                        <span>Management</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleTabClick('students')}
+                                        className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeTab === 'students'
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md'
+                                            : 'text-slate-600 hover:bg-blue-50/80 hover:text-blue-700'
+                                            }`}
+                                    >
+                                        <Users className="w-4 h-4" />
+                                        <span>Students</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handleTabClick('analytics')}
+                                        className={`flex items-center space-x-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeTab === 'analytics'
+                                            ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md'
+                                            : 'text-slate-600 hover:bg-blue-50/80 hover:text-blue-700'
+                                            }`}
+                                    >
+                                        <BarChart3 className="w-4 h-4" />
+                                        <span>Analytics</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
                     {/* Search and Actions */}
                     <div className="flex items-center space-x-4">
-                        {/* Search Bar */}
+                        {/* Professional Search Bar */}
                         <div className="hidden md:flex relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-4 w-4 text-gray-400" />
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-slate-400" />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Search courses, students..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="block w-72 pl-11 pr-4 py-3 bg-white/90 backdrop-blur-sm border border-slate-200/50 rounded-full text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md"
                             />
                         </div>
 
-                        {/* Quick Actions */}
-                        <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200">
+                        {/* Professional Action Button */}
+                        <button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-6 py-3 rounded-full flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl font-medium">
                             <Plus className="w-4 h-4" />
                             <span className="hidden sm:block">New Course</span>
                         </button>
 
                         {/* Mobile Menu Button */}
-                        <button className="md:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+                        <button className="lg:hidden p-3 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-all duration-300">
                             <Menu className="w-5 h-5" />
                         </button>
 
-                        {/* Notifications */}
-                        <button className="relative p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors duration-200">
+                        {/* Professional Notifications */}
+                        <button className="relative p-3 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-all duration-300 group">
                             <Bell className="w-5 h-5" />
-                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                {state.stats.pendingGrades}
-              </span>
+                            <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-lg group-hover:scale-110 transition-transform duration-200">
+                                {state.stats.pendingGrades}
+                            </span>
                         </button>
 
-                        {/* Profile Dropdown */}
-                        <div className="relative" ref={profileRef}>
-                            <button
-                                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                                className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200"
-                            >
-                                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center">
-                                    <User className="w-4 h-4 text-white" />
-                                </div>
-                                <span className="hidden sm:block text-sm font-medium text-gray-700">Dr. Sarah Wilson</span>
-                            </button>
-
-                            {isProfileOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-1 animate-in slide-in-from-top-2 duration-200">
-                                    <div className="px-4 py-2 border-b border-gray-100">
-                                        <p className="text-sm font-medium text-gray-900">Dr. Sarah Wilson</p>
-                                        <p className="text-xs text-gray-500">Computer Science Department</p>
-                                    </div>
-                                    <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                                        <User className="w-4 h-4 mr-3" />
-                                        Profile
-                                    </a>
-                                    <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                                        <Settings className="w-4 h-4 mr-3" />
-                                        Settings
-                                    </a>
-                                    <hr className="my-1" />
-                                    <a href="#" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                                        <LogOut className="w-4 h-4 mr-3" />
-                                        Sign out
-                                    </a>
-                                </div>
-                            )}
-                        </div>
+                        {userProfile && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                        <Button variant="ghost" className="relative h-11 w-11 rounded-full">
+                                            <Avatar className="h-11 w-11 border-2 border-white/50">
+                                                {/* Only use the image if avatarUrl is available, otherwise trigger the fallback */}
+                                                {avatarUrl ? (
+                                                    <AvatarImage src={avatarUrl} alt="User Avatar" />
+                                                ) : (
+                                                    <AvatarImage src="" alt="User Avatar" onError={(e) => {
+                                                        console.log("Avatar image failed to load, using initials fallback");
+                                                        e.currentTarget.style.display = 'none';
+                                                    }} />
+                                                )}
+                                                <AvatarFallback className="bg-gradient-to-br from-orange-500 to-pink-600 text-white">
+                                                    {userProfile ? `${userProfile.firstName?.[0] ?? ''}${userProfile.lastName?.[0] ?? ''}` : 'U'}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        </Button>
+                                    </motion.div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-56 bg-white/80 backdrop-blur-sm border-0 shadow-lg mt-2" align="end" forceMount>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/dashboard/profile" className="flex items-center w-full cursor-pointer">
+                                            <User className="mr-2 h-4 w-4" />
+                                            <span>Profile</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/dashboard/subscription" className="flex items-center w-full cursor-pointer">
+                                            <User className="mr-2 h-4 w-4" />
+                                            <span>Billings & Subscriptions</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <span>Log out</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </div>
                 </div>
             </div>

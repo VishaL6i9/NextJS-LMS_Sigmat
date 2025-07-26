@@ -578,7 +578,7 @@ class ApiService {
   }
 
   async getCourseById(courseId: string): Promise<ApiCourse> {
-    if (!courseId) {
+    if (!courseId || courseId.toString().trim() === '') {
       throw new ApiError('Course ID is required', 400);
     }
 
@@ -600,6 +600,19 @@ class ApiService {
       return response;
     } catch (error) {
       console.error(`Failed to fetch course ID for course code ${courseCode}:`, error);
+      throw error;
+    }
+  }
+
+  async getCoursesByUserId(userId: string): Promise<ApiCourse[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required', 400);
+    }
+    try {
+      const courses = await this.fetchWithErrorHandling<ApiCourse[]>(`${API_BASE_URL}/courses/user/${userId}`);
+      return courses;
+    } catch (error) {
+      console.error(`Failed to fetch courses for user ID ${userId}:`, error);
       throw error;
     }
   }
@@ -1765,6 +1778,7 @@ export const apiService = new ApiService();
 export const getUserRoles = () => apiService.getUserRoles();
 export const getAllCourses = () => apiService.getAllCourses();
 export const getCourseById = (courseId: string) => apiService.getCourseById(courseId);
+export const getCoursesByUserId = (userId: string) => apiService.getCoursesByUserId(userId);
 export const createCourse = (courseData: ApiCourseRequest) => apiService.createCourse(courseData);
 export const updateCourse = (courseId: string, courseData: ApiCourseRequest) => apiService.updateCourse(courseId, courseData);
 export const deleteCourse = (courseId: string) => apiService.deleteCourse(courseId);
