@@ -149,34 +149,13 @@ export function LoginForm({
                                         </FormItem>
                                     )}
                                 />
-                                {/*<FormField*/}
-                                {/*    control={form.control}*/}
-                                {/*    name="role"*/}
-                                {/*    render={({ field }) => (*/}
-                                {/*        <FormItem className="grid gap-3">*/}
-                                {/*            <FormLabel>Role</FormLabel>*/}
-                                {/*            <Select onValueChange={field.onChange} defaultValue={field.value}>*/}
-                                {/*                <FormControl>*/}
-                                {/*                    <SelectTrigger>*/}
-                                {/*                        <SelectValue placeholder="Select a role" />*/}
-                                {/*                    </SelectTrigger>*/}
-                                {/*                </FormControl>*/}
-                                {/*                <SelectContent>*/}
-                                {/*                    <SelectItem value="user">User</SelectItem>*/}
-                                {/*                    <SelectItem value="instructor">Instructor</SelectItem>*/}
-                                {/*                    <SelectItem value="admin">Admin</SelectItem>*/}
-                                {/*                </SelectContent>*/}
-                                {/*            </Select>*/}
-                                {/*            <FormMessage />*/}
-                                {/*        </FormItem>*/}
-                                {/*    )}*/}
-                                {/*/>*/}
+                               
                                 <Button type="submit" className="w-full" disabled={isLoading}>
                                     {isLoading ? 'Logging in...' : 'Login'}
                                 </Button>
                             </form>
                         </Form>
-                        <div className="relative flex justify-center text-xs uppercase">
+                        {/* <div className="relative flex justify-center text-xs uppercase">
                             <Separator className="shrink" />
                             <span className="bg-background text-muted-foreground absolute px-2 top-1/2 -translate-y-1/2">
                                 Or continue with
@@ -216,7 +195,7 @@ export function LoginForm({
                             <a href="/auth/register" className="underline underline-offset-4">
                                 Sign up
                             </a>
-                        </div>
+                        </div> */}
                     </div>
                 </CardContent>
             </Card>
