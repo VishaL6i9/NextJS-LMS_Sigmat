@@ -157,7 +157,7 @@ export default function CoursesManagement() {
             setCourses(data.map(course => ({
                 id: course.courseId,
                 courseName: course.courseName,
-                courseCode: course.courseCode,
+                courseCode: course.courseCode || `COURSE-${course.courseId}`,
                 courseDescription: course.courseDescription,
                 courseCategory: course.courseCategory,
                 courseDuration: course.courseDuration,
@@ -328,17 +328,33 @@ export default function CoursesManagement() {
         }
     };
 
-    const handleViewCourse = async (courseCode: string) => {
+    const handleViewCourse = async (courseCodeOrId: string) => {
         setIsLoading(true);
         try {
-            const courseId = await apiService.getCourseIdByCourseCode(courseCode);
-            const courseDetails = await apiGetCourseById(courseId.id);
-            const modules = await apiService.getAllModulesForCourse(courseId.id);
+            let courseId: string;
+
+            if (!courseCodeOrId?.trim()) {
+                throw new Error('Course identifier is required');
+            }
+
+            // If it looks like a numeric ID, use it directly
+            if (courseCodeOrId.match(/^\d+$/)) {
+                courseId = courseCodeOrId.trim();
+            } else {
+                // Otherwise, treat it as a course code and get the ID
+                const courseIdResponse = await apiService.getCourseIdByCourseCode(courseCodeOrId);
+                courseId = typeof courseIdResponse === 'object' && courseIdResponse.id
+                    ? String(courseIdResponse.id)
+                    : String(courseIdResponse);
+            }
+
+            const courseDetails = await apiGetCourseById(courseId);
+            const modules = await apiService.getAllModulesForCourse(courseId);
 
             // Check if user has purchased this course
             if (currentUserId) {
                 try {
-                    const purchaseStatus = await hasUserPurchasedCourse(courseId.id, currentUserId);
+                    const purchaseStatus = await hasUserPurchasedCourse(courseId, currentUserId);
                     setHasPurchasedCourse(purchaseStatus.hasPurchased);
                 } catch (error) {
                     // No purchase found, which is fine
@@ -351,7 +367,7 @@ export default function CoursesManagement() {
                 modules: modules || [],
             });
             setIsViewingCourse(true);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to fetch course details", error);
             toast({
                 title: "Error",

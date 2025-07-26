@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 
 interface CourseCardProps {
     course: CourseData;
-    onView: (courseCode: string) => void;
+    onView: (courseCodeOrId: string) => void;
     onPurchase?: (course: CourseData) => void;
     currentUserId?: string | null;
     isPurchased: boolean;
@@ -82,7 +82,10 @@ export function CourseCard({ course, onView, onPurchase, currentUserId, isPurcha
                                 </Button>
                             ) : (
                                 <Button
-                                    onClick={() => onView(course.courseCode)}
+                                    onClick={() => {
+                                        const identifier = course.courseCode?.trim() || course.id || '';
+                                        onView(identifier);
+                                    }}
                                     variant="outline"
                                     className="flex-1"
                                 >

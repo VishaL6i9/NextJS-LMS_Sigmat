@@ -6,7 +6,7 @@ import { CoursePurchase } from "@/app/components/services/api";
 
 interface CourseCardListProps {
     courses: CourseData[];
-    onView: (courseCode: string) => void;
+    onView: (courseCodeOrId: string) => void;
     onPurchase?: (course: CourseData) => void;
     currentUserId?: string | null;
     userPurchases: CoursePurchase[];
