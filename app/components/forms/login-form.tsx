@@ -189,13 +189,13 @@ export function LoginForm({
                                 </svg>
                                 <span className="sr-only">Login with Meta</span>
                             </Button>
-                        </div>
+                        </div> */}
                         <div className="text-center text-sm">
                             Don&apos;t have an account?{" "}
                             <a href="/auth/register" className="underline underline-offset-4">
                                 Sign up
                             </a>
-                        </div> */}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
