@@ -404,6 +404,19 @@ export interface CourseRevenueResponse {
   totalEnrollments: number;
 }
 
+export interface InstructorRegistrationDTO {
+  username: string;
+  password: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phoneNo: string;
+  bankName: string;
+  accountNumber: string;
+  routingNumber: string;
+  accountHolderName: string;
+}
+
 // API Error Types
 export class ApiError extends Error {
   constructor(
@@ -945,6 +958,19 @@ class ApiService {
       });
     } catch (error) {
       console.error('Failed to register user:', error);
+      throw error;
+    }
+  }
+
+  async registerInstructor(instructorData: InstructorRegistrationDTO): Promise<string> {
+    try {
+      const response = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/public/register/instructor`, {
+        method: 'POST',
+        body: JSON.stringify(instructorData),
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to register instructor:', error);
       throw error;
     }
   }
@@ -1801,6 +1827,7 @@ export const updateUserProfile = (userId: string, profileData: UpdateProfileRequ
 export const updatePassword = (passwordData: UpdatePasswordRequest) => apiService.updatePassword(passwordData);
 export const uploadProfileImage = (userId: string, file: File) => apiService.uploadProfileImage(userId, file);
 export const registerUser = (userData: { firstName: string; lastName: string; email: string; username: string; password: string; }) => apiService.registerUser(userData);
+export const registerInstructor = (instructorData: InstructorRegistrationDTO) => apiService.registerInstructor(instructorData);
 export const requestPasswordReset = (email: string) => apiService.requestPasswordReset(email);
 export const resetPassword = (email: string, token: string, newPassword: string) => apiService.resetPassword(email, token, newPassword);
 export const login = (username: string, password: string) => apiService.login(username, password);
