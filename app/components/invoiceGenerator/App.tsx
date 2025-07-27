@@ -8,7 +8,8 @@ import { InvoiceForm } from './components/InvoiceForm';
 
 import { CompanySettings } from './components/CompanySettings';
 import { useInvoice } from './hooks/useInvoice';
-import { Button } from '@/components/ui/button';
+import dynamic from 'next/dynamic';
+const Button = dynamic(() => import('@/components/ui/button').then(mod => mod.Button), { ssr: false });
 import { Plus, Save, ExternalLink } from 'lucide-react';
 
 function App() {
