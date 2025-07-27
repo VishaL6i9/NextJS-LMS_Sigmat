@@ -16,19 +16,37 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LogOut, User } from "lucide-react";
+import { Menu, LogOut, User, Crown } from "lucide-react";
 import { useUser } from '@/app/contexts/UserContext';
 import { NotificationDropdown } from '@/app/components/user-home-dashboard/NotificationDropdown';
+import { getUserRoles } from '@/app/components/services/api';
+import { hasSuperAdminAccess } from '@/app/utils/roleUtils';
 
 const DashboardNavbar: React.FC = () => {
-    const { userProfile, setUserProfile } = useUser();
+    const { userProfile, setUserProfile, userRoles, setUserRoles } = useUser();
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
     useEffect(() => {
-        // This effect will run whenever userProfile changes
-        // No need for localStorage polling or custom events if UserContext is the source of truth
-    }, [userProfile]);
+        const checkUserRoles = async () => {
+            if (userRoles.length === 0) {
+                try {
+                    const roles = await getUserRoles();
+                    setUserRoles(roles);
+                    setIsSuperAdmin(hasSuperAdminAccess(roles));
+                } catch (error) {
+                    console.error('Failed to fetch user roles:', error);
+                }
+            } else {
+                setIsSuperAdmin(hasSuperAdminAccess(userRoles));
+            }
+        };
+
+        if (userProfile) {
+            checkUserRoles();
+        }
+    }, [userProfile, userRoles, setUserRoles]);
 
     const handleLogout = async () => {
         console.log("Logout initiated");
@@ -54,6 +72,14 @@ const DashboardNavbar: React.FC = () => {
                                                     className="w-full">User</Link></DropdownMenuItem>
                     <DropdownMenuItem asChild><Link href="/dashboard/instructor-home"
                                                     className="w-full">Instructor</Link></DropdownMenuItem>
+                    {isSuperAdmin && (
+                        <DropdownMenuItem asChild>
+                            <Link href="/dashboard/super-admin-home" className="w-full flex items-center">
+                                <Crown className="mr-2 h-4 w-4 text-purple-600" />
+                                Super Admin
+                            </Link>
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 

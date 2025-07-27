@@ -20,7 +20,8 @@ import { useNotifications } from '@/app/components/user-notification-dashboard/c
 import { NotificationCenter } from '@/app/components/user-home-dashboard/NotificationCenter';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import dynamic from 'next/dynamic';
+const Button = dynamic(() => import('@/components/ui/button').then(mod => mod.Button), { ssr: false });
 import { useUser } from '@/app/contexts/UserContext';
 import { toast } from '@/hooks/use-toast';
 import { getUserId, getUserEnrollments } from '@/app/components/services/api';
@@ -216,7 +217,7 @@ export const Dashboard = () => {
                             <CardContent className="space-y-3">
                                 <Button onClick={() => handleQuickAction('View Assignments')} className="w-full justify-start bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-md"><BookOpen className="mr-3 h-5 w-5" /> View Assignments</Button>
                                 <Button onClick={() => handleQuickAction('Check Grades')} className="w-full justify-start bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md"><BarChart3 className="mr-3 h-5 w-5" /> Check Grades</Button>
-                                <Button onClick={() => handleQuickAction('View Schedule')} className="w-full justify-start bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-md"><Calendar width={20} height={20} stroke="white" className="mr-3" /> View Schedule</Button>
+                                <Button onClick={() => handleQuickAction('View Schedule')} className="w-full justify-start bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-md"><span><Calendar width={20} height={20} stroke="white" className="mr-3" /></span> View Schedule</Button>
                             </CardContent>
                         </Card>
 
