@@ -23,8 +23,80 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, AlertTriangle, Info } from "lucide-react";
 import { registerUser, registerInstructor, ApiError, InstructorRegistrationDTO } from "@/app/components/services/api";
+
+// Utility function to parse and format error messages
+const parseRegistrationError = (error: any): { message: string; type: 'error' | 'warning' } => {
+    const errorMessage = error.response?.message || error.message || "";
+
+    // Handle database constraint violations
+    if (errorMessage.includes("duplicate key value violates unique constraint")) {
+        if (errorMessage.includes("users_email_key") || errorMessage.includes("email")) {
+            return {
+                message: "This email address is already registered in our system.",
+                type: 'warning'
+            };
+        }
+        if (errorMessage.includes("users_username_key") || errorMessage.includes("username")) {
+            return {
+                message: "This username is already taken. Please choose a different username.",
+                type: 'error'
+            };
+        }
+        return {
+            message: "This information is already registered in our system. Please verify your details.",
+            type: 'warning'
+        };
+    }
+
+    // Handle specific backend error messages
+    if (errorMessage.includes("Registration failed")) {
+        if (errorMessage.toLowerCase().includes("email")) {
+            return {
+                message: "This email address is already registered in our system.",
+                type: 'warning'
+            };
+        }
+        return {
+            message: errorMessage,
+            type: 'error'
+        };
+    }
+
+    // Handle validation errors
+    if (errorMessage.includes("Invalid email")) {
+        return {
+            message: "Please enter a valid email address.",
+            type: 'error'
+        };
+    }
+
+    if (errorMessage.includes("Password")) {
+        return {
+            message: "Password does not meet security requirements. Please ensure it's at least 8 characters long.",
+            type: 'error'
+        };
+    }
+
+    // Default error message
+    return {
+        message: errorMessage || "An error occurred during registration. Please try again.",
+        type: 'error'
+    };
+};
+
+// Helper function to validate email format and provide immediate feedback
+const validateEmailFormat = (email: string): string => {
+    if (!email) return "";
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return "Please enter a valid email address";
+    }
+
+    return "";
+};
 
 const formSchema = z.object({
     role: z.enum(["User", "Instructor", "Institution"]),
@@ -50,7 +122,9 @@ const formSchema = z.object({
 export function RegisterForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [errorType, setErrorType] = useState<'error' | 'warning'>('error');
     const [successMessage, setSuccessMessage] = useState("");
+    const [emailCheckMessage, setEmailCheckMessage] = useState("");
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -71,9 +145,9 @@ export function RegisterForm() {
     });
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        
         setIsLoading(true);
         setErrorMessage("");
+        setErrorType('error');
         setSuccessMessage("");
 
         try {
@@ -103,12 +177,10 @@ export function RegisterForm() {
 
             setSuccessMessage("🎉 Registration Successful! Check Your Mailbox for a confirmation email.");
         } catch (error) {
-            console.error(error);
-            if (error instanceof ApiError) {
-                setErrorMessage(error.response?.message || error.message);
-            } else {
-                setErrorMessage("An error occurred during registration.");
-            }
+            console.error("Registration error:", error);
+            const parsedError = parseRegistrationError(error);
+            setErrorMessage(parsedError.message);
+            setErrorType(parsedError.type);
         } finally {
             setIsLoading(false);
         }
@@ -126,13 +198,61 @@ export function RegisterForm() {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
                         {errorMessage && (
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
-                                <AlertDescription>{errorMessage}</AlertDescription>
+                            <Alert variant={errorType === 'warning' ? 'default' : 'destructive'}
+                                className={errorType === 'warning' ? 'border-amber-200 bg-amber-50' : ''}>
+                                {errorType === 'warning' ? (
+                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                ) : (
+                                    <AlertCircle className="h-4 w-4" />
+                                )}
+                                <AlertTitle className={errorType === 'warning' ? 'text-amber-800' : ''}>
+                                    {errorType === 'warning' ? 'Account Already Exists' : 'Registration Error'}
+                                </AlertTitle>
+                                <AlertDescription className={errorType === 'warning' ? 'text-amber-700' : ''}>
+                                    {errorMessage}
+                                    {errorMessage.includes("email address is already registered") && (
+                                        <div className="mt-3 p-3 bg-white/50 rounded-md border border-amber-200">
+                                            <div className="flex items-start space-x-2">
+                                                <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                                                <div className="space-y-2">
+                                                    <p className="text-sm font-medium text-amber-800">
+                                                        What you can do:
+                                                    </p>
+                                                    <div className="space-y-1 text-sm text-amber-700">
+                                                        <div className="flex items-center space-x-2">
+                                                            <span>•</span>
+                                                            <span>
+                                                                <a href="/auth/login" className="underline font-medium hover:text-amber-800">
+                                                                    Sign in to your existing account
+                                                                </a>
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <span>•</span>
+                                                            <span>Use a different email address to create a new account</span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <span>•</span>
+                                                            <span>
+                                                                <a href="/auth/forgot-password" className="underline font-medium hover:text-amber-800">
+                                                                    Reset your password
+                                                                </a> if you've forgotten it
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {errorMessage.includes("username is already taken") && (
+                                        <div className="mt-2 text-sm">
+                                            Please try a different username
+                                        </div>
+                                    )}
+                                </AlertDescription>
                             </Alert>
                         )}
-                        
+
                         {successMessage && (
                             <Alert variant="default">
                                 <CheckCircle2 className="h-4 w-4" />
@@ -200,8 +320,26 @@ export function RegisterForm() {
                                 <FormItem>
                                     <FormLabel>Email</FormLabel>
                                     <FormControl>
-                                        <Input type="email" placeholder="john.doe@example.com" {...field} />
+                                        <Input
+                                            type="email"
+                                            placeholder="john.doe@example.com"
+                                            {...field}
+                                            onBlur={(e) => {
+                                                field.onBlur(e);
+                                                const validationMessage = validateEmailFormat(e.target.value);
+                                                setEmailCheckMessage(validationMessage);
+                                            }}
+                                            onChange={(e) => {
+                                                field.onChange(e);
+                                                setEmailCheckMessage("");
+                                                setErrorMessage("");
+                                                setErrorType('error');
+                                            }}
+                                        />
                                     </FormControl>
+                                    {emailCheckMessage && (
+                                        <p className="text-sm text-amber-600">{emailCheckMessage}</p>
+                                    )}
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -250,7 +388,7 @@ export function RegisterForm() {
                                         </FormItem>
                                     )}
                                 />
-                                
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
@@ -279,7 +417,7 @@ export function RegisterForm() {
                                         )}
                                     />
                                 </div>
-                                
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
@@ -308,7 +446,7 @@ export function RegisterForm() {
                                         )}
                                     />
                                 </div>
-                                
+
                                 <FormField
                                     control={form.control}
                                     name="dateOfJoining"
@@ -326,7 +464,7 @@ export function RegisterForm() {
                         )}
 
                         <Button
-                            type="submit" 
+                            type="submit"
                             disabled={isLoading}
                             className="w-full"
                         >
