@@ -1,4 +1,6 @@
-'use client';
+// Force dynamic rendering to prevent prerender
+"use client";
+export const runtime = 'nodejs';
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -18,7 +20,7 @@ function SubscriptionSuccessContent() {
   useEffect(() => {
     const processCheckoutSuccess = async () => {
       const sessionId = searchParams.get('session_id');
-      
+
       if (!sessionId) {
         setError('No session ID found. Please try again.');
         setIsProcessing(false);
@@ -101,7 +103,7 @@ function SubscriptionSuccessContent() {
                 <CreditCard className="h-5 w-5 text-green-600" />
                 Subscription Details
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="font-medium text-gray-700">Plan:</span>
@@ -163,23 +165,23 @@ function SubscriptionSuccessContent() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button 
-              onClick={() => router.push('/dashboard')} 
+            <Button
+              onClick={() => router.push('/dashboard')}
               className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
               Go to Dashboard
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => router.push('/courses')} 
+            <Button
+              variant="outline"
+              onClick={() => router.push('/courses')}
               className="flex-1"
             >
               Browse Courses
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => router.push('/')} 
+            <Button
+              variant="outline"
+              onClick={() => router.push('/')}
               className="flex-1"
             >
               <Home className="mr-2 h-4 w-4" />
