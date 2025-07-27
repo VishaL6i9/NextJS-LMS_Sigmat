@@ -417,6 +417,89 @@ export interface InstructorRegistrationDTO {
   accountHolderName: string;
 }
 
+// Attendance API Types
+export interface AttendanceRecord {
+  id: number;
+  userId: number;
+  timestamp: string;
+}
+
+// Instructor Profile Types
+export interface InstructorProfile {
+  id?: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNo: string;
+  bio?: string;
+  specialization?: string;
+  dateOfJoining?: string;
+  bankName?: string;
+  accountNumber?: string;
+  routingNumber?: string;
+  accountHolderName?: string;
+  facebookHandle?: string;
+  linkedinHandle?: string;
+  youtubeHandle?: string;
+  timezone?: string;
+  language?: string;
+  profileImage?: {
+    id: number;
+    imageName: string;
+    contentType: string;
+    imageData: string;
+  };
+}
+
+export interface InstructorProfileDTO {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNo: string;
+  bio?: string;
+  specialization?: string;
+  facebookHandle?: string;
+  linkedinHandle?: string;
+  youtubeHandle?: string;
+  bankName?: string;
+  accountNumber?: string;
+  routingNumber?: string;
+  accountHolderName?: string;
+  timezone?: string;
+  language?: string;
+}
+
+export interface InstructorDTO {
+  instructorId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNo: string;
+  dateOfJoining: string;
+  facebookHandle?: string;
+  linkedinHandle?: string;
+  youtubeHandle?: string;
+}
+
+// Super Admin Types
+export interface SystemStats {
+  totalUsers: number;
+  adminCount: number;
+  superAdminCount: number;
+  instructorCount: number;
+  regularUserCount: number;
+  timestamp: string;
+}
+
+export interface UserActivityAudit {
+  id: string;
+  userId: number;
+  username: string;
+  action: string;
+  timestamp: string;
+  details?: string;
+}
+
 // API Error Types
 export class ApiError extends Error {
   constructor(
@@ -1797,6 +1880,279 @@ class ApiService {
       throw error;
     }
   }
+
+  // Attendance API Methods
+  async getAllAttendanceRecords(): Promise<AttendanceRecord[]> {
+    try {
+      const records = await this.fetchWithErrorHandling<AttendanceRecord[]>(`${API_BASE_URL}/user/attendance`);
+      return records;
+    } catch (error) {
+      console.error('Failed to fetch attendance records:', error);
+      throw error;
+    }
+  }
+
+  async getAttendanceRecordsInRange(startDate: string, endDate: string): Promise<AttendanceRecord[]> {
+    if (!startDate || !endDate) {
+      throw new ApiError('Start date and end date are required', 400);
+    }
+    try {
+      const queryParams = new URLSearchParams({
+        startDate,
+        endDate,
+      });
+      const records = await this.fetchWithErrorHandling<AttendanceRecord[]>(`${API_BASE_URL}/user/attendance/range?${queryParams.toString()}`);
+      return records;
+    } catch (error) {
+      console.error(`Failed to fetch attendance records for range ${startDate} to ${endDate}:`, error);
+      throw error;
+    }
+  }
+
+  // Instructor Profile API Methods
+  async getInstructorProfile(instructorId: number): Promise<InstructorProfile> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required to get profile', 400);
+    }
+    try {
+      const profile = await this.fetchWithErrorHandling<InstructorProfile>(`${API_BASE_URL}/instructor/profile/${instructorId}`);
+      return profile;
+    } catch (error) {
+      console.error(`Failed to fetch instructor profile for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async createInstructorProfile(instructorId: number): Promise<InstructorProfile> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required to create profile', 400);
+    }
+    try {
+      const profile = await this.fetchWithErrorHandling<InstructorProfile>(`${API_BASE_URL}/instructor/profile/${instructorId}`, {
+        method: 'POST',
+      });
+      return profile;
+    } catch (error) {
+      console.error(`Failed to create instructor profile for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateInstructorProfile(instructorId: number, profileData: InstructorProfileDTO): Promise<InstructorProfile> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required to update profile', 400);
+    }
+    try {
+      const updatedProfile = await this.fetchWithErrorHandling<InstructorProfile>(`${API_BASE_URL}/instructor/profile/${instructorId}`, {
+        method: 'PUT',
+        body: JSON.stringify(profileData),
+      });
+      return updatedProfile;
+    } catch (error) {
+      console.error(`Failed to update instructor profile for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateInstructorPassword(newPassword: string): Promise<void> {
+    if (!newPassword) {
+      throw new ApiError('New password is required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/instructor/profile/password`, {
+        method: 'PUT',
+        body: JSON.stringify({ newPassword }),
+      });
+    } catch (error) {
+      console.error('Failed to update instructor password:', error);
+      throw error;
+    }
+  }
+
+  async getInstructorIdFromToken(): Promise<number> {
+    try {
+      const instructorId = await this.fetchWithErrorHandling<number>(`${API_BASE_URL}/instructor/profile/getInstructorId`);
+      return instructorId;
+    } catch (error) {
+      console.error('Failed to get instructor ID from token:', error);
+      throw error;
+    }
+  }
+
+  async getInstructorProfileImageId(instructorId: number): Promise<string> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required to get profile image ID', 400);
+    }
+    try {
+      const imageId = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/instructor/profile/getProfileImageID/${instructorId}`);
+      return imageId;
+    } catch (error) {
+      console.error(`Failed to fetch instructor profile image ID for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async uploadInstructorProfileImage(instructorId: number, file: File): Promise<ProfileImageResponse> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required for image upload', 400);
+    }
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/instructor/profile/pic/upload/${instructorId}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          `Instructor image upload failed: ${response.status} ${response.statusText}`,
+          response.status,
+          errorData
+        );
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Failed to upload instructor profile image for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstructorProfileImage(instructorId: number): Promise<Blob> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required to get profile image', 400);
+    }
+    try {
+      const imageBlob = await this.fetchWithErrorHandling<Blob>(`${API_BASE_URL}/instructor/profile/pic/${instructorId}`);
+      return imageBlob;
+    } catch (error) {
+      console.error(`Failed to fetch instructor profile image for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  // Super Admin API Methods
+  async getAllUsersForSuperAdmin(): Promise<ApiUser[]> {
+    try {
+      const users = await this.fetchWithErrorHandling<ApiUser[]>(`${API_BASE_URL}/super-admin/users`);
+      return users;
+    } catch (error) {
+      console.error('Failed to fetch all users for super admin:', error);
+      throw error;
+    }
+  }
+
+  async getAllAdminUsers(): Promise<ApiUser[]> {
+    try {
+      const admins = await this.fetchWithErrorHandling<ApiUser[]>(`${API_BASE_URL}/super-admin/users/admins`);
+      return admins;
+    } catch (error) {
+      console.error('Failed to fetch admin users:', error);
+      throw error;
+    }
+  }
+
+  async getAllSuperAdminUsers(): Promise<ApiUser[]> {
+    try {
+      const superAdmins = await this.fetchWithErrorHandling<ApiUser[]>(`${API_BASE_URL}/super-admin/users/super-admins`);
+      return superAdmins;
+    } catch (error) {
+      console.error('Failed to fetch super admin users:', error);
+      throw error;
+    }
+  }
+
+  async promoteUserToAdmin(userId: number): Promise<void> {
+    if (!userId) {
+      throw new ApiError('User ID is required for promotion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/super-admin/users/${userId}/promote-to-admin`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to promote user ${userId} to admin:`, error);
+      throw error;
+    }
+  }
+
+  async promoteUserToSuperAdmin(userId: number): Promise<void> {
+    if (!userId) {
+      throw new ApiError('User ID is required for promotion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/super-admin/users/${userId}/promote-to-super-admin`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to promote user ${userId} to super admin:`, error);
+      throw error;
+    }
+  }
+
+  async demoteUserToRegular(userId: number): Promise<void> {
+    if (!userId) {
+      throw new ApiError('User ID is required for demotion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/super-admin/users/${userId}/demote-to-user`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to demote user ${userId} to regular user:`, error);
+      throw error;
+    }
+  }
+
+  async forceDeleteUser(userId: number): Promise<void> {
+    if (!userId) {
+      throw new ApiError('User ID is required for force deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/super-admin/users/${userId}/force-delete`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to force delete user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async getSystemStats(): Promise<SystemStats> {
+    try {
+      const stats = await this.fetchWithErrorHandling<SystemStats>(`${API_BASE_URL}/super-admin/system/stats`);
+      return stats;
+    } catch (error) {
+      console.error('Failed to fetch system statistics:', error);
+      throw error;
+    }
+  }
+
+  async toggleMaintenanceMode(enabled: boolean): Promise<void> {
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/super-admin/system/maintenance-mode?enabled=${enabled}`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to toggle maintenance mode to ${enabled}:`, error);
+      throw error;
+    }
+  }
+
+  async getUserActivityAuditLogs(): Promise<UserActivityAudit[]> {
+    try {
+      const auditLogs = await this.fetchWithErrorHandling<UserActivityAudit[]>(`${API_BASE_URL}/super-admin/audit/user-activities`);
+      return auditLogs;
+    } catch (error) {
+      console.error('Failed to fetch user activity audit logs:', error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();
@@ -1889,4 +2245,30 @@ export const hasUserPurchasedCourse = (courseId: string, userId: string) => apiS
 export const getUserCoursePurchases = (userId: string) => apiService.getUserCoursePurchases(userId);
 export const getCoursePurchaseAnalytics = (courseId: string) => apiService.getCoursePurchaseAnalytics(courseId);
 export const getCourseRevenue = (courseId: string) => apiService.getCourseRevenue(courseId);
+
+// Attendance API exports
+export const getAllAttendanceRecords = () => apiService.getAllAttendanceRecords();
+export const getAttendanceRecordsInRange = (startDate: string, endDate: string) => apiService.getAttendanceRecordsInRange(startDate, endDate);
+
+// Instructor Profile API exports
+export const getInstructorProfile = (instructorId: number) => apiService.getInstructorProfile(instructorId);
+export const createInstructorProfile = (instructorId: number) => apiService.createInstructorProfile(instructorId);
+export const updateInstructorProfile = (instructorId: number, profileData: InstructorProfileDTO) => apiService.updateInstructorProfile(instructorId, profileData);
+export const updateInstructorPassword = (newPassword: string) => apiService.updateInstructorPassword(newPassword);
+export const getInstructorIdFromToken = () => apiService.getInstructorIdFromToken();
+export const getInstructorProfileImageId = (instructorId: number) => apiService.getInstructorProfileImageId(instructorId);
+export const uploadInstructorProfileImage = (instructorId: number, file: File) => apiService.uploadInstructorProfileImage(instructorId, file);
+export const getInstructorProfileImage = (instructorId: number) => apiService.getInstructorProfileImage(instructorId);
+
+// Super Admin API exports
+export const getAllUsersForSuperAdmin = () => apiService.getAllUsersForSuperAdmin();
+export const getAllAdminUsers = () => apiService.getAllAdminUsers();
+export const getAllSuperAdminUsers = () => apiService.getAllSuperAdminUsers();
+export const promoteUserToAdmin = (userId: number) => apiService.promoteUserToAdmin(userId);
+export const promoteUserToSuperAdmin = (userId: number) => apiService.promoteUserToSuperAdmin(userId);
+export const demoteUserToRegular = (userId: number) => apiService.demoteUserToRegular(userId);
+export const forceDeleteUser = (userId: number) => apiService.forceDeleteUser(userId);
+export const getSystemStats = () => apiService.getSystemStats();
+export const toggleMaintenanceMode = (enabled: boolean) => apiService.toggleMaintenanceMode(enabled);
+export const getUserActivityAuditLogs = () => apiService.getUserActivityAuditLogs();
 
