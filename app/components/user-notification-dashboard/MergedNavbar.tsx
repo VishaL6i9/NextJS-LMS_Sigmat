@@ -16,10 +16,12 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Menu, LogOut, User, Bell, Settings } from "lucide-react";
+import {Menu, LogOut, User, Bell, Settings, Crown} from "lucide-react";
 import { useUser } from '@/app/contexts/UserContext';
 import { useNotifications } from './contexts/NotificationContext';
 import NotificationCenter from './NotificationCenter';
+import {getUserRoles} from "@/app/components/services/api";
+import {ChevronDown} from "@/components/ui/ChevronDown";
 
 const MergedNavbar: React.FC = () => {
     const { userProfile, setUserProfile } = useUser();
@@ -30,10 +32,24 @@ const MergedNavbar: React.FC = () => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
+    const [userRoles, setUserRoles] = useState<string[]>([]);
 
     useEffect(() => {
-        // This effect will run whenever userProfile changes
-        // No need for localStorage polling or custom events if UserContext is the source of truth
+        // Fetch user roles when userProfile changes
+        const fetchUserRoles = async () => {
+            if (userProfile) {
+                try {
+                    const roles = await getUserRoles();
+                    const roleNames = roles.map(role => role.name || role.toString());
+                    setUserRoles(roleNames);
+                } catch (error) {
+                    console.error('Failed to fetch user roles:', error);
+                    setUserRoles([]);
+                }
+            }
+        };
+
+        fetchUserRoles();
     }, [userProfile]);
 
     useEffect(() => {
@@ -67,13 +83,30 @@ const MergedNavbar: React.FC = () => {
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost"
-                            className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Home</Button>
+                            className="flex items-center gap-1 text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
+                        Home <ChevronDown width={16} height={16} />
+                    </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-full md:w-auto">
-                    <DropdownMenuItem asChild><Link href="/dashboard/user-home"
-                                                    className="w-full">User</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/dashboard/instructor-home"
-                                                    className="w-full">Instructor</Link></DropdownMenuItem>
+                <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                    {(userRoles.includes('USER') || userRoles.includes('SUPER_ADMIN')) && (
+                        <DropdownMenuItem asChild><Link href="/user/home"
+                                                        className="w-full">User</Link></DropdownMenuItem>
+                    )}
+                    {(userRoles.includes('INSTRUCTOR') || userRoles.includes('SUPER_ADMIN')) && (
+                        <DropdownMenuItem asChild><Link href="/instructor/home"
+                                                        className="w-full">Instructor</Link></DropdownMenuItem>
+                    )}
+                    {(userRoles.includes('INSTITUTION') || userRoles.includes('ADMIN')) || userRoles.includes('SUPER_ADMIN') && (
+                        <DropdownMenuItem asChild><Link href="/institution/dashboard" className="w-full">Institution</Link></DropdownMenuItem>
+                    )}
+                    {userRoles.includes('SUPER_ADMIN') && (
+                        <DropdownMenuItem asChild>
+                            <Link href="/dashboard/super-admin-home" className="w-full flex items-center">
+                                <Crown className="mr-2 h-4 w-4 text-purple-600" />
+                                Super Admin
+                            </Link>
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 
@@ -148,8 +181,9 @@ const MergedNavbar: React.FC = () => {
             {/* Notification-specific nav item */}
             <Button variant="ghost" asChild
                     className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">
-                <Link href="/dashboard/user-notification">Notifications</Link>
+                <Link href="/user/notification">Notifications</Link>
             </Button>
+            
         </>
     );
 

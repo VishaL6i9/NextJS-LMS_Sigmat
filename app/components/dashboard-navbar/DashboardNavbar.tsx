@@ -68,10 +68,11 @@ const DashboardNavbar: React.FC = () => {
                             className="text-white hover:text-primary hover:bg-primary/10 w-full justify-start md:w-auto">Home</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-full md:w-auto">
-                    <DropdownMenuItem asChild><Link href="/dashboard/user-home"
+                    <DropdownMenuItem asChild><Link href="/user/home"
                                                     className="w-full">User</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/dashboard/instructor-home"
+                    <DropdownMenuItem asChild><Link href="/instructor/home"
                                                     className="w-full">Instructor</Link></DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/institution/dashboard" className="w-full">Institution</Link></DropdownMenuItem>
                     {isSuperAdmin && (
                         <DropdownMenuItem asChild>
                             <Link href="/dashboard/super-admin-home" className="w-full flex items-center">

@@ -71,13 +71,16 @@ const MergedNavbar: React.FC = () => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                        {(userRoles.includes('USER') || userRoles.includes('ADMIN') || userRoles.includes('SUPER_ADMIN')) && (
-                            <DropdownMenuItem asChild><Link href="/dashboard/user-home"
+                        {(userRoles.includes('USER') || userRoles.includes('SUPER_ADMIN')) && (
+                            <DropdownMenuItem asChild><Link href="/user/home"
                                 className="w-full">User</Link></DropdownMenuItem>
                         )}
-                        {(userRoles.includes('INSTRUCTOR') || userRoles.includes('ADMIN') || userRoles.includes('SUPER_ADMIN')) && (
-                            <DropdownMenuItem asChild><Link href="/dashboard/instructor-home"
+                        {(userRoles.includes('INSTRUCTOR') || userRoles.includes('SUPER_ADMIN')) && (
+                            <DropdownMenuItem asChild><Link href="/instructor/home"
                                 className="w-full">Instructor</Link></DropdownMenuItem>
+                        )}
+                        {(userRoles.includes('INSTITUTION') || userRoles.includes('ADMIN')) || userRoles.includes('SUPER_ADMIN') && (
+                            <DropdownMenuItem asChild><Link href="/institution/dashboard" className="w-full">Institution</Link></DropdownMenuItem>
                         )}
                         {userRoles.includes('SUPER_ADMIN') && (
                          <DropdownMenuItem asChild>
