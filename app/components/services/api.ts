@@ -3,6 +3,26 @@ import { Notification } from '../user-notification-dashboard/types/notification'
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
+// Role Constants
+export const USER_ROLES = {
+  SUPER_ADMIN: 'SUPER_ADMIN',
+  INSTITUTION: 'INSTITUTION',
+  ADMIN: 'ADMIN',
+  INSTRUCTOR: 'INSTRUCTOR',
+  USER: 'USER'
+} as const;
+
+export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+
+// Course Scope Constants
+export const COURSE_SCOPE = {
+  INSTITUTE_ONLY: 'INSTITUTE_ONLY',
+  GLOBAL: 'GLOBAL',
+  RESTRICTED: 'RESTRICTED'
+} as const;
+
+export type CourseScope = typeof COURSE_SCOPE[keyof typeof COURSE_SCOPE];
+
 // API Response Types
 export interface ApiCourse {
   courseId: string;
@@ -20,6 +40,9 @@ export interface ApiCourse {
   certificate: boolean;
   createdAt: string;
   updatedAt: string;
+  courseScope: CourseScope;
+  instituteId?: number;
+  instituteName?: string;
 }
 
 export interface ApiInstructor {
@@ -29,6 +52,11 @@ export interface ApiInstructor {
   email: string;
   phoneNo: string;
   dateOfJoining: string;
+  facebookHandle?: string;
+  linkedinHandle?: string;
+  youtubeHandle?: string;
+  instituteId?: number;
+  instituteName?: string;
 }
 
 export interface ApiModule {
@@ -144,6 +172,8 @@ export interface ApiUser {
   firstName: string;
   lastName: string;
   roles: Role[];
+  instituteId?: number;
+  instituteName?: string;
 }
 
 export interface ApiInstructorRequest {
@@ -152,6 +182,9 @@ export interface ApiInstructorRequest {
   email: string;
   phoneNo: string;
   dateOfJoining: string;
+  facebookHandle?: string;
+  linkedinHandle?: string;
+  youtubeHandle?: string;
 }
 
 export interface ApiInstructorUpdate extends ApiInstructorRequest {
@@ -411,10 +444,9 @@ export interface InstructorRegistrationDTO {
   firstName: string;
   lastName: string;
   phoneNo: string;
-  bankName: string;
-  accountNumber: string;
-  routingNumber: string;
-  accountHolderName: string;
+  facebookHandle?: string;
+  linkedinHandle?: string;
+  youtubeHandle?: string;
 }
 
 // Attendance API Types
@@ -479,6 +511,123 @@ export interface InstructorDTO {
   facebookHandle?: string;
   linkedinHandle?: string;
   youtubeHandle?: string;
+  instituteId?: number;
+  instituteName?: string;
+}
+
+// Institute System Types
+export interface InstituteDTO {
+  instituteId: number;
+  instituteName: string;
+  instituteCode: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  email: string;
+  phoneNumber?: string;
+  website?: string;
+  establishedDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  adminId?: number;
+  adminName?: string;
+  adminEmail?: string;
+  totalStudents: number;
+  totalInstructors: number;
+  totalCourses: number;
+}
+
+export interface InstituteRequestDTO {
+  instituteName: string;
+  instituteCode: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  email: string;
+  phoneNumber?: string;
+  website?: string;
+  establishedDate?: string;
+  adminId: number;
+}
+
+export interface InstituteStatistics {
+  instituteId: number;
+  instituteName: string;
+  totalStudents: number;
+  totalInstructors: number;
+  totalCourses: number;
+  isActive: boolean;
+}
+
+export interface UserDTO {
+  id: number;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  roles: Role[];
+  instituteId?: number;
+  instituteName?: string;
+}
+
+export interface CourseDTO {
+  courseId: number;
+  courseName: string;
+  courseCode: string;
+  courseDescription: string;
+  courseDuration: number;
+  courseMode: string;
+  maxEnrollments: number;
+  courseFee: number;
+  language: string;
+  courseCategory: string;
+  rating: number;
+  studentsEnrolled: number;
+  certificate: boolean;
+  createdAt: string;
+  updatedAt: string;
+  courseScope: CourseScope;
+  instituteId?: number;
+  instituteName?: string;
+}
+
+// Course Access Control Types
+export interface CourseSubscriptionRequestDTO {
+  instituteId: number;
+  courseId: number;
+  autoEnrollStudents?: boolean;
+  autoEnrollInstructors?: boolean;
+}
+
+export interface InstituteSubscriptionDTO {
+  id: number;
+  instituteId: number;
+  instituteName: string;
+  courseId: number;
+  courseName: string;
+  courseCode: string;
+  subscriptionPrice: number;
+  discountApplied: number;
+  finalAmount: number;
+  subscriptionDate: string;
+  expiryDate?: string;
+  isActive: boolean;
+  autoEnrollStudents: boolean;
+  autoEnrollInstructors: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseAccessResponse {
+  hasAccess: boolean;
+  reason?: string;
 }
 
 // Super Admin Types
@@ -512,6 +661,13 @@ export class ApiError extends Error {
   }
 }
 
+export class InstructorProfileNotFoundException extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InstructorProfileNotFoundException';
+  }
+}
+
 export interface ApiCourseRequest {
   courseName: string;
   courseCode: string;
@@ -522,6 +678,7 @@ export interface ApiCourseRequest {
   courseFee: number;
   language: string;
   courseCategory: string;
+  courseScope: CourseScope;
   instructors: { instructorId: number }[];
 }
 
@@ -1540,6 +1697,19 @@ class ApiService {
     }
   }
 
+  async getInstructorByUser(userId: string): Promise<ApiInstructor> {
+    if (!userId) {
+      throw new ApiError('User ID is required to get instructor', 400);
+    }
+    try {
+      const instructor = await this.fetchWithErrorHandling<ApiInstructor>(`${API_BASE_URL}/instructors/user/${userId}`);
+      return instructor;
+    } catch (error) {
+      console.error(`Failed to fetch instructor for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
   // SubscriptionController Methods
   async getSubscriptionPlans(courseId?: number): Promise<SubscriptionPlan[]> {
     try {
@@ -1923,6 +2093,19 @@ class ApiService {
     }
   }
 
+  async getInstructorProfileDto(instructorId: number): Promise<InstructorProfileDTO> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required to get profile DTO', 400);
+    }
+    try {
+      const profileDto = await this.fetchWithErrorHandling<InstructorProfileDTO>(`${API_BASE_URL}/instructor/profile/${instructorId}/dto`);
+      return profileDto;
+    } catch (error) {
+      console.error(`Failed to fetch instructor profile DTO for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
   async createInstructorProfile(instructorId: number): Promise<InstructorProfile> {
     if (!instructorId) {
       throw new ApiError('Instructor ID is required to create profile', 400);
@@ -2032,6 +2215,461 @@ class ApiService {
       return imageBlob;
     } catch (error) {
       console.error(`Failed to fetch instructor profile image for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstructorProfileWithImage(instructorId: number): Promise<InstructorProfile> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required to get profile with image', 400);
+    }
+    try {
+      const profile = await this.fetchWithErrorHandling<InstructorProfile>(`${API_BASE_URL}/instructor/profile/${instructorId}/with-image`);
+      return profile;
+    } catch (error) {
+      console.error(`Failed to fetch instructor profile with image for ID ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  // Institute API Methods
+  async createInstitute(instituteData: InstituteRequestDTO): Promise<InstituteDTO> {
+    try {
+      const institute = await this.fetchWithErrorHandling<InstituteDTO>(`${API_BASE_URL}/institutes`, {
+        method: 'POST',
+        body: JSON.stringify(instituteData),
+      });
+      return institute;
+    } catch (error) {
+      console.error('Failed to create institute:', error);
+      throw error;
+    }
+  }
+
+  async getAllInstitutes(): Promise<InstituteDTO[]> {
+    try {
+      const institutes = await this.fetchWithErrorHandling<InstituteDTO[]>(`${API_BASE_URL}/institutes`);
+      return institutes;
+    } catch (error) {
+      console.error('Failed to fetch all institutes:', error);
+      throw error;
+    }
+  }
+
+  async getActiveInstitutes(): Promise<InstituteDTO[]> {
+    try {
+      const institutes = await this.fetchWithErrorHandling<InstituteDTO[]>(`${API_BASE_URL}/institutes/active`);
+      return institutes;
+    } catch (error) {
+      console.error('Failed to fetch active institutes:', error);
+      throw error;
+    }
+  }
+
+  async getInstituteById(instituteId: number): Promise<InstituteDTO> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const institute = await this.fetchWithErrorHandling<InstituteDTO>(`${API_BASE_URL}/institutes/${instituteId}`);
+      return institute;
+    } catch (error) {
+      console.error(`Failed to fetch institute with ID ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteByCode(instituteCode: string): Promise<InstituteDTO> {
+    if (!instituteCode) {
+      throw new ApiError('Institute code is required', 400);
+    }
+    try {
+      const institute = await this.fetchWithErrorHandling<InstituteDTO>(`${API_BASE_URL}/institutes/code/${instituteCode}`);
+      return institute;
+    } catch (error) {
+      console.error(`Failed to fetch institute with code ${instituteCode}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteByAdminId(adminId: number): Promise<InstituteDTO> {
+    if (!adminId) {
+      throw new ApiError('Admin ID is required', 400);
+    }
+    try {
+      const institute = await this.fetchWithErrorHandling<InstituteDTO>(`${API_BASE_URL}/institutes/admin/${adminId}`);
+      return institute;
+    } catch (error) {
+      console.error(`Failed to fetch institute for admin ID ${adminId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateInstitute(instituteId: number, instituteData: InstituteDTO): Promise<InstituteDTO> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required for update', 400);
+    }
+    try {
+      const updatedInstitute = await this.fetchWithErrorHandling<InstituteDTO>(`${API_BASE_URL}/institutes/${instituteId}`, {
+        method: 'PUT',
+        body: JSON.stringify(instituteData),
+      });
+      return updatedInstitute;
+    } catch (error) {
+      console.error(`Failed to update institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async deactivateInstitute(instituteId: number): Promise<void> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required for deactivation', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/deactivate`, {
+        method: 'PATCH',
+      });
+    } catch (error) {
+      console.error(`Failed to deactivate institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async activateInstitute(instituteId: number): Promise<void> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required for activation', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/activate`, {
+        method: 'PATCH',
+      });
+    } catch (error) {
+      console.error(`Failed to activate institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteInstitute(instituteId: number): Promise<void> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required for deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to delete institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  // Institute Resource Management Methods
+  async addStudentToInstitute(instituteId: number, studentId: number): Promise<void> {
+    if (!instituteId || !studentId) {
+      throw new ApiError('Institute ID and Student ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/management/students/${studentId}`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to add student ${studentId} to institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async removeStudentFromInstitute(instituteId: number, studentId: number): Promise<void> {
+    if (!instituteId || !studentId) {
+      throw new ApiError('Institute ID and Student ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/management/students/${studentId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to remove student ${studentId} from institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteStudents(instituteId: number): Promise<UserDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const students = await this.fetchWithErrorHandling<UserDTO[]>(`${API_BASE_URL}/institutes/${instituteId}/management/students`);
+      return students;
+    } catch (error) {
+      console.error(`Failed to fetch students for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async addInstructorToInstitute(instituteId: number, instructorId: number): Promise<void> {
+    if (!instituteId || !instructorId) {
+      throw new ApiError('Institute ID and Instructor ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/management/instructors/${instructorId}`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to add instructor ${instructorId} to institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async removeInstructorFromInstitute(instituteId: number, instructorId: number): Promise<void> {
+    if (!instituteId || !instructorId) {
+      throw new ApiError('Institute ID and Instructor ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/management/instructors/${instructorId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to remove instructor ${instructorId} from institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteInstructors(instituteId: number): Promise<InstructorDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const instructors = await this.fetchWithErrorHandling<InstructorDTO[]>(`${API_BASE_URL}/institutes/${instituteId}/management/instructors`);
+      return instructors;
+    } catch (error) {
+      console.error(`Failed to fetch instructors for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async addCourseToInstitute(instituteId: number, courseId: number): Promise<void> {
+    if (!instituteId || !courseId) {
+      throw new ApiError('Institute ID and Course ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/management/courses/${courseId}`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to add course ${courseId} to institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async removeCourseFromInstitute(instituteId: number, courseId: number): Promise<void> {
+    if (!instituteId || !courseId) {
+      throw new ApiError('Institute ID and Course ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/management/courses/${courseId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to remove course ${courseId} from institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteCourses(instituteId: number): Promise<CourseDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const courses = await this.fetchWithErrorHandling<CourseDTO[]>(`${API_BASE_URL}/institutes/${instituteId}/management/courses`);
+      return courses;
+    } catch (error) {
+      console.error(`Failed to fetch courses for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteCoursesByCategory(instituteId: number, category: string): Promise<CourseDTO[]> {
+    if (!instituteId || !category) {
+      throw new ApiError('Institute ID and category are required', 400);
+    }
+    try {
+      const courses = await this.fetchWithErrorHandling<CourseDTO[]>(`${API_BASE_URL}/institutes/${instituteId}/management/courses/category/${category}`);
+      return courses;
+    } catch (error) {
+      console.error(`Failed to fetch courses by category ${category} for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async changeInstituteAdmin(instituteId: number, newAdminId: number): Promise<void> {
+    if (!instituteId || !newAdminId) {
+      throw new ApiError('Institute ID and new admin ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/institutes/${instituteId}/management/admin/${newAdminId}`, {
+        method: 'PUT',
+      });
+    } catch (error) {
+      console.error(`Failed to change admin for institute ${instituteId} to user ${newAdminId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteStatistics(instituteId: number): Promise<InstituteStatistics> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const statistics = await this.fetchWithErrorHandling<InstituteStatistics>(`${API_BASE_URL}/institutes/${instituteId}/management/statistics`);
+      return statistics;
+    } catch (error) {
+      console.error(`Failed to fetch statistics for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  // Course Access Control API Methods
+  async getUserAccessibleCourses(userId: string): Promise<CourseDTO[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required', 400);
+    }
+    try {
+      const courses = await this.fetchWithErrorHandling<CourseDTO[]>(`${API_BASE_URL}/course-access/user/${userId}/courses`);
+      return courses;
+    } catch (error) {
+      console.error(`Failed to fetch accessible courses for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async checkUserCourseAccess(userId: string, courseId: string): Promise<boolean> {
+    if (!userId || !courseId) {
+      throw new ApiError('User ID and Course ID are required', 400);
+    }
+    try {
+      const hasAccess = await this.fetchWithErrorHandling<boolean>(`${API_BASE_URL}/course-access/user/${userId}/course/${courseId}/access`);
+      return hasAccess;
+    } catch (error) {
+      console.error(`Failed to check course access for user ${userId} and course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteSubscribedCourses(instituteId: number): Promise<CourseDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const courses = await this.fetchWithErrorHandling<CourseDTO[]>(`${API_BASE_URL}/course-access/institute/${instituteId}/subscribed-courses`);
+      return courses;
+    } catch (error) {
+      console.error(`Failed to fetch subscribed courses for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async subscribeInstituteToGlobalCourse(subscriptionData: CourseSubscriptionRequestDTO): Promise<InstituteSubscriptionDTO> {
+    try {
+      const subscription = await this.fetchWithErrorHandling<InstituteSubscriptionDTO>(`${API_BASE_URL}/course-access/institute/subscribe`, {
+        method: 'POST',
+        body: JSON.stringify(subscriptionData),
+      });
+      return subscription;
+    } catch (error) {
+      console.error('Failed to subscribe institute to global course:', error);
+      throw error;
+    }
+  }
+
+  async unsubscribeInstituteFromCourse(instituteId: number, courseId: number): Promise<void> {
+    if (!instituteId || !courseId) {
+      throw new ApiError('Institute ID and Course ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/course-access/institute/${instituteId}/course/${courseId}/unsubscribe`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to unsubscribe institute ${instituteId} from course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteSubscriptions(instituteId: number): Promise<InstituteSubscriptionDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const subscriptions = await this.fetchWithErrorHandling<InstituteSubscriptionDTO[]>(`${API_BASE_URL}/course-access/institute/${instituteId}/subscriptions`);
+      return subscriptions;
+    } catch (error) {
+      console.error(`Failed to fetch subscriptions for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getCourseSubscriptions(courseId: number): Promise<InstituteSubscriptionDTO[]> {
+    if (!courseId) {
+      throw new ApiError('Course ID is required', 400);
+    }
+    try {
+      const subscriptions = await this.fetchWithErrorHandling<InstituteSubscriptionDTO[]>(`${API_BASE_URL}/course-access/course/${courseId}/subscriptions`);
+      return subscriptions;
+    } catch (error) {
+      console.error(`Failed to fetch subscriptions for course ${courseId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateSubscription(subscriptionId: number, subscriptionData: InstituteSubscriptionDTO): Promise<InstituteSubscriptionDTO> {
+    if (!subscriptionId) {
+      throw new ApiError('Subscription ID is required', 400);
+    }
+    try {
+      const updatedSubscription = await this.fetchWithErrorHandling<InstituteSubscriptionDTO>(`${API_BASE_URL}/course-access/subscription/${subscriptionId}`, {
+        method: 'PUT',
+        body: JSON.stringify(subscriptionData),
+      });
+      return updatedSubscription;
+    } catch (error) {
+      console.error(`Failed to update subscription ${subscriptionId}:`, error);
+      throw error;
+    }
+  }
+
+  async deactivateExpiredSubscriptions(): Promise<void> {
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/course-access/maintenance/deactivate-expired`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Failed to deactivate expired subscriptions:', error);
+      throw error;
+    }
+  }
+
+  // Enhanced Course Access Methods
+  async getCoursesAccessibleToUser(userId: string): Promise<CourseDTO[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required', 400);
+    }
+    try {
+      const courses = await this.fetchWithErrorHandling<CourseDTO[]>(`${API_BASE_URL}/courses/user/${userId}/accessible`);
+      return courses;
+    } catch (error) {
+      console.error(`Failed to fetch accessible courses for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async checkUserAccessToCourse(userId: string, courseId: string): Promise<boolean> {
+    if (!userId || !courseId) {
+      throw new ApiError('User ID and Course ID are required', 400);
+    }
+    try {
+      const hasAccess = await this.fetchWithErrorHandling<boolean>(`${API_BASE_URL}/courses/user/${userId}/course/${courseId}/access`);
+      return hasAccess;
+    } catch (error) {
+      console.error(`Failed to check user access to course for user ${userId} and course ${courseId}:`, error);
       throw error;
     }
   }
@@ -2172,6 +2810,7 @@ export const updateLesson = (lessonId: string, lessonData: ApiLessonRequest) => 
 export const deleteLesson = (lessonId: string) => apiService.deleteLesson(lessonId);
 export const getAllModulesForCourse = (courseId: string) => apiService.getAllModulesForCourse(courseId);
 export const getAllInstructors = () => apiService.getAllInstructors();
+export const getInstructorByUser = (userId: string) => apiService.getInstructorByUser(userId);
 export const enrollUserInCourse = (userId: string, courseId: string, instructorId?: number) => apiService.enrollUserInCourse(userId, courseId, instructorId);
 export const getUserEnrollments = (userId: string) => apiService.getUserEnrollments(userId);
 export const saveInvoice = (invoice: Invoice) => apiService.saveInvoice(invoice);
@@ -2252,6 +2891,7 @@ export const getAttendanceRecordsInRange = (startDate: string, endDate: string) 
 
 // Instructor Profile API exports
 export const getInstructorProfile = (instructorId: number) => apiService.getInstructorProfile(instructorId);
+export const getInstructorProfileDto = (instructorId: number) => apiService.getInstructorProfileDto(instructorId);
 export const createInstructorProfile = (instructorId: number) => apiService.createInstructorProfile(instructorId);
 export const updateInstructorProfile = (instructorId: number, profileData: InstructorProfileDTO) => apiService.updateInstructorProfile(instructorId, profileData);
 export const updateInstructorPassword = (newPassword: string) => apiService.updateInstructorPassword(newPassword);
@@ -2259,6 +2899,85 @@ export const getInstructorIdFromToken = () => apiService.getInstructorIdFromToke
 export const getInstructorProfileImageId = (instructorId: number) => apiService.getInstructorProfileImageId(instructorId);
 export const uploadInstructorProfileImage = (instructorId: number, file: File) => apiService.uploadInstructorProfileImage(instructorId, file);
 export const getInstructorProfileImage = (instructorId: number) => apiService.getInstructorProfileImage(instructorId);
+export const getInstructorProfileWithImage = (instructorId: number) => apiService.getInstructorProfileWithImage(instructorId);
+
+// Institute API exports
+export const createInstitute = (instituteData: InstituteRequestDTO) => apiService.createInstitute(instituteData);
+export const getAllInstitutes = () => apiService.getAllInstitutes();
+export const getActiveInstitutes = () => apiService.getActiveInstitutes();
+export const getInstituteById = (instituteId: number) => apiService.getInstituteById(instituteId);
+export const getInstituteByCode = (instituteCode: string) => apiService.getInstituteByCode(instituteCode);
+export const getInstituteByAdminId = (adminId: number) => apiService.getInstituteByAdminId(adminId);
+export const updateInstitute = (instituteId: number, instituteData: InstituteDTO) => apiService.updateInstitute(instituteId, instituteData);
+export const deactivateInstitute = (instituteId: number) => apiService.deactivateInstitute(instituteId);
+export const activateInstitute = (instituteId: number) => apiService.activateInstitute(instituteId);
+export const deleteInstitute = (instituteId: number) => apiService.deleteInstitute(instituteId);
+
+// Institute Resource Management exports
+export const addStudentToInstitute = (instituteId: number, studentId: number) => apiService.addStudentToInstitute(instituteId, studentId);
+export const removeStudentFromInstitute = (instituteId: number, studentId: number) => apiService.removeStudentFromInstitute(instituteId, studentId);
+export const getInstituteStudents = (instituteId: number) => apiService.getInstituteStudents(instituteId);
+export const addInstructorToInstitute = (instituteId: number, instructorId: number) => apiService.addInstructorToInstitute(instituteId, instructorId);
+export const removeInstructorFromInstitute = (instituteId: number, instructorId: number) => apiService.removeInstructorFromInstitute(instituteId, instructorId);
+export const getInstituteInstructors = (instituteId: number) => apiService.getInstituteInstructors(instituteId);
+export const addCourseToInstitute = (instituteId: number, courseId: number) => apiService.addCourseToInstitute(instituteId, courseId);
+export const removeCourseFromInstitute = (instituteId: number, courseId: number) => apiService.removeCourseFromInstitute(instituteId, courseId);
+export const getInstituteCourses = (instituteId: number) => apiService.getInstituteCourses(instituteId);
+export const getInstituteCoursesByCategory = (instituteId: number, category: string) => apiService.getInstituteCoursesByCategory(instituteId, category);
+export const changeInstituteAdmin = (instituteId: number, newAdminId: number) => apiService.changeInstituteAdmin(instituteId, newAdminId);
+export const getInstituteStatistics = (instituteId: number) => apiService.getInstituteStatistics(instituteId);
+
+// Course Access Control API exports
+export const getUserAccessibleCourses = (userId: string) => apiService.getUserAccessibleCourses(userId);
+export const checkUserCourseAccess = (userId: string, courseId: string) => apiService.checkUserCourseAccess(userId, courseId);
+export const getInstituteSubscribedCourses = (instituteId: number) => apiService.getInstituteSubscribedCourses(instituteId);
+export const subscribeInstituteToGlobalCourse = (subscriptionData: CourseSubscriptionRequestDTO) => apiService.subscribeInstituteToGlobalCourse(subscriptionData);
+export const unsubscribeInstituteFromCourse = (instituteId: number, courseId: number) => apiService.unsubscribeInstituteFromCourse(instituteId, courseId);
+export const getInstituteSubscriptions = (instituteId: number) => apiService.getInstituteSubscriptions(instituteId);
+export const getCourseSubscriptions = (courseId: number) => apiService.getCourseSubscriptions(courseId);
+export const updateSubscription = (subscriptionId: number, subscriptionData: InstituteSubscriptionDTO) => apiService.updateSubscription(subscriptionId, subscriptionData);
+export const deactivateExpiredSubscriptions = () => apiService.deactivateExpiredSubscriptions();
+export const getCoursesAccessibleToUser = (userId: string) => apiService.getCoursesAccessibleToUser(userId);
+export const checkUserAccessToCourse = (userId: string, courseId: string) => apiService.checkUserAccessToCourse(userId, courseId);
+
+// Course Access Control Utility Functions
+export const isGlobalCourse = (course: ApiCourse | CourseDTO): boolean => {
+  return course.courseScope === COURSE_SCOPE.GLOBAL;
+};
+
+export const isInstituteCourse = (course: ApiCourse | CourseDTO): boolean => {
+  return course.courseScope === COURSE_SCOPE.INSTITUTE_ONLY;
+};
+
+export const isRestrictedCourse = (course: ApiCourse | CourseDTO): boolean => {
+  return course.courseScope === COURSE_SCOPE.RESTRICTED;
+};
+
+export const getCourseAccessBadgeText = (courseScope: CourseScope): string => {
+  switch (courseScope) {
+    case COURSE_SCOPE.GLOBAL:
+      return 'Global';
+    case COURSE_SCOPE.INSTITUTE_ONLY:
+      return 'Institute Only';
+    case COURSE_SCOPE.RESTRICTED:
+      return 'Restricted';
+    default:
+      return 'Unknown';
+  }
+};
+
+export const getCourseAccessBadgeColor = (courseScope: CourseScope): string => {
+  switch (courseScope) {
+    case COURSE_SCOPE.GLOBAL:
+      return 'blue';
+    case COURSE_SCOPE.INSTITUTE_ONLY:
+      return 'green';
+    case COURSE_SCOPE.RESTRICTED:
+      return 'orange';
+    default:
+      return 'gray';
+  }
+};
 
 // Super Admin API exports
 export const getAllUsersForSuperAdmin = () => apiService.getAllUsersForSuperAdmin();
