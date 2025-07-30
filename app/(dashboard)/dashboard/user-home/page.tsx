@@ -1,14 +1,15 @@
+'use client';
+
 import { Dashboard } from '@/app/components/user-home-dashboard/Dashboard';
 import MergedNavbar from '@/app/components/user-home-dashboard/MergedNavbar';
-import { NotificationProvider } from '@/app/components/user-notification-dashboard/contexts/NotificationContext';
 
-export default function UserHome() {
+const UserHomePage = () => {
     return (
-        <div>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
             <MergedNavbar />
-            <NotificationProvider>
-                <Dashboard />
-            </NotificationProvider>
+            <Dashboard />
         </div>
     );
-}
+};
+
+export default UserHomePage;

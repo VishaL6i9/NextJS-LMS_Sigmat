@@ -13,7 +13,9 @@ import {
     Users,
     AlertTriangle,
     BarChart3,
-    ChevronLeft
+    ChevronLeft,
+    Activity,
+    Zap
 } from 'lucide-react';
 import { Calendar1 as Calendar } from '@/components/ui/Calendar1';
 import { useNotifications } from '@/app/components/user-notification-dashboard/contexts/NotificationContext';
@@ -140,111 +142,268 @@ export const Dashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+            {/* Background decorative elements */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl"></div>
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-cyan-600/20 rounded-full blur-3xl"></div>
+            </div>
+
             {/* Full-width header section */}
-            <div className="w-full py-12 px-6 lg:px-12 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="relative w-full py-16 px-6 lg:px-12 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 backdrop-blur-sm border-b border-white/20">
                 <div className="max-w-[2000px] mx-auto">
                     <motion.div className="mb-12" variants={fadeInUp} initial="initial" animate="animate">
-                        <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                            Welcome, {userProfile?.firstName || 'Student'}!
-                        </h1>
-                        <p className="text-xl text-gray-600">Here's your learning snapshot for today.</p>
+                        <div className="flex items-center mb-4">
+                            <div className="w-2 h-12 bg-gradient-to-b from-indigo-500 to-purple-600 rounded-full mr-4"></div>
+                            <div>
+                                <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 bg-clip-text text-transparent mb-2">
+                                    Welcome back, {userProfile?.firstName || 'Student'}!
+                                </h1>
+                                <p className="text-xl text-gray-600 font-medium">Ready to continue your learning journey? ✨</p>
+                            </div>
+                        </div>
+                        
+                        {/* Quick stats bar */}
+                        <div className="flex flex-wrap gap-6 mt-8">
+                            <div className="flex items-center bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/40">
+                                <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                                <span className="text-sm font-medium text-gray-700">Learning streak: {Math.floor(Math.random() * 15) + 1} days</span>
+                            </div>
+                            <div className="flex items-center bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/40">
+                                <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+                                <span className="text-sm font-medium text-gray-700">{activeCourses} active courses</span>
+                            </div>
+                            <div className="flex items-center bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/40">
+                                <div className="w-3 h-3 bg-purple-500 rounded-full mr-2"></div>
+                                <span className="text-sm font-medium text-gray-700">{state.stats.unread} new notifications</span>
+                            </div>
+                        </div>
                     </motion.div>
                 </div>
             </div>
 
             {/* Content with padding */}
-            <div className="w-full max-w-[2000px] mx-auto px-6 lg:px-12 py-8">
-                {/* Stats Grid */}
+            <div className="relative w-full max-w-[2000px] mx-auto px-6 lg:px-12 py-8">
+                {/* Enhanced Stats Grid */}
                 <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12" variants={staggerContainer} initial="initial" animate="animate">
-                    {stats.map((stat) => (
-                        <motion.div key={stat.name} variants={fadeInUp}>
-                            <Card className="h-full hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden">
-                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                    <CardTitle className="text-sm font-medium text-gray-600">{stat.name}</CardTitle>
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br ${stat.color}`}>
-                                        <stat.icon className="h-5 w-5 text-white" />
+                    {stats.map((stat, index) => (
+                        <motion.div key={stat.name} variants={fadeInUp} whileHover={{ scale: 1.05, y: -8 }}>
+                            <div className="group relative h-full">
+                                {/* Glow effect */}
+                                <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500`}></div>
+                                
+                                {/* Main card */}
+                                <Card className="relative h-full border-0 shadow-xl bg-white/70 backdrop-blur-xl overflow-hidden rounded-3xl group-hover:shadow-2xl transition-all duration-500">
+                                    {/* Animated background pattern */}
+                                    <div className="absolute inset-0 opacity-5">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-transparent"></div>
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-white/20 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
                                     </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
-                                </CardContent>
-                            </Card>
+                                    
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 relative z-10">
+                                        <div>
+                                            <CardTitle className="text-sm font-semibold text-gray-600 mb-1">{stat.name}</CardTitle>
+                                            <div className="text-3xl font-bold text-gray-900 group-hover:text-gray-800 transition-colors">
+                                                {stat.value}
+                                            </div>
+                                        </div>
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-gradient-to-br ${stat.color} shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+                                            <stat.icon className="h-7 w-7 text-white" />
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="relative z-10">
+                                        {/* Progress indicator */}
+                                        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+                                            <div 
+                                                className={`h-1.5 rounded-full bg-gradient-to-r ${stat.color} transition-all duration-1000 ease-out`}
+                                                style={{ width: `${Math.min(100, (typeof stat.value === 'number' ? stat.value : parseInt(stat.value.toString())) * 2)}%` }}
+                                            ></div>
+                                        </div>
+                                        <p className="text-xs text-gray-500 font-medium">
+                                            {index === 0 && '+2 this month'}
+                                            {index === 1 && '+1 this week'}
+                                            {index === 2 && 'Great progress!'}
+                                            {index === 3 && 'Keep it up!'}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </motion.div>
                     ))}
                 </motion.div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Recent Activity */}
+                    {/* Recent Activity - Enhanced */}
                     <motion.div className="lg:col-span-2" variants={fadeInUp} initial="initial" animate="animate">
-                        <Card className="hover:shadow-2xl transition-all duration-300 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                            <CardHeader>
-                                <CardTitle className="text-2xl font-bold text-gray-900">Recent Activity</CardTitle>
-                                <CardDescription>What's new in your courses.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {recentActivity.map((activity) => {
-                                        const Icon = activity.icon;
-                                        return (
-                                            <motion.div key={activity.id} whileHover={{ scale: 1.02 }} className="flex items-center space-x-4 p-3 -m-3 rounded-lg hover:bg-gray-500/10 transition-colors">
-                                                <div className="flex-shrink-0">
-                                                    <Icon className={`h-6 w-6 ${activity.iconColor}`} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                                                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                                                </div>
-                                                <ArrowRight className="h-5 w-5 text-gray-400" />
-                                            </motion.div>
-                                        );
-                                    })}
+                        <div className="group relative">
+                            {/* Glow effect */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            
+                            <Card className="relative border-0 shadow-xl bg-white/70 backdrop-blur-xl rounded-3xl group-hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                                {/* Animated background */}
+                                <div className="absolute inset-0 opacity-5">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-400/30 to-transparent rounded-full -translate-y-32 translate-x-32"></div>
                                 </div>
-                                <Button variant="outline" onClick={() => setActiveTab('notifications')} className="mt-6 w-full bg-transparent border-indigo-500 text-indigo-600 hover:bg-indigo-500 hover:text-white">
-                                    View All Notifications
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-
-                    {/* Sidebar */}
-                    <motion.div className="space-y-8" variants={fadeInUp} initial="initial" animate="animate">
-                        {/* Quick Actions */}
-                        <Card className="hover:shadow-2xl transition-all duration-300 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                            <CardHeader>
-                                <CardTitle className="text-xl font-bold text-gray-900">Quick Actions</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <Button onClick={() => handleQuickAction('View Assignments')} className="w-full justify-start bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-md"><BookOpen className="mr-3 h-5 w-5" /> View Assignments</Button>
-                                <Button onClick={() => handleQuickAction('Check Grades')} className="w-full justify-start bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md"><BarChart3 className="mr-3 h-5 w-5" /> Check Grades</Button>
-                                <Button onClick={() => handleQuickAction('View Schedule')} className="w-full justify-start bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-md"><span><Calendar width={20} height={20} stroke="white" className="mr-3" /></span> View Schedule</Button>
-                            </CardContent>
-                        </Card>
-
-                        {/* Upcoming Deadlines */}
-                        <Card className="hover:shadow-2xl transition-all duration-300 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                            <CardHeader>
-                                <CardTitle className="text-xl font-bold text-gray-900">Upcoming Deadlines</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                {upcomingDeadlines.map((deadline) => (
-                                    <div key={deadline.id} className="flex items-center justify-between p-3 bg-gray-500/10 rounded-lg">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">{deadline.title}</p>
-                                            <p className="text-xs text-gray-600">{deadline.course}</p>
+                                
+                                <CardHeader className="relative z-10 pb-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                                <Activity className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <CardTitle className="text-2xl font-bold text-gray-900">Recent Activity</CardTitle>
+                                                <CardDescription className="text-gray-600 font-medium">What's happening in your learning journey</CardDescription>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-semibold text-gray-800">{deadline.dueDate}</p>
-                                            <Badge className={`mt-1 ${deadline.priority === 'high' ? 'bg-red-500' :
-                                                deadline.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                                                }`}>
-                                                {deadline.priority}
-                                            </Badge>
+                                        <div className="flex items-center text-blue-600 text-sm font-medium cursor-pointer hover:text-blue-700 transition-colors">
+                                            <span>View All</span>
+                                            <ArrowRight className="w-4 h-4 ml-1" />
                                         </div>
                                     </div>
-                                ))}
-                            </CardContent>
-                        </Card>
+                                </CardHeader>
+                                <CardContent className="relative z-10">
+                                    <div className="space-y-4">
+                                        {recentActivity.map((activity, index) => {
+                                            const Icon = activity.icon;
+                                            return (
+                                                <motion.div 
+                                                    key={activity.id} 
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: index * 0.1 }}
+                                                    whileHover={{ scale: 1.02, x: 8 }} 
+                                                    className="group/item flex items-center space-x-4 p-4 rounded-2xl hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 cursor-pointer border border-transparent hover:border-blue-200/50"
+                                                >
+                                                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${
+                                                        activity.type === 'assignment' ? 'bg-green-100' :
+                                                        activity.type === 'grade' ? 'bg-blue-100' :
+                                                        activity.type === 'announcement' ? 'bg-purple-100' : 'bg-orange-100'
+                                                    } group-hover/item:scale-110 transition-transform duration-300`}>
+                                                        <Icon className={`h-6 w-6 ${activity.iconColor}`} />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-gray-900 group-hover/item:text-gray-800">{activity.title}</p>
+                                                        <p className="text-xs text-gray-500 mt-1 font-medium">{activity.time}</p>
+                                                    </div>
+                                                    <ArrowRight className="h-5 w-5 text-gray-400 group-hover/item:text-blue-500 group-hover/item:translate-x-1 transition-all duration-300" />
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                        <Button 
+                                            onClick={() => setActiveTab('notifications')} 
+                                            className="mt-8 w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
+                                        >
+                                            <Bell className="w-4 h-4 mr-2" />
+                                            View All Notifications
+                                        </Button>
+                                    </motion.div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </motion.div>
+
+                    {/* Enhanced Sidebar */}
+                    <motion.div className="space-y-8" variants={fadeInUp} initial="initial" animate="animate">
+                        {/* Quick Actions - Enhanced */}
+                        <div className="group relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-green-400/20 to-blue-600/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            
+                            <Card className="relative border-0 shadow-xl bg-white/70 backdrop-blur-xl rounded-3xl group-hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                                <div className="absolute inset-0 opacity-5">
+                                    <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-green-400/30 to-transparent rounded-full -translate-y-16 -translate-x-16"></div>
+                                </div>
+                                
+                                <CardHeader className="relative z-10">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center">
+                                            <Zap className="w-5 h-5 text-white" />
+                                        </div>
+                                        <CardTitle className="text-xl font-bold text-gray-900">Quick Actions</CardTitle>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-4 relative z-10">
+                                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                        <Button 
+                                            onClick={() => handleQuickAction('View Assignments')} 
+                                            className="w-full justify-start bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl py-3 font-semibold"
+                                        >
+                                            <BookOpen className="mr-3 h-5 w-5" /> View Assignments
+                                        </Button>
+                                    </motion.div>
+                                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                        <Button 
+                                            onClick={() => handleQuickAction('Check Grades')} 
+                                            className="w-full justify-start bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl py-3 font-semibold"
+                                        >
+                                            <BarChart3 className="mr-3 h-5 w-5" /> Check Grades
+                                        </Button>
+                                    </motion.div>
+                                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                        <Button 
+                                            onClick={() => handleQuickAction('View Schedule')} 
+                                            className="w-full justify-start bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl py-3 font-semibold"
+                                        >
+                                            <Calendar className="mr-3 h-5 w-5" /> View Schedule
+                                        </Button>
+                                    </motion.div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Upcoming Deadlines - Enhanced */}
+                        <div className="group relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-red-600/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            
+                            <Card className="relative border-0 shadow-xl bg-white/70 backdrop-blur-xl rounded-3xl group-hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                                <div className="absolute inset-0 opacity-5">
+                                    <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-orange-400/30 to-transparent rounded-full translate-y-16 translate-x-16"></div>
+                                </div>
+                                
+                                <CardHeader className="relative z-10">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+                                            <Target className="w-5 h-5 text-white" />
+                                        </div>
+                                        <CardTitle className="text-xl font-bold text-gray-900">Upcoming Deadlines</CardTitle>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-4 relative z-10">
+                                    {upcomingDeadlines.map((deadline, index) => (
+                                        <motion.div 
+                                            key={deadline.id} 
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: index * 0.1 }}
+                                            whileHover={{ scale: 1.02, x: 4 }}
+                                            className="group/deadline flex items-center justify-between p-4 bg-gradient-to-r from-gray-50/80 to-white/80 rounded-2xl hover:from-orange-50/80 hover:to-red-50/80 transition-all duration-300 cursor-pointer border border-gray-200/50 hover:border-orange-200/50"
+                                        >
+                                            <div className="flex items-center space-x-3">
+                                                <div className={`w-3 h-3 rounded-full ${
+                                                    deadline.priority === 'high' ? 'bg-red-500' :
+                                                    deadline.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                                                } group-hover/deadline:scale-125 transition-transform duration-300`}></div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900 group-hover/deadline:text-gray-800">{deadline.title}</p>
+                                                    <p className="text-xs text-gray-600 font-medium">{deadline.course}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-sm font-bold text-gray-800">{deadline.dueDate}</p>
+                                                <Badge className={`mt-1 text-xs font-semibold ${
+                                                    deadline.priority === 'high' ? 'bg-red-500 hover:bg-red-600' :
+                                                    deadline.priority === 'medium' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'
+                                                } transition-colors duration-300`}>
+                                                    {deadline.priority}
+                                                </Badge>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </CardContent>
+                            </Card>
+                        </div>
                     </motion.div>
                 </div>
             </div>

@@ -71,15 +71,15 @@ const MergedNavbar: React.FC = () => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-full md:w-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
-                        {(userRoles.includes('USER') || userRoles.includes('ADMIN')) || userRoles.includes('SUPER_ADMIN') &&  (
+                        {(userRoles.includes('USER') || userRoles.includes('ADMIN') || userRoles.includes('SUPER_ADMIN')) && (
                             <DropdownMenuItem asChild><Link href="/dashboard/user-home"
                                 className="w-full">User</Link></DropdownMenuItem>
                         )}
-                        {(userRoles.includes('INSTRUCTOR') || userRoles.includes('ADMIN')) || userRoles.includes('SUPER_ADMIN') && (
+                        {(userRoles.includes('INSTRUCTOR') || userRoles.includes('ADMIN') || userRoles.includes('SUPER_ADMIN')) && (
                             <DropdownMenuItem asChild><Link href="/dashboard/instructor-home"
                                 className="w-full">Instructor</Link></DropdownMenuItem>
                         )}
-                        {(userRoles.includes('SUPER_ADMIN') &&
+                        {userRoles.includes('SUPER_ADMIN') && (
                          <DropdownMenuItem asChild>
                             <Link href="/dashboard/super-admin-home" className="w-full flex items-center">
                                 <Crown className="mr-2 h-4 w-4 text-purple-600" />
@@ -174,18 +174,32 @@ const MergedNavbar: React.FC = () => {
 
     return (
         <div>
-            {/* Main Navbar */}
-            <nav
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 sticky top-0 z-40 w-full border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="container mx-auto flex h-16 items-center justify-between px-4">
-                    <div className="flex items-center gap-2">
-                        <Link href="/" className="flex items-center gap-2">
-                            <img
-                                src="/sigmat_logo.jpg"
-                                alt="SIGMAT Logo"
-                                className="h-8 w-auto"
-                            />
-                            <span className="text-white text-xl md:text-2xl font-bold">eLearning</span>
+            {/* Enhanced Main Navbar */}
+            <nav className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 sticky top-0 z-50 w-full border-b border-white/20 backdrop-blur-xl shadow-lg">
+                {/* Decorative top border */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500"></div>
+                
+                <div className="container mx-auto flex h-16 items-center justify-between px-6 relative">
+                    {/* Background glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/50 to-purple-600/50 blur-3xl opacity-30 pointer-events-none"></div>
+                    <div className="flex items-center gap-3 relative z-10">
+                        <Link href="/" className="flex items-center gap-3 group">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-white/20 rounded-2xl blur-md group-hover:bg-white/30 transition-all duration-300 pointer-events-none"></div>
+                                <img
+                                    src="/sigmat_logo.jpg"
+                                    alt="SIGMAT Logo"
+                                    className="relative h-10 w-auto rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-300"
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-white text-xl md:text-2xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent group-hover:from-blue-100 group-hover:to-white transition-all duration-300">
+                                    eLearning
+                                </span>
+                                <span className="text-blue-200 text-xs font-medium opacity-80">
+                                    Learn • Grow • Excel
+                                </span>
+                            </div>
                         </Link>
                     </div>
 
@@ -212,52 +226,80 @@ const MergedNavbar: React.FC = () => {
                         </Sheet>
                     </div>
 
-                    <div className="flex items-center space-x-4">
-                        {/* Notification Dropdown from Dashboard Header */}
-                        <div className="text-white">
-                            <NotificationDropdown />
+                    <div className="flex items-center space-x-6 relative z-10">
+                        {/* Enhanced Notification Dropdown */}
+                        <div className="text-white relative">
+                            <div className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-300 backdrop-blur-sm border border-white/20 hover:border-white/40">
+                                <NotificationDropdown />
+                            </div>
                         </div>
 
-                        {/* User Profile */}
+                        {/* Enhanced User Profile */}
                         {userProfile ? (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                                        <Avatar className="h-9 w-9 border-2 border-white/50">
+                                    <Button variant="ghost" className="relative h-12 w-12 rounded-2xl p-0 hover:scale-105 transition-all duration-300 group">
+                                        {/* Glow effect */}
+                                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-blue-200/20 rounded-2xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                                        
+                                        <Avatar className="relative h-12 w-12 border-2 border-white/30 group-hover:border-white/60 transition-all duration-300 shadow-lg">
                                             <AvatarImage src={userProfile.profileImage || "/placeholder-avatar.jpg"} alt="User Avatar" />
-                                            <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+                                            <AvatarFallback className="bg-gradient-to-br from-indigo-500 via-purple-600 to-blue-600 text-white font-bold text-lg">
                                                 {userProfile.firstName && userProfile.firstName[0]}
                                                 {userProfile.lastName && userProfile.lastName[0]}
                                             </AvatarFallback>
                                         </Avatar>
+                                        
+                                        {/* Online indicator */}
+                                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-56 bg-white/80 backdrop-blur-sm border-0 shadow-lg" align="end" forceMount>
-                                    <DropdownMenuItem>
+                                <DropdownMenuContent className="w-64 bg-white/90 backdrop-blur-xl border-0 shadow-2xl rounded-2xl p-2" align="end" forceMount>
+                                    {/* User info header */}
+                                    <div className="px-4 py-3 border-b border-gray-200/50 mb-2">
+                                        <p className="text-sm font-semibold text-gray-900">
+                                            {userProfile.firstName} {userProfile.lastName}
+                                        </p>
+                                        <p className="text-xs text-gray-600">Welcome back!</p>
+                                    </div>
+                                    
+                                    <DropdownMenuItem className="rounded-xl hover:bg-blue-50 transition-colors duration-200">
                                         <Link href="/dashboard/profile" className="flex items-center w-full">
-                                            <User className="mr-2 h-4 w-4" />
-                                            <span>Profile</span>
+                                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                                                <User className="h-4 w-4 text-blue-600" />
+                                            </div>
+                                            <span className="font-medium">Profile Settings</span>
                                         </Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem className="rounded-xl hover:bg-purple-50 transition-colors duration-200">
                                         <Link href="/dashboard/subscription" className="flex items-center w-full">
-                                            <User className="mr-2 h-4 w-4" />
-                                            <span>Billing & Subscription</span>
+                                            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center mr-3">
+                                                <Crown className="h-4 w-4 text-purple-600" />
+                                            </div>
+                                            <span className="font-medium">Billing & Subscription</span>
                                         </Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={handleLogout}>
-                                        <LogOut className="mr-2 h-4 w-4" />
-                                        <span>Log out</span>
+                                    <DropdownMenuItem 
+                                        onClick={handleLogout}
+                                        className="rounded-xl hover:bg-red-50 transition-colors duration-200 text-red-600 hover:text-red-700"
+                                    >
+                                        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center mr-3">
+                                            <LogOut className="h-4 w-4 text-red-600" />
+                                        </div>
+                                        <span className="font-medium">Sign Out</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         ) : (
-                            <Button
-                                onClick={handleLoginButtonClick}
-                                className="text-sm md:text-base bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-md"
-                            >
-                                LOGIN
-                            </Button>
+                            <div className="relative group">
+                                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-blue-200/20 rounded-2xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                                <Button
+                                    onClick={handleLoginButtonClick}
+                                    className="relative text-sm md:text-base bg-gradient-to-r from-white/20 to-white/10 hover:from-white/30 hover:to-white/20 text-white font-semibold px-6 py-2 rounded-2xl border border-white/30 hover:border-white/50 backdrop-blur-sm transition-all duration-300 shadow-lg hover:shadow-xl"
+                                >
+                                    LOGIN
+                                </Button>
+                            </div>
                         )}
                     </div>
                 </div>
