@@ -249,7 +249,7 @@ const InstitutionLayout = ({ children }: { children: React.ReactNode }) => {
                         Security
                       </Link>
                       <Link
-                        href="/institution/settings"
+                        href="/(dashboard)/institution/settings"
                         className="flex items-center px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
                       >
                         <Settings className="mr-3 h-4 w-4" />

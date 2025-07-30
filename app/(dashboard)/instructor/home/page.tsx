@@ -37,8 +37,8 @@ import {
 } from "@/app/components/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { StudentManagement } from "./components/StudentManagement";
-import { CourseAnalytics } from "./components/CourseAnalytics";
+import { StudentManagement } from "../components/StudentManagement";
+import { CourseAnalytics } from "../components/CourseAnalytics";
 import { InstructorProvider } from '@/app/components/instructor-home-dashboard/contexts/InstructorContext';
 import { NotificationProvider } from '@/app/components/instructor-home-dashboard/contexts/NotificationContext';
 import InstructorHeader from '@/app/components/instructor-home-dashboard/instructor/InstructorHeader';
