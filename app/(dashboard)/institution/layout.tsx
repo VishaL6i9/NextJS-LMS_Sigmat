@@ -45,10 +45,24 @@ const InstitutionLayout = ({ children }: { children: React.ReactNode }) => {
       description: 'Overview and quick actions'
     },
     {
+      name: 'Batches',
+      href: '/institution/batches',
+      icon: BookOpen,
+      description: 'Manage student batches',
+      badge: 'New'
+    },
+    {
       name: 'Students',
       href: '/institution/students',
       icon: Users,
       description: 'Manage your students'
+    },
+    {
+      name: 'Parents',
+      href: '/institution/parents',
+      icon: User,
+      description: 'Parent engagement portal',
+      badge: 'New'
     },
     {
       name: 'Instructors',
@@ -57,17 +71,17 @@ const InstitutionLayout = ({ children }: { children: React.ReactNode }) => {
       description: 'Manage teaching staff'
     },
     {
-      name: 'Courses',
-      href: '/institution/courses',
-      icon: BookOpen,
-      description: 'Institute courses'
+      name: 'Announcements',
+      href: '/institution/announcements',
+      icon: Bell,
+      description: 'Create and manage announcements',
+      badge: 'New'
     },
     {
       name: 'Global Marketplace',
       href: '/institution/marketplace',
       icon: Globe,
-      description: 'Browse global courses',
-      badge: 'New'
+      description: 'Browse global courses'
     },
     {
       name: 'Analytics',
