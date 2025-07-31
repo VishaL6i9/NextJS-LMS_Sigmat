@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 import { useUser } from "@/app/contexts/UserContext";
-import { login, getUserId, getUserProfile, getProfileImageId, getProfileImage, ApiError, UserProfile } from "@/app/components/services/api";
+import { login, getUserId, getUserRoles, getUserProfile, getProfileImageId, getProfileImage, ApiError, UserProfile } from "@/app/components/services/api";
 
 const formSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
@@ -59,7 +59,7 @@ export function LoginForm({
             localStorage.setItem("userid", userID);
 
             const profileData: UserProfile = await getUserProfile(userID);
-            
+
             let profileImage: string | null = null;
             try {
                 const profileImageID = await getProfileImageId(userID);
@@ -77,9 +77,29 @@ export function LoginForm({
 
             setUserProfile({ ...profileData, profileImage });
 
-            // Redirect to dashboard
-            console.log('Redirecting to dashboard...'); // Debug log
-            router.push('/dashboard/user-home');
+            // Fetch user roles after successful login to determine routing
+            try {
+                const roles = await getUserRoles();
+                const roleNames = roles.map(role => role.name || role.toString());
+
+                // Route based on user roles (priority order)
+                if (roleNames.includes('SUPER_ADMIN')) {
+                    router.push('/dashboard/super-admin-home');
+                } else if (roleNames.includes('INSTITUTION')) {
+                    router.push('/institution/dashboard');
+                } else if (roleNames.includes('INSTRUCTOR')) {
+                    router.push('/instructor/home');
+                } else if (roleNames.includes('USER')) {
+                    router.push('/user/home');
+                } else {
+                    // Default fallback if no recognized role
+                    router.push('/auth/login');
+                }
+            } catch (roleError) {
+                console.error('Failed to fetch user roles for routing:', roleError);
+                // Default fallback route if role fetching fails
+                router.push('/auth/login');
+            }
 
         } catch (error: any) {
             console.error('Login error:', error);
@@ -149,7 +169,7 @@ export function LoginForm({
                                         </FormItem>
                                     )}
                                 />
-                               
+
                                 <Button type="submit" className="w-full" disabled={isLoading}>
                                     {isLoading ? 'Logging in...' : 'Login'}
                                 </Button>
