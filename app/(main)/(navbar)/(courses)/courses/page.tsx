@@ -457,7 +457,7 @@ export default function CoursesManagement() {
         }
     };
 
-    const canManageCourses = userRoles.includes('ADMIN') || userRoles.includes('INSTRUCTOR');
+    const canManageCourses = userRoles.includes('ADMIN') || userRoles.includes('INSTRUCTOR') || userRoles.includes('SUPER_ADMIN');
 
     const renderForm = () => {
         if (!canManageCourses) return null;
