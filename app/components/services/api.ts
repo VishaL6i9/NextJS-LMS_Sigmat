@@ -649,6 +649,225 @@ export interface UserActivityAudit {
   details?: string;
 }
 
+// Institutional Features Types
+export interface BatchDTO {
+  batchId: number;
+  batchName: string;
+  batchCode: string;
+  description?: string;
+  instituteId: number;
+  instituteName?: string;
+  instructorId: number;
+  instructorName?: string;
+  instructorEmail?: string;
+  courseId: number;
+  courseName?: string;
+  startDate: string;
+  endDate: string;
+  maxStudents: number;
+  currentStudents: number;
+  semester?: string;
+  academicYear?: string;
+  grade?: string;
+  division?: string;
+  status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'SUSPENDED';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BatchRequestDTO {
+  batchName: string;
+  batchCode: string;
+  description?: string;
+  instituteId: number;
+  instructorId: number;
+  courseId: number;
+  startDate: string;
+  endDate: string;
+  maxStudents: number;
+  semester?: string;
+  academicYear?: string;
+  grade?: string;
+  division?: string;
+  status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'SUSPENDED';
+}
+
+export interface ParentProfileDTO {
+  parentId: number;
+  parentName: string;
+  parentEmail: string;
+  phoneNumber: string;
+  relationship: string;
+  children: UserDTO[];
+  instituteId: number;
+  instituteName?: string;
+  canViewReports: boolean;
+  canViewAttendance: boolean;
+  canViewGrades: boolean;
+  canViewAnnouncements: boolean;
+  canReceiveNotifications: boolean;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  preferredLanguage: string;
+  lastLoginDate?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ParentProfileRequestDTO {
+  parentName: string;
+  parentEmail: string;
+  phoneNumber: string;
+  relationship: string;
+  childrenIds: number[];
+  instituteId: number;
+  canViewReports?: boolean;
+  canViewAttendance?: boolean;
+  canViewGrades?: boolean;
+  canViewAnnouncements?: boolean;
+  canReceiveNotifications?: boolean;
+  emailNotifications?: boolean;
+  smsNotifications?: boolean;
+  preferredLanguage?: string;
+}
+
+export interface AnnouncementDTO {
+  announcementId: number;
+  title: string;
+  content: string;
+  type: 'GENERAL' | 'ACADEMIC' | 'ADMINISTRATIVE' | 'URGENT' | 'EVENT' | 'HOLIDAY' | 'EXAM' | 'ASSIGNMENT';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  authorId: number;
+  authorName?: string;
+  authorRole?: string;
+  instituteId: number;
+  instituteName?: string;
+  targetRoles: string[];
+  targetBatches: number[];
+  targetCourses: number[];
+  specificUsers: number[];
+  publishDate: string;
+  expiryDate?: string;
+  isPublished: boolean;
+  isPinned: boolean;
+  sendNotification: boolean;
+  sendEmail: boolean;
+  viewCount: number;
+  acknowledgeCount: number;
+  viewedByUsers: number[];
+  acknowledgedByUsers: number[];
+  attachmentUrls: string[];
+  attachmentNames: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnnouncementRequestDTO {
+  title: string;
+  content: string;
+  type: 'GENERAL' | 'ACADEMIC' | 'ADMINISTRATIVE' | 'URGENT' | 'EVENT' | 'HOLIDAY' | 'EXAM' | 'ASSIGNMENT';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  instituteId: number;
+  targetRoles?: string[];
+  targetBatches?: number[];
+  targetCourses?: number[];
+  specificUsers?: number[];
+  publishDate: string;
+  expiryDate?: string;
+  isPublished?: boolean;
+  isPinned?: boolean;
+  sendNotification?: boolean;
+  sendEmail?: boolean;
+  attachmentUrls?: string[];
+  attachmentNames?: string[];
+}
+
+export interface StudentProgressDTO {
+  studentId: number;
+  studentName: string;
+  rollNumber?: string;
+  email: string;
+  instituteId: number;
+  instituteName?: string;
+  batchName?: string;
+  semester?: string;
+  overallGrade: number;
+  gradeLevel: string;
+  attendancePercentage: number;
+  totalClasses: number;
+  attendedClasses: number;
+  courseProgress: CourseProgressDTO[];
+  recentSubmissions: RecentSubmissionDTO[];
+  visibleToParent: boolean;
+  reportGeneratedAt: string;
+  lastUpdated: string;
+}
+
+export interface CourseProgressDTO {
+  courseId: number;
+  courseName: string;
+  instructorName: string;
+  progressPercentage: number;
+  currentGrade: number;
+  completedLessons: number;
+  totalLessons: number;
+  lastAccessed: string;
+}
+
+export interface RecentSubmissionDTO {
+  assignmentId: number;
+  assignmentTitle: string;
+  courseName: string;
+  submittedAt: string;
+  dueDate: string;
+  score: number;
+  feedback?: string;
+  status: 'SUBMITTED' | 'GRADED' | 'LATE' | 'PENDING';
+}
+
+export interface InstitutionalUserDTO extends UserDTO {
+  rollNumber?: string;
+  admissionId?: string;
+  staffId?: string;
+  employeeId?: string;
+  department?: string;
+  jobRole?: string;
+  phoneNumber?: string;
+  parentContact?: string;
+  emergencyContact?: string;
+  batchName?: string;
+  semester?: string;
+  grade?: string;
+  division?: string;
+  courseOfStudy?: string;
+  enrollmentDate?: string;
+  lastLoginDate?: string;
+  batch?: BatchDTO;
+  parentProfile?: ParentProfileDTO;
+  manager?: UserDTO;
+}
+
+export interface InstitutionalUserUpdateDTO {
+  rollNumber?: string;
+  admissionId?: string;
+  staffId?: string;
+  employeeId?: string;
+  department?: string;
+  jobRole?: string;
+  phoneNumber?: string;
+  parentContact?: string;
+  emergencyContact?: string;
+  batchName?: string;
+  semester?: string;
+  grade?: string;
+  division?: string;
+  courseOfStudy?: string;
+  enrollmentDate?: string;
+}
+
 // API Error Types
 export class ApiError extends Error {
   constructor(
@@ -2791,6 +3010,566 @@ class ApiService {
       throw error;
     }
   }
+
+  // Batch Management API Methods
+  async createBatch(batchData: BatchRequestDTO): Promise<BatchDTO> {
+    try {
+      const newBatch = await this.fetchWithErrorHandling<BatchDTO>(`${API_BASE_URL}/batches`, {
+        method: 'POST',
+        body: JSON.stringify(batchData),
+      });
+      return newBatch;
+    } catch (error) {
+      console.error('Failed to create batch:', error);
+      throw error;
+    }
+  }
+
+  async getAllBatches(): Promise<BatchDTO[]> {
+    try {
+      const batches = await this.fetchWithErrorHandling<BatchDTO[]>(`${API_BASE_URL}/batches`);
+      return batches;
+    } catch (error) {
+      console.error('Failed to fetch all batches:', error);
+      throw error;
+    }
+  }
+
+  async getBatchById(batchId: number): Promise<BatchDTO> {
+    if (!batchId) {
+      throw new ApiError('Batch ID is required', 400);
+    }
+    try {
+      const batch = await this.fetchWithErrorHandling<BatchDTO>(`${API_BASE_URL}/batches/${batchId}`);
+      return batch;
+    } catch (error) {
+      console.error(`Failed to fetch batch ${batchId}:`, error);
+      throw error;
+    }
+  }
+
+  async getBatchesByInstitute(instituteId: number): Promise<BatchDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const batches = await this.fetchWithErrorHandling<BatchDTO[]>(`${API_BASE_URL}/batches/institute/${instituteId}`);
+      return batches;
+    } catch (error) {
+      console.error(`Failed to fetch batches for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getBatchesByInstructor(instructorId: number): Promise<BatchDTO[]> {
+    if (!instructorId) {
+      throw new ApiError('Instructor ID is required', 400);
+    }
+    try {
+      const batches = await this.fetchWithErrorHandling<BatchDTO[]>(`${API_BASE_URL}/batches/instructor/${instructorId}`);
+      return batches;
+    } catch (error) {
+      console.error(`Failed to fetch batches for instructor ${instructorId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateBatch(batchId: number, batchData: BatchRequestDTO): Promise<BatchDTO> {
+    if (!batchId) {
+      throw new ApiError('Batch ID is required for update', 400);
+    }
+    try {
+      const updatedBatch = await this.fetchWithErrorHandling<BatchDTO>(`${API_BASE_URL}/batches/${batchId}`, {
+        method: 'PUT',
+        body: JSON.stringify(batchData),
+      });
+      return updatedBatch;
+    } catch (error) {
+      console.error(`Failed to update batch ${batchId}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteBatch(batchId: number): Promise<void> {
+    if (!batchId) {
+      throw new ApiError('Batch ID is required for deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/batches/${batchId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to delete batch ${batchId}:`, error);
+      throw error;
+    }
+  }
+
+  async assignStudentToBatch(batchId: number, studentId: number): Promise<void> {
+    if (!batchId || !studentId) {
+      throw new ApiError('Batch ID and Student ID are required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/batches/${batchId}/students/${studentId}`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to assign student ${studentId} to batch ${batchId}:`, error);
+      throw error;
+    }
+  }
+
+  async removeStudentFromBatch(studentId: number): Promise<void> {
+    if (!studentId) {
+      throw new ApiError('Student ID is required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/batches/students/${studentId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to remove student ${studentId} from batch:`, error);
+      throw error;
+    }
+  }
+
+  async getBatchStudents(batchId: number): Promise<InstitutionalUserDTO[]> {
+    if (!batchId) {
+      throw new ApiError('Batch ID is required', 400);
+    }
+    try {
+      const students = await this.fetchWithErrorHandling<InstitutionalUserDTO[]>(`${API_BASE_URL}/batches/${batchId}/students`);
+      return students;
+    } catch (error) {
+      console.error(`Failed to fetch students for batch ${batchId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateBatchStatus(batchId: number, status: string): Promise<BatchDTO> {
+    if (!batchId || !status) {
+      throw new ApiError('Batch ID and status are required', 400);
+    }
+    try {
+      const updatedBatch = await this.fetchWithErrorHandling<BatchDTO>(`${API_BASE_URL}/batches/${batchId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      return updatedBatch;
+    } catch (error) {
+      console.error(`Failed to update batch ${batchId} status:`, error);
+      throw error;
+    }
+  }
+
+  // Parent Engagement API Methods
+  async createParentProfile(parentData: ParentProfileRequestDTO): Promise<ParentProfileDTO> {
+    try {
+      const newParent = await this.fetchWithErrorHandling<ParentProfileDTO>(`${API_BASE_URL}/parents`, {
+        method: 'POST',
+        body: JSON.stringify(parentData),
+      });
+      return newParent;
+    } catch (error) {
+      console.error('Failed to create parent profile:', error);
+      throw error;
+    }
+  }
+
+  async getAllParents(): Promise<ParentProfileDTO[]> {
+    try {
+      const parents = await this.fetchWithErrorHandling<ParentProfileDTO[]>(`${API_BASE_URL}/parents`);
+      return parents;
+    } catch (error) {
+      console.error('Failed to fetch all parents:', error);
+      throw error;
+    }
+  }
+
+  async getParentById(parentId: number): Promise<ParentProfileDTO> {
+    if (!parentId) {
+      throw new ApiError('Parent ID is required', 400);
+    }
+    try {
+      const parent = await this.fetchWithErrorHandling<ParentProfileDTO>(`${API_BASE_URL}/parents/${parentId}`);
+      return parent;
+    } catch (error) {
+      console.error(`Failed to fetch parent ${parentId}:`, error);
+      throw error;
+    }
+  }
+
+  async getParentsByStudent(studentId: number): Promise<ParentProfileDTO[]> {
+    if (!studentId) {
+      throw new ApiError('Student ID is required', 400);
+    }
+    try {
+      const parents = await this.fetchWithErrorHandling<ParentProfileDTO[]>(`${API_BASE_URL}/parents/student/${studentId}`);
+      return parents;
+    } catch (error) {
+      console.error(`Failed to fetch parents for student ${studentId}:`, error);
+      throw error;
+    }
+  }
+
+  async getParentsByInstitute(instituteId: number): Promise<ParentProfileDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const parents = await this.fetchWithErrorHandling<ParentProfileDTO[]>(`${API_BASE_URL}/parents/institute/${instituteId}`);
+      return parents;
+    } catch (error) {
+      console.error(`Failed to fetch parents for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateParentProfile(parentId: number, parentData: ParentProfileRequestDTO): Promise<ParentProfileDTO> {
+    if (!parentId) {
+      throw new ApiError('Parent ID is required for update', 400);
+    }
+    try {
+      const updatedParent = await this.fetchWithErrorHandling<ParentProfileDTO>(`${API_BASE_URL}/parents/${parentId}`, {
+        method: 'PUT',
+        body: JSON.stringify(parentData),
+      });
+      return updatedParent;
+    } catch (error) {
+      console.error(`Failed to update parent ${parentId}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteParentProfile(parentId: number): Promise<void> {
+    if (!parentId) {
+      throw new ApiError('Parent ID is required for deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/parents/${parentId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to delete parent ${parentId}:`, error);
+      throw error;
+    }
+  }
+
+  async getParentChildren(parentId: number): Promise<InstitutionalUserDTO[]> {
+    if (!parentId) {
+      throw new ApiError('Parent ID is required', 400);
+    }
+    try {
+      const children = await this.fetchWithErrorHandling<InstitutionalUserDTO[]>(`${API_BASE_URL}/parents/${parentId}/children`);
+      return children;
+    } catch (error) {
+      console.error(`Failed to fetch children for parent ${parentId}:`, error);
+      throw error;
+    }
+  }
+
+  async getChildrenProgress(parentId: number): Promise<StudentProgressDTO[]> {
+    if (!parentId) {
+      throw new ApiError('Parent ID is required', 400);
+    }
+    try {
+      const progress = await this.fetchWithErrorHandling<StudentProgressDTO[]>(`${API_BASE_URL}/parents/${parentId}/progress`);
+      return progress;
+    } catch (error) {
+      console.error(`Failed to fetch children progress for parent ${parentId}:`, error);
+      throw error;
+    }
+  }
+
+  async parentLogin(email: string, token: string): Promise<{ accessToken: string; parent: ParentProfileDTO }> {
+    if (!email || !token) {
+      throw new ApiError('Email and token are required for parent login', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<{ accessToken: string; parent: ParentProfileDTO }>(`${API_BASE_URL}/parents/login`, {
+        method: 'POST',
+        body: JSON.stringify({ email, token }),
+      });
+      return response;
+    } catch (error) {
+      console.error('Failed to login parent:', error);
+      throw error;
+    }
+  }
+
+  // Announcement API Methods
+  async createAnnouncement(announcementData: AnnouncementRequestDTO): Promise<AnnouncementDTO> {
+    try {
+      const newAnnouncement = await this.fetchWithErrorHandling<AnnouncementDTO>(`${API_BASE_URL}/announcements`, {
+        method: 'POST',
+        body: JSON.stringify(announcementData),
+      });
+      return newAnnouncement;
+    } catch (error) {
+      console.error('Failed to create announcement:', error);
+      throw error;
+    }
+  }
+
+  async getAllAnnouncements(): Promise<AnnouncementDTO[]> {
+    try {
+      const announcements = await this.fetchWithErrorHandling<AnnouncementDTO[]>(`${API_BASE_URL}/announcements`);
+      return announcements;
+    } catch (error) {
+      console.error('Failed to fetch all announcements:', error);
+      throw error;
+    }
+  }
+
+  async getAnnouncementById(announcementId: number): Promise<AnnouncementDTO> {
+    if (!announcementId) {
+      throw new ApiError('Announcement ID is required', 400);
+    }
+    try {
+      const announcement = await this.fetchWithErrorHandling<AnnouncementDTO>(`${API_BASE_URL}/announcements/${announcementId}`);
+      return announcement;
+    } catch (error) {
+      console.error(`Failed to fetch announcement ${announcementId}:`, error);
+      throw error;
+    }
+  }
+
+  async getAnnouncementsByInstitute(instituteId: number): Promise<AnnouncementDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const announcements = await this.fetchWithErrorHandling<AnnouncementDTO[]>(`${API_BASE_URL}/announcements/institute/${instituteId}`);
+      return announcements;
+    } catch (error) {
+      console.error(`Failed to fetch announcements for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getAnnouncementsForUser(userId: number): Promise<AnnouncementDTO[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required', 400);
+    }
+    try {
+      const announcements = await this.fetchWithErrorHandling<AnnouncementDTO[]>(`${API_BASE_URL}/announcements/user/${userId}`);
+      return announcements;
+    } catch (error) {
+      console.error(`Failed to fetch announcements for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateAnnouncement(announcementId: number, announcementData: AnnouncementRequestDTO): Promise<AnnouncementDTO> {
+    if (!announcementId) {
+      throw new ApiError('Announcement ID is required for update', 400);
+    }
+    try {
+      const updatedAnnouncement = await this.fetchWithErrorHandling<AnnouncementDTO>(`${API_BASE_URL}/announcements/${announcementId}`, {
+        method: 'PUT',
+        body: JSON.stringify(announcementData),
+      });
+      return updatedAnnouncement;
+    } catch (error) {
+      console.error(`Failed to update announcement ${announcementId}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteAnnouncement(announcementId: number): Promise<void> {
+    if (!announcementId) {
+      throw new ApiError('Announcement ID is required for deletion', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/announcements/${announcementId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error(`Failed to delete announcement ${announcementId}:`, error);
+      throw error;
+    }
+  }
+
+  async markAnnouncementAsViewed(announcementId: number): Promise<void> {
+    if (!announcementId) {
+      throw new ApiError('Announcement ID is required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/announcements/${announcementId}/view`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to mark announcement ${announcementId} as viewed:`, error);
+      throw error;
+    }
+  }
+
+  async acknowledgeAnnouncement(announcementId: number): Promise<void> {
+    if (!announcementId) {
+      throw new ApiError('Announcement ID is required', 400);
+    }
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/announcements/${announcementId}/acknowledge`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error(`Failed to acknowledge announcement ${announcementId}:`, error);
+      throw error;
+    }
+  }
+
+  async getPinnedAnnouncements(): Promise<AnnouncementDTO[]> {
+    try {
+      const announcements = await this.fetchWithErrorHandling<AnnouncementDTO[]>(`${API_BASE_URL}/announcements/pinned`);
+      return announcements;
+    } catch (error) {
+      console.error('Failed to fetch pinned announcements:', error);
+      throw error;
+    }
+  }
+
+  // Institutional User Management API Methods
+  async getInstitutionalUsers(): Promise<InstitutionalUserDTO[]> {
+    try {
+      const users = await this.fetchWithErrorHandling<InstitutionalUserDTO[]>(`${API_BASE_URL}/users/institutional`);
+      return users;
+    } catch (error) {
+      console.error('Failed to fetch institutional users:', error);
+      throw error;
+    }
+  }
+
+  async getUsersByInstitute(instituteId: number): Promise<InstitutionalUserDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const users = await this.fetchWithErrorHandling<InstitutionalUserDTO[]>(`${API_BASE_URL}/users/institute/${instituteId}`);
+      return users;
+    } catch (error) {
+      console.error(`Failed to fetch users for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUsersByBatch(batchId: number): Promise<InstitutionalUserDTO[]> {
+    if (!batchId) {
+      throw new ApiError('Batch ID is required', 400);
+    }
+    try {
+      const users = await this.fetchWithErrorHandling<InstitutionalUserDTO[]>(`${API_BASE_URL}/users/batch/${batchId}`);
+      return users;
+    } catch (error) {
+      console.error(`Failed to fetch users for batch ${batchId}:`, error);
+      throw error;
+    }
+  }
+
+  async getUsersByRole(role: string): Promise<InstitutionalUserDTO[]> {
+    if (!role) {
+      throw new ApiError('Role is required', 400);
+    }
+    try {
+      const users = await this.fetchWithErrorHandling<InstitutionalUserDTO[]>(`${API_BASE_URL}/users/role/${role}`);
+      return users;
+    } catch (error) {
+      console.error(`Failed to fetch users with role ${role}:`, error);
+      throw error;
+    }
+  }
+
+  async updateInstitutionalUserAttributes(userId: number, attributes: InstitutionalUserUpdateDTO): Promise<InstitutionalUserDTO> {
+    if (!userId) {
+      throw new ApiError('User ID is required for update', 400);
+    }
+    try {
+      const updatedUser = await this.fetchWithErrorHandling<InstitutionalUserDTO>(`${API_BASE_URL}/users/${userId}/institutional`, {
+        method: 'PUT',
+        body: JSON.stringify(attributes),
+      });
+      return updatedUser;
+    } catch (error) {
+      console.error(`Failed to update institutional attributes for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async batchAssignUsers(assignments: { userIds: number[]; batchId?: number; instituteId?: number }): Promise<void> {
+    try {
+      await this.fetchWithErrorHandling<void>(`${API_BASE_URL}/users/batch-assign`, {
+        method: 'POST',
+        body: JSON.stringify(assignments),
+      });
+    } catch (error) {
+      console.error('Failed to batch assign users:', error);
+      throw error;
+    }
+  }
+
+  // Progress Monitoring API Methods
+  async getStudentProgress(studentId: number): Promise<StudentProgressDTO> {
+    if (!studentId) {
+      throw new ApiError('Student ID is required', 400);
+    }
+    try {
+      const progress = await this.fetchWithErrorHandling<StudentProgressDTO>(`${API_BASE_URL}/progress/student/${studentId}`);
+      return progress;
+    } catch (error) {
+      console.error(`Failed to fetch progress for student ${studentId}:`, error);
+      throw error;
+    }
+  }
+
+  async getBatchProgress(batchId: number): Promise<StudentProgressDTO[]> {
+    if (!batchId) {
+      throw new ApiError('Batch ID is required', 400);
+    }
+    try {
+      const progress = await this.fetchWithErrorHandling<StudentProgressDTO[]>(`${API_BASE_URL}/progress/batch/${batchId}`);
+      return progress;
+    } catch (error) {
+      console.error(`Failed to fetch progress for batch ${batchId}:`, error);
+      throw error;
+    }
+  }
+
+  async getInstituteProgress(instituteId: number): Promise<StudentProgressDTO[]> {
+    if (!instituteId) {
+      throw new ApiError('Institute ID is required', 400);
+    }
+    try {
+      const progress = await this.fetchWithErrorHandling<StudentProgressDTO[]>(`${API_BASE_URL}/progress/institute/${instituteId}`);
+      return progress;
+    } catch (error) {
+      console.error(`Failed to fetch progress for institute ${instituteId}:`, error);
+      throw error;
+    }
+  }
+
+  async getProgressForParent(parentId: number): Promise<StudentProgressDTO[]> {
+    if (!parentId) {
+      throw new ApiError('Parent ID is required', 400);
+    }
+    try {
+      const progress = await this.fetchWithErrorHandling<StudentProgressDTO[]>(`${API_BASE_URL}/progress/parent/${parentId}`);
+      return progress;
+    } catch (error) {
+      console.error(`Failed to fetch progress for parent ${parentId}:`, error);
+      throw error;
+    }
+  }
+
+  async generateProgressReport(reportData: { studentIds?: number[]; batchId?: number; instituteId?: number; dateRange?: { start: string; end: string } }): Promise<{ reportUrl: string; reportId: string }> {
+    try {
+      const report = await this.fetchWithErrorHandling<{ reportUrl: string; reportId: string }>(`${API_BASE_URL}/progress/report`, {
+        method: 'POST',
+        body: JSON.stringify(reportData),
+      });
+      return report;
+    } catch (error) {
+      console.error('Failed to generate progress report:', error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();
@@ -2844,6 +3623,58 @@ export const createCheckoutSession = (sessionData: ApiCheckoutSessionRequest) =>
 export const createPlatformSubscriptionCheckout = (userId: string, checkoutData: StripeCheckoutRequest) => apiService.createPlatformSubscriptionCheckout(userId, checkoutData);
 export const createCourseSubscriptionCheckout = (courseId: string, userId: string, checkoutData: StripeCheckoutRequest) => apiService.createCourseSubscriptionCheckout(courseId, userId, checkoutData);
 export const handleCheckoutSuccess = (sessionId: string, userId: string) => apiService.handleCheckoutSuccess(sessionId, userId);
+
+// Batch Management Exports
+export const createBatch = (batchData: BatchRequestDTO) => apiService.createBatch(batchData);
+export const getAllBatches = () => apiService.getAllBatches();
+export const getBatchById = (batchId: number) => apiService.getBatchById(batchId);
+export const getBatchesByInstitute = (instituteId: number) => apiService.getBatchesByInstitute(instituteId);
+export const getBatchesByInstructor = (instructorId: number) => apiService.getBatchesByInstructor(instructorId);
+export const updateBatch = (batchId: number, batchData: BatchRequestDTO) => apiService.updateBatch(batchId, batchData);
+export const deleteBatch = (batchId: number) => apiService.deleteBatch(batchId);
+export const assignStudentToBatch = (batchId: number, studentId: number) => apiService.assignStudentToBatch(batchId, studentId);
+export const removeStudentFromBatch = (studentId: number) => apiService.removeStudentFromBatch(studentId);
+export const getBatchStudents = (batchId: number) => apiService.getBatchStudents(batchId);
+export const updateBatchStatus = (batchId: number, status: string) => apiService.updateBatchStatus(batchId, status);
+
+// Parent Engagement Exports
+export const createParentProfile = (parentData: ParentProfileRequestDTO) => apiService.createParentProfile(parentData);
+export const getAllParents = () => apiService.getAllParents();
+export const getParentById = (parentId: number) => apiService.getParentById(parentId);
+export const getParentsByStudent = (studentId: number) => apiService.getParentsByStudent(studentId);
+export const getParentsByInstitute = (instituteId: number) => apiService.getParentsByInstitute(instituteId);
+export const updateParentProfile = (parentId: number, parentData: ParentProfileRequestDTO) => apiService.updateParentProfile(parentId, parentData);
+export const deleteParentProfile = (parentId: number) => apiService.deleteParentProfile(parentId);
+export const getParentChildren = (parentId: number) => apiService.getParentChildren(parentId);
+export const getChildrenProgress = (parentId: number) => apiService.getChildrenProgress(parentId);
+export const parentLogin = (email: string, token: string) => apiService.parentLogin(email, token);
+
+// Announcement Exports
+export const createAnnouncement = (announcementData: AnnouncementRequestDTO) => apiService.createAnnouncement(announcementData);
+export const getAllAnnouncements = () => apiService.getAllAnnouncements();
+export const getAnnouncementById = (announcementId: number) => apiService.getAnnouncementById(announcementId);
+export const getAnnouncementsByInstitute = (instituteId: number) => apiService.getAnnouncementsByInstitute(instituteId);
+export const getAnnouncementsForUser = (userId: number) => apiService.getAnnouncementsForUser(userId);
+export const updateAnnouncement = (announcementId: number, announcementData: AnnouncementRequestDTO) => apiService.updateAnnouncement(announcementId, announcementData);
+export const deleteAnnouncement = (announcementId: number) => apiService.deleteAnnouncement(announcementId);
+export const markAnnouncementAsViewed = (announcementId: number) => apiService.markAnnouncementAsViewed(announcementId);
+export const acknowledgeAnnouncement = (announcementId: number) => apiService.acknowledgeAnnouncement(announcementId);
+export const getPinnedAnnouncements = () => apiService.getPinnedAnnouncements();
+
+// Institutional User Management Exports
+export const getInstitutionalUsers = () => apiService.getInstitutionalUsers();
+export const getUsersByInstitute = (instituteId: number) => apiService.getUsersByInstitute(instituteId);
+export const getUsersByBatch = (batchId: number) => apiService.getUsersByBatch(batchId);
+export const getUsersByRole = (role: string) => apiService.getUsersByRole(role);
+export const updateInstitutionalUserAttributes = (userId: number, attributes: InstitutionalUserUpdateDTO) => apiService.updateInstitutionalUserAttributes(userId, attributes);
+export const batchAssignUsers = (assignments: { userIds: number[]; batchId?: number; instituteId?: number }) => apiService.batchAssignUsers(assignments);
+
+// Progress Monitoring Exports
+export const getStudentProgress = (studentId: number) => apiService.getStudentProgress(studentId);
+export const getBatchProgress = (batchId: number) => apiService.getBatchProgress(batchId);
+export const getInstituteProgress = (instituteId: number) => apiService.getInstituteProgress(instituteId);
+export const getProgressForParent = (parentId: number) => apiService.getProgressForParent(parentId);
+export const generateProgressReport = (reportData: { studentIds?: number[]; batchId?: number; instituteId?: number; dateRange?: { start: string; end: string } }) => apiService.generateProgressReport(reportData);
 export const createInstructor = (instructorData: ApiInstructorRequest) => apiService.createInstructor(instructorData);
 export const getInstructorById = (instructorId: string) => apiService.getInstructorById(instructorId);
 export const updateInstructor = (instructorId: string, instructorData: ApiInstructorUpdate) => apiService.updateInstructor(instructorId, instructorData);
