@@ -131,10 +131,10 @@ function InstructorHomepageContent() {
       if (!roleNames.includes('INSTRUCTOR') && !roleNames.includes('ADMIN')) {
         toast({
           title: "Access Denied",
-          description: "You don't have instructor permissions.",
+          description: "Please login again",
           variant: "destructive",
         });
-        router.push('/dashboard/user-home');
+        router.push('/auth/login');
         console.log('initializeInstructorData: Access Denied, redirecting.');
         return;
       }
