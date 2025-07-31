@@ -125,7 +125,7 @@ const Navbar: React.FC = () => {
                             <DropdownMenuItem asChild><Link href="/instructor/home" className="w-full">Instructor</Link></DropdownMenuItem>
                         )}
                         {(userRoles.includes('INSTITUTION') || userRoles.includes('ADMIN')) || userRoles.includes('SUPER_ADMIN') && (
-                            <DropdownMenuItem asChild><Link href="/institution/dashboard" className="w-full">Instructor</Link></DropdownMenuItem>
+                            <DropdownMenuItem asChild><Link href="/institution/dashboard" className="w-full">Institution</Link></DropdownMenuItem>
                         )}
                         {(userRoles.includes('SUPER_ADMIN') &&
                          <DropdownMenuItem asChild>
