@@ -217,6 +217,6 @@ export function ParentCard({
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
