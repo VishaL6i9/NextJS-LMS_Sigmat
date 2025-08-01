@@ -281,7 +281,30 @@ export interface Role {
   name: string;
 }
 
-export interface UserProfile {
+export interface LoginRequestDTO {
+  username: string;
+  password: string;
+}
+
+export interface UserProfileDTO {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  language: string;
+  timezone: string;
+  profileImage?: {
+    id: number;
+    imageName: string;
+    contentType: string;
+    imageData: string;
+  };
+  user: ApiUser;
+}
+
+export interface OldUserProfile { // Renamed to avoid conflict and keep old structure if needed elsewhere
   id: string;
   firstName: string;
   lastName: string;
@@ -315,8 +338,11 @@ export interface UpdatePasswordRequest {
 }
 
 export interface ProfileImageResponse {
+  profileImageId: number;
+  imageName: string;
+  contentType: string;
   message: string;
-  profileImageID: string;
+  success: boolean;
 }
 
 export interface SubscriptionPlan {
@@ -1396,15 +1422,15 @@ class ApiService {
     }
   }
 
-  async login(username: string, password: string): Promise<string> {
+  async login(loginRequest: LoginRequestDTO): Promise<string> {
     try {
       const response = await this.fetchWithErrorHandling<string>(`${API_BASE_URL}/public/login`, {
         method: 'POST',
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(loginRequest),
       });
       return response;
     } catch (error) {
-      console.error('Login failed for user:', username, error);
+      console.error('Login failed for user:', loginRequest.username, error);
       throw error;
     }
   }
@@ -1471,12 +1497,12 @@ class ApiService {
     }
   }
 
-  async getUserProfile(userId: string): Promise<UserProfile> {
+  async getUserProfile(userId: string): Promise<UserProfileDTO> {
     if (!userId) {
       throw new ApiError('User ID is required to get profile', 400);
     }
     try {
-      const profile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile/${userId}`);
+      const profile = await this.fetchWithErrorHandling<UserProfileDTO>(`${API_BASE_URL}/user/profile/${userId}`);
       return profile;
     } catch (error) {
       console.error(`Failed to fetch user profile for ID ${userId}:`, error);
@@ -1510,9 +1536,9 @@ class ApiService {
     }
   }
 
-  async updateUserProfile(userId: string, profileData: UpdateProfileRequest): Promise<UserProfile> {
+  async updateUserProfile(userId: string, profileData: UpdateProfileRequest): Promise<UserProfileDTO> {
     try {
-      const updatedProfile = await this.fetchWithErrorHandling<UserProfile>(`${API_BASE_URL}/user/profile/${userId}`, {
+      const updatedProfile = await this.fetchWithErrorHandling<UserProfileDTO>(`${API_BASE_URL}/user/profile/${userId}`, {
         method: 'PUT',
         body: JSON.stringify(profileData),
       });
@@ -1549,21 +1575,12 @@ class ApiService {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${API_BASE_URL}/user/profile/pic/upload/${userId}`, {
+      const response = await this.fetchWithErrorHandling<ProfileImageResponse>(`${API_BASE_URL}/user/profile/pic/upload/${userId}`, {
         method: 'POST',
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new ApiError(
-          `Image upload failed: ${response.status} ${response.statusText}`,
-          response.status,
-          errorData
-        );
-      }
-      const result = await response.json();
-      return result;
+      return response;
     } catch (error) {
       console.error(`Failed to upload profile image for user ID ${userId}:`, error);
       throw error;
