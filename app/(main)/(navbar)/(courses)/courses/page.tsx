@@ -414,7 +414,8 @@ export default function CoursesManagement() {
         setIsLoading(true);
         try {
             const purchaseData: CoursePurchaseRequest = {
-                successUrl: `${window.location.origin}/subscription/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
+                // Let Stripe automatically add session_id parameter to avoid duplication
+                successUrl: `${window.location.origin}/subscription/purchase/success`,
                 cancelUrl: `${window.location.origin}/subscription/purchase/cancel`,
                 discountApplied,
                 couponCode,

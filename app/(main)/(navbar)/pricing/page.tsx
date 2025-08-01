@@ -94,7 +94,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
     const checkoutData: StripeCheckoutRequest = {
       planId: id,
       durationMonths: minimumDurationMonths,
-      successUrl: `${window.location.origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      // Let Stripe automatically add session_id parameter to avoid duplication
+      successUrl: `${window.location.origin}/subscription/success`,
       cancelUrl: `${window.location.origin}/subscription/cancel`,
     };
 
