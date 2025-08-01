@@ -5,7 +5,7 @@ export interface Notification {
   type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
   timestamp: Date;
   isRead: boolean;
-  category?: 'ASSIGNMENT' | 'GRADE' | 'ANNOUNCEMENT' | 'SYSTEM' | 'REMINDER';
+  category?: 'ASSIGNMENT' | 'GRADE' | 'ANNOUNCEMENT' | 'SYSTEM' | 'REMINDER' | 'PAYMENT';
   actionUrl?: string;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH';
 }

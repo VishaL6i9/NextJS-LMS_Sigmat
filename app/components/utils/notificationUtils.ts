@@ -7,7 +7,8 @@ import {
     AlertCircle,
     CheckCircle,
     Info,
-    AlertTriangle
+    AlertTriangle,
+    CreditCard
 } from 'lucide-react';
 
 export const getNotificationIcon = (type: string) => {
@@ -66,6 +67,8 @@ export const getCategoryIcon = (category: string) => {
             return Settings;
         case 'reminder':
             return Clock;
+        case 'payment':
+            return CreditCard;
         default:
             return Info;
     }
@@ -102,6 +105,12 @@ export const getCategoryColor = (category: string) => {
                 bg: 'bg-orange-100',
                 text: 'text-orange-600',
                 border: 'border-orange-300'
+            };
+        case 'payment':
+            return {
+                bg: 'bg-green-100',
+                text: 'text-green-600',
+                border: 'border-green-300'
             };
         default:
             return {
