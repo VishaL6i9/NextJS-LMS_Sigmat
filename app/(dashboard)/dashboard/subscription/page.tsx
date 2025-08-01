@@ -139,6 +139,7 @@ export default function SubscriptionDashboard() {
           >
             <TabsList className="grid max-w-4xl grid-cols-4 h-14 p-1 bg-white/70 backdrop-blur-md border border-white/20 shadow-xl rounded-2xl">
               <TabsTrigger
+                key="trigger-overview"
                 value="overview"
                 className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-white/50"
               >
@@ -146,6 +147,7 @@ export default function SubscriptionDashboard() {
                 <span className="hidden sm:inline font-medium">Overview</span>
               </TabsTrigger>
               <TabsTrigger
+                key="trigger-payment"
                 value="payment"
                 className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-white/50"
               >
@@ -153,6 +155,7 @@ export default function SubscriptionDashboard() {
                 <span className="hidden sm:inline font-medium">Payment</span>
               </TabsTrigger>
               <TabsTrigger
+                key="trigger-upgrade"
                 value="upgrade"
                 className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-white/50"
               >
@@ -160,6 +163,7 @@ export default function SubscriptionDashboard() {
                 <span className="hidden sm:inline font-medium">Upgrade</span>
               </TabsTrigger>
               <TabsTrigger
+                key="trigger-settings"
                 value="settings"
                 className="flex items-center gap-2 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-white/50"
               >
@@ -171,9 +175,9 @@ export default function SubscriptionDashboard() {
 
           <div className="mt-6">
             <AnimatePresence mode="wait">
-              <TabsContent value="overview">
+              <TabsContent key="tab-overview" value="overview">
                 <motion.div
-                  key="overview"
+                  key="motion-overview"
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -183,9 +187,9 @@ export default function SubscriptionDashboard() {
                 </motion.div>
               </TabsContent>
 
-              <TabsContent value="payment">
+              <TabsContent key="tab-payment" value="payment">
                 <motion.div
-                  key="payment"
+                  key="motion-payment"
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -195,9 +199,9 @@ export default function SubscriptionDashboard() {
                 </motion.div>
               </TabsContent>
 
-              <TabsContent value="upgrade">
+              <TabsContent key="tab-upgrade" value="upgrade">
                 <motion.div
-                  key="upgrade"
+                  key="motion-upgrade"
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -217,9 +221,9 @@ export default function SubscriptionDashboard() {
                 </motion.div>
               </TabsContent>
 
-              <TabsContent value="settings">
+              <TabsContent key="tab-settings" value="settings">
                 <motion.div
-                  key="settings"
+                  key="motion-settings"
                   initial={{ opacity: 0, y: 20, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -245,6 +249,7 @@ export default function SubscriptionDashboard() {
                     <CardContent className="p-8 space-y-8">
                       <div className="space-y-6">
                         <motion.div
+                          key="payment-reminders-setting"
                           className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200/50 hover:shadow-lg transition-all duration-300"
                           whileHover={{ scale: 1.02 }}
                         >
@@ -270,9 +275,10 @@ export default function SubscriptionDashboard() {
                           </div>
                         </motion.div>
 
-                        <Separator className="bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+                        <Separator key="separator-1" className="bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
 
                         <motion.div
+                          key="subscription-updates-setting"
                           className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 hover:shadow-lg transition-all duration-300"
                           whileHover={{ scale: 1.02 }}
                         >
@@ -298,9 +304,10 @@ export default function SubscriptionDashboard() {
                           </div>
                         </motion.div>
 
-                        <Separator className="bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+                        <Separator key="separator-2" className="bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
 
                         <motion.div
+                          key="promotional-offers-setting"
                           className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200/50 hover:shadow-lg transition-all duration-300"
                           whileHover={{ scale: 1.02 }}
                         >
