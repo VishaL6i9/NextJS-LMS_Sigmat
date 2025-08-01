@@ -94,21 +94,40 @@ const PricingCard: React.FC<PricingCardProps> = ({
     const checkoutData: StripeCheckoutRequest = {
       planId: id,
       durationMonths: minimumDurationMonths,
-      successUrl: `${window.location.origin}/subscription/success`,
+      successUrl: `${window.location.origin}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${window.location.origin}/subscription/cancel`,
     };
 
     try {
+      // Show processing message
+      toast({
+        title: "Redirecting to Payment",
+        description: "Please wait while we redirect you to secure checkout...",
+      });
+
       const response = await createPlatformSubscriptionCheckout(userProfile.id, checkoutData);
+      
       // Redirect to Stripe Checkout
       window.location.href = response.sessionUrl;
     } catch (err: any) {
       console.error('Checkout failed:', err);
+      
+      // Enhanced error handling
+      const errorMessage = err.message || 'Failed to initiate checkout. Please try again.';
       toast({
         title: "Checkout Failed",
-        description: err.message || 'Failed to initiate checkout. Please try again.',
+        description: errorMessage,
         variant: "destructive",
       });
+
+      // Log error for debugging
+      console.error('Subscription checkout error:', {
+        timestamp: new Date().toISOString(),
+        planId: id,
+        userId: userProfile.id,
+        error: err
+      });
+      
       setIsProcessing(false);
     }
   };

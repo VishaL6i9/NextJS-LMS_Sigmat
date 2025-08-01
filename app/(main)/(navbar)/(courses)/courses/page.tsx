@@ -414,7 +414,7 @@ export default function CoursesManagement() {
         setIsLoading(true);
         try {
             const purchaseData: CoursePurchaseRequest = {
-                successUrl: `${window.location.origin}/subscription/purchase/success`,
+                successUrl: `${window.location.origin}/subscription/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
                 cancelUrl: `${window.location.origin}/subscription/purchase/cancel`,
                 discountApplied,
                 couponCode,
@@ -432,6 +432,12 @@ export default function CoursesManagement() {
                 purchaseData
             );
 
+            // Show processing message
+            toast({
+                title: "Redirecting to Payment",
+                description: "Please wait while we redirect you to secure checkout...",
+            });
+
             // Redirect to Stripe Checkout
             window.location.href = response.sessionUrl;
         } catch (error: any) {
@@ -441,10 +447,21 @@ export default function CoursesManagement() {
                 userId: currentUserId,
                 error: error.message
             });
+
+            // Enhanced error handling
+            const errorMessage = error.message || "Failed to initiate purchase. Please try again.";
             toast({
-                title: "Error",
-                description: error.message || "Failed to initiate purchase. Please try again.",
+                title: "Purchase Failed",
+                description: errorMessage,
                 variant: "destructive",
+            });
+
+            // Log error for debugging
+            console.error('Course purchase error:', {
+                timestamp: new Date().toISOString(),
+                courseId: selectedCourseForPurchase.id,
+                userId: currentUserId,
+                error: error
             });
         } finally {
             setIsLoading(false);
