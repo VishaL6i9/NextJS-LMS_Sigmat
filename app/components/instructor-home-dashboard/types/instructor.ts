@@ -27,6 +27,16 @@ export interface Instructor {
   email: string;
   phoneNo: string;
   dateOfJoining: string;
+  facebookHandle?: string;
+  linkedinHandle?: string;
+  youtubeHandle?: string;
+  // Flattened user data
+  userId?: number;
+  username?: string;
+  userEmail?: string;
+  // Flattened institute data
+  instituteId?: number;
+  instituteName?: string;
 }
 
 export interface Student {
