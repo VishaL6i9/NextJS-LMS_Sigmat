@@ -199,8 +199,8 @@ export interface ApiQuizQuestionRequest {
 export interface ApiNotificationRequest {
   title: string;
   message: string;
-  type: 'SYSTEM' | 'COURSE' | 'ASSIGNMENT' | 'QUIZ';
-  category: 'ANNOUNCEMENT' | 'REMINDER' | 'ALERT';
+  type: 'SYSTEM' | 'COURSE' | 'ASSIGNMENT' | 'QUIZ' | 'PAYMENT';
+  category: 'ANNOUNCEMENT' | 'REMINDER' | 'ALERT' | 'PAYMENT';
   priority: 'LOW' | 'MEDIUM' | 'HIGH';
 }
 
@@ -3570,6 +3570,98 @@ class ApiService {
       throw error;
     }
   }
+  // Payment and Notification Methods
+  async getRecentNotifications(userId: string): Promise<Notification[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required', 400);
+    }
+    try {
+      const notifications = await this.fetchWithErrorHandling<Notification[]>(`${API_BASE_URL}/notifications/user/${userId}/recent`);
+      return notifications;
+    } catch (error) {
+      console.error(`Failed to fetch recent notifications for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  // DEPRECATED: This method is deprecated and should not be used
+  // Use handleCheckoutSuccess instead for processing payment success
+  async getSubscriptionStatus(sessionId: string): Promise<UserSubscription> {
+    throw new ApiError('getSubscriptionStatus is deprecated. Use handleCheckoutSuccess instead.', 410);
+  }
+
+  // Check if webhook has processed the session
+  async checkWebhookStatus(sessionId: string): Promise<{ processed: boolean; status?: string }> {
+    if (!sessionId) {
+      throw new ApiError('Session ID is required', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<{ processed: boolean; status?: string }>(`${API_BASE_URL}/webhooks/status/${sessionId}`);
+      return response;
+    } catch (error) {
+      console.error(`Failed to check webhook status for session ${sessionId}:`, error);
+      // Return false if endpoint doesn't exist yet (404) or other errors
+      return { processed: false };
+    }
+  }
+
+  // Debug webhook processing for troubleshooting
+  async debugWebhookStatus(sessionId: string): Promise<any> {
+    if (!sessionId) {
+      throw new ApiError('Session ID is required', 400);
+    }
+    try {
+      const response = await this.fetchWithErrorHandling<any>(`${API_BASE_URL}/debug/webhook/${sessionId}`);
+      return response;
+    } catch (error) {
+      console.error(`Failed to debug webhook status for session ${sessionId}:`, error);
+      return null;
+    }
+  }
+
+  async getCurrentUserSubscription(): Promise<UserSubscription> {
+    try {
+      const subscription = await this.fetchWithErrorHandling<UserSubscription>(`${API_BASE_URL}/subscriptions/user/current`);
+      return subscription;
+    } catch (error) {
+      console.error('Failed to fetch current user subscription:', error);
+      throw error;
+    }
+  }
+
+  async pollForSubscriptionActivation(sessionId: string, maxAttempts: number = 10): Promise<UserSubscription> {
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const subscription = await this.getSubscriptionStatus(sessionId);
+        
+        if (subscription.status === 'ACTIVE') {
+          return subscription;
+        }
+        
+        // Wait 2 seconds before next attempt
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (error) {
+        console.error('Error polling subscription status:', error);
+      }
+    }
+    throw new ApiError('Subscription activation timeout', 408);
+  }
+
+  async pollForPaymentNotifications(userId: string): Promise<Notification[]> {
+    try {
+      const notifications = await this.getRecentNotifications(userId);
+      
+      // Filter for payment notifications
+      const paymentNotifications = notifications.filter(
+        n => n.category === 'PAYMENT'
+      );
+      
+      return paymentNotifications;
+    } catch (error) {
+      console.error('Error fetching payment notifications:', error);
+      throw error;
+    }
+  }
 }
 
 export const apiService = new ApiService();
@@ -3821,4 +3913,13 @@ export const forceDeleteUser = (userId: number) => apiService.forceDeleteUser(us
 export const getSystemStats = () => apiService.getSystemStats();
 export const toggleMaintenanceMode = (enabled: boolean) => apiService.toggleMaintenanceMode(enabled);
 export const getUserActivityAuditLogs = () => apiService.getUserActivityAuditLogs();
+
+// Payment and Notification exports
+export const getRecentNotifications = (userId: string) => apiService.getRecentNotifications(userId);
+// DEPRECATED: getSubscriptionStatus is deprecated, use handleCheckoutSuccess instead
+// export const getSubscriptionStatus = (sessionId: string) => apiService.getSubscriptionStatus(sessionId);
+export const checkWebhookStatus = (sessionId: string) => apiService.checkWebhookStatus(sessionId);
+export const debugWebhookStatus = (sessionId: string) => apiService.debugWebhookStatus(sessionId);
+export const pollForSubscriptionActivation = (sessionId: string, maxAttempts?: number) => apiService.pollForSubscriptionActivation(sessionId, maxAttempts);
+export const pollForPaymentNotifications = (userId: string) => apiService.pollForPaymentNotifications(userId);
 
