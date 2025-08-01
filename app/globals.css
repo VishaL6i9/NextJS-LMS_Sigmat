@@ -2,6 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Payment Notification Styles */
+.payment-notification {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border-left: 4px solid #28a745;
+  color: #155724;
+}
+
+.payment-notification .icon {
+  color: #28a745;
+  font-size: 1.2em;
+}
+
+/* Toast Notification Styles */
+.toast {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  max-width: 400px;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast.success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.toast.error {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.toast.warning {
+  background-color: #fff3cd;
+  border-color: #ffeaa7;
+  color: #856404;
+}
+
+.toast.info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+}
+
+.toast-icon {
+  display: inline-block;
+  margin-right: 0.5rem;
+  font-size: 1.2em;
+}
+
+.toast-content {
+  flex: 1;
+}
+
+.toast-content h4 {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.toast-content p {
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Subscription Status Styles */
+.subscription-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.subscription-status.active {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.subscription-status.expired {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.subscription-status.cancelled {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.subscription-status.pending {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
