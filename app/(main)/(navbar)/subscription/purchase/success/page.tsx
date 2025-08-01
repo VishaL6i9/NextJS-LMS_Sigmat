@@ -10,7 +10,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import {
   showPaymentSuccessWithEmailInfo,
-  openEmailClient
+  openEmailClient,
+  cleanSessionId,
+  isValidSessionId
 } from '@/app/components/utils/paymentUtils';
 import {
   getUserId,
@@ -30,7 +32,9 @@ function CoursePurchaseSuccessContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const sessionId = searchParams.get('session_id');
+  // Handle both sessionId and session_id parameters to prevent duplication issues
+  const rawSessionId = searchParams.get('session_id') || searchParams.get('sessionId');
+  const sessionId = cleanSessionId(rawSessionId);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -48,6 +52,18 @@ function CoursePurchaseSuccessContent() {
 
   useEffect(() => {
     if (!sessionId || !userId) return;
+
+    // Validate session ID before processing
+    if (!isValidSessionId(sessionId)) {
+      console.error('Invalid session ID:', rawSessionId, 'cleaned:', sessionId);
+      setStatus('error');
+      toast({
+        title: "Invalid Session",
+        description: "The payment session ID is invalid. Please contact support.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const processPurchaseSuccess = async () => {
       try {
