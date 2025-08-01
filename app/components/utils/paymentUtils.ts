@@ -3,55 +3,67 @@ import {
     pollForPaymentNotifications,
     handleCheckoutSuccess,
     getCurrentUserSubscription,
-    UserSubscription,
-    apiService
+    UserSubscription
 } from '@/app/components/services/api';
 
-// Check if webhook has processed the session
-export async function checkWebhookProcessing(sessionId: string, maxAttempts: number = 10): Promise<boolean> {
-    for (let i = 0; i < maxAttempts; i++) {
-        try {
-            const webhookStatus = await apiService.checkWebhookStatus(sessionId);
-            if (webhookStatus.processed) {
-                console.log(`Webhook processed for session ${sessionId} after ${i + 1} attempts`);
-                return true;
-            }
-        } catch (error) {
-            console.error('Webhook status check failed:', error);
-        }
-        
-        // Wait 2 seconds before next attempt
-        await new Promise(resolve => setTimeout(resolve, 2000));
+// Clean and validate Stripe session ID to prevent duplication issues
+export function cleanSessionId(sessionId: string | null): string | null {
+    if (!sessionId) return null;
+
+    // Remove any URL fragment that might have been appended
+    if (sessionId.includes('#')) {
+        sessionId = sessionId.substring(0, sessionId.indexOf('#'));
     }
     
-    console.warn(`Webhook processing timeout for session ${sessionId} after ${maxAttempts} attempts`);
-    return false;
+    // Remove any query parameters that might have been appended
+    if (sessionId.includes('?')) {
+        sessionId = sessionId.substring(0, sessionId.indexOf('?'));
+    }
+
+    // If the session ID appears to be duplicated, take only the first part
+    if (sessionId.length > 66 && sessionId.startsWith('cs_')) {
+        const secondOccurrence = sessionId.indexOf('cs_', 8);
+        if (secondOccurrence > 0) {
+            sessionId = sessionId.substring(0, secondOccurrence);
+        }
+    }
+
+    return sessionId.trim();
 }
 
-// Payment success handling with webhook awareness
+// Validate Stripe session ID format and length
+export function isValidSessionId(sessionId: string | null): boolean {
+    if (!sessionId || sessionId.trim().length === 0) {
+        return false;
+    }
+
+    const cleaned = cleanSessionId(sessionId);
+    if (!cleaned) return false;
+
+    // Stripe session IDs should start with cs_ and be at most 66 characters
+    return cleaned.startsWith('cs_') && cleaned.length <= 66;
+}
+
+
+
+// Payment success handling with proper checkout success endpoint
 export async function handlePaymentSuccess(sessionId: string, userId: string): Promise<UserSubscription | null> {
     try {
+
+        if (!isValidSessionId(sessionId)) {
+            throw new Error(`Invalid session ID: ${sessionId}`);
+        }
         // Show loading state
         showPaymentProcessing();
 
-        // First, wait a moment for webhook processing (Stripe webhooks are usually fast)
-        console.log(`Starting payment success handling for session ${sessionId}`);
-        
-        // Check if webhook has processed the session (with shorter timeout)
-        const webhookProcessed = await checkWebhookProcessing(sessionId, 5);
-        
-        if (webhookProcessed) {
-            console.log('Webhook processed, calling checkout success endpoint');
-        } else {
-            console.log('Webhook not processed yet, proceeding with checkout success endpoint');
-        }
+        console.log(`Starting payment success handling for session ${sessionId})`);
 
-        // Call the checkout success endpoint regardless of webhook status
-        const checkoutResponse = await handleCheckoutSuccess(sessionId, userId);
+        // Call the checkout success endpoint
+        const checkoutResponse = await handleCheckoutSuccess(sessionId!, userId);
 
         if (checkoutResponse && checkoutResponse.subscription) {
             const subscription = checkoutResponse.subscription;
-            
+
             if (subscription.status === 'ACTIVE') {
                 showPaymentSuccessMessage(subscription);
 
@@ -78,13 +90,13 @@ export async function handlePaymentSuccess(sessionId: string, userId: string): P
                 showPaymentSuccessMessage(subscription);
                 return subscription;
             }
-            
+
             showPaymentPendingMessage();
             return null;
         }
     } catch (error: any) {
         console.error('Payment success handling failed:', error);
-        
+
         // Enhanced fallback: try multiple approaches
         try {
             console.log('Trying fallback subscription check');
@@ -97,15 +109,7 @@ export async function handlePaymentSuccess(sessionId: string, userId: string): P
         } catch (fallbackError) {
             console.error('Fallback subscription check failed:', fallbackError);
         }
-        
-        // Debug webhook status if available
-        try {
-            const debugInfo = await apiService.debugWebhookStatus(sessionId);
-            console.log('Webhook debug info:', debugInfo);
-        } catch (debugError) {
-            console.log('Webhook debug not available:', debugError.message);
-        }
-        
+
         showPaymentErrorMessage(error.message || 'Payment processing failed');
         throw error;
     }
@@ -127,7 +131,7 @@ export async function pollForSubscriptionActivationFallback(userId: string, maxA
             console.error('Error polling subscription status:', error);
         }
     }
-    
+
     // Don't throw error, just return null to indicate timeout
     console.warn('Subscription activation polling timed out');
     return null;
