@@ -1570,15 +1570,29 @@ class ApiService {
     }
   }
 
-  async getNotifications(userId: number): Promise<Notification[]> {
+  async getAllNotifications(userId: number): Promise<Notification[]> {
     if (!userId) {
-      throw new ApiError('User ID is required to get notifications', 400);
+      throw new ApiError('User ID is required to get all notifications', 400);
     }
     try {
       const notifications = await this.fetchWithErrorHandling<Notification[]>(`${API_BASE_URL}/notifications/user/${userId}`);
       return notifications;
     } catch (error) {
-      console.error(`Failed to fetch notifications for user ID ${userId}:`, error);
+      console.error(`Failed to fetch all notifications for user ID ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  async pollForPaymentNotifications(userId: string): Promise<Notification[]> {
+    if (!userId) {
+      throw new ApiError('User ID is required to poll for payment notifications', 400);
+    }
+    try {
+      // Use getUnreadNotifications to only fetch new notifications
+      const notifications = await this.fetchWithErrorHandling<Notification[]>(`${API_BASE_URL}/notifications/user/${userId}/unread`);
+      return notifications;
+    } catch (error) {
+      console.error(`Failed to poll for payment notifications for user ID ${userId}:`, error);
       throw error;
     }
   }
@@ -1839,16 +1853,40 @@ class ApiService {
       throw new ApiError('Session ID and User ID are required for checkout success', 400);
     }
     try {
-      const response = await this.fetchWithErrorHandling<CheckoutSuccessResponse>(`${API_BASE_URL}/subscriptions/checkout/success?sessionId=${sessionId}&userId=${userId}`, {
+      // Convert userId to number to match backend Long type
+      const userIdNumber = parseInt(userId, 10);
+      if (isNaN(userIdNumber)) {
+        throw new ApiError('Invalid user ID format', 400);
+      }
+      
+      // Use URLSearchParams for proper parameter encoding
+      const params = new URLSearchParams({
+        session_id: sessionId,
+        userId: userIdNumber.toString()  
+      });
+      const url = `${API_BASE_URL}/subscriptions/checkout/success?${params.toString()}`;
+      
+      // console.log('Making checkout success request to:', url);
+      // console.log('Parameters:', { sessionId, userId: userIdNumber });
+      // console.log('URL params string:', params.toString());
+      
+      const response = await this.fetchWithErrorHandling<CheckoutSuccessResponse>(url, {
         method: 'POST',
       });
       return response;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to handle checkout success for session ${sessionId}:`, error);
+      console.error('Error details:', {
+        sessionId,
+        userId,
+        userIdParsed: parseInt(userId, 10),
+        errorMessage: error.message,
+        errorStatus: error.status,
+        errorResponse: error.response
+      });
       throw error;
     }
   }
-
   // InstructorController Methods
   async createInstructor(instructorData: ApiInstructorRequest): Promise<ApiInstructor> {
     try {
@@ -2195,7 +2233,20 @@ class ApiService {
       throw new ApiError('Session ID and User ID are required for course checkout success', 400);
     }
     try {
-      const response = await this.fetchWithErrorHandling<CoursePurchaseSuccessResponse>(`${API_BASE_URL}/courses/checkout/success?sessionId=${sessionId}&userId=${userId}`, {
+      // Convert userId to number to match backend Long type
+      const userIdNumber = parseInt(userId, 10);
+      if (isNaN(userIdNumber)) {
+        throw new ApiError('Invalid user ID format', 400);
+      }
+      
+      // Use URLSearchParams for proper parameter encoding
+      const params = new URLSearchParams({
+        sessionId: sessionId,
+        userId: userIdNumber.toString()
+      });
+      const url = `${API_BASE_URL}/courses/checkout/success?${params.toString()}`;
+      
+      const response = await this.fetchWithErrorHandling<CoursePurchaseSuccessResponse>(url, {
         method: 'POST',
       });
       return response;
@@ -3590,34 +3641,80 @@ class ApiService {
     throw new ApiError('getSubscriptionStatus is deprecated. Use handleCheckoutSuccess instead.', 410);
   }
 
-  // Check if webhook has processed the session
-  async checkWebhookStatus(sessionId: string): Promise<{ processed: boolean; status?: string }> {
-    if (!sessionId) {
-      throw new ApiError('Session ID is required', 400);
-    }
+  // Debug method to test the checkout success endpoint
+  async debugCheckoutSuccess(sessionId: string, userId: string): Promise<any> {
     try {
-      const response = await this.fetchWithErrorHandling<{ processed: boolean; status?: string }>(`${API_BASE_URL}/webhooks/status/${sessionId}`);
-      return response;
-    } catch (error) {
-      console.error(`Failed to check webhook status for session ${sessionId}:`, error);
-      // Return false if endpoint doesn't exist yet (404) or other errors
-      return { processed: false };
+      const userIdNumber = parseInt(userId, 10);
+      const baseUrl = `${API_BASE_URL}/subscriptions/checkout/success`;
+      const params = new URLSearchParams({
+        sessionId: sessionId,
+        userId: userIdNumber.toString()
+      });
+      const url = `${baseUrl}?${params.toString()}`;
+      
+      console.log('Debug checkout success request:');
+      console.log('Base URL:', baseUrl);
+      console.log('Parameters:', {
+        sessionId: sessionId,
+        userId: userIdNumber,
+        userIdType: typeof userIdNumber
+      });
+      console.log('URL Params:', params.toString());
+      console.log('Full URL:', url);
+      console.log('Method: POST');
+      console.log('Headers: Content-Type: application/json, Authorization: Bearer [token]');
+      
+      // Make a simple fetch request to see the raw response
+      const token = localStorage.getItem('token');
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const responseText = await response.text();
+      console.log('Response body (raw):', responseText);
+      
+      try {
+        const responseJson = JSON.parse(responseText);
+        console.log('Response body (parsed):', responseJson);
+        return { 
+          status: response.status, 
+          data: responseJson, 
+          raw: responseText,
+          requestInfo: {
+            url,
+            params: params.toString(),
+            sessionId,
+            userId: userIdNumber
+          }
+        };
+      } catch (parseError) {
+        console.log('Response is not JSON');
+        return { 
+          status: response.status, 
+          data: null, 
+          raw: responseText,
+          requestInfo: {
+            url,
+            params: params.toString(),
+            sessionId,
+            userId: userIdNumber
+          }
+        };
+      }
+    } catch (error: any) {
+      console.error('Debug request failed:', error);
+      return { error: error.message };
     }
   }
 
-  // Debug webhook processing for troubleshooting
-  async debugWebhookStatus(sessionId: string): Promise<any> {
-    if (!sessionId) {
-      throw new ApiError('Session ID is required', 400);
-    }
-    try {
-      const response = await this.fetchWithErrorHandling<any>(`${API_BASE_URL}/debug/webhook/${sessionId}`);
-      return response;
-    } catch (error) {
-      console.error(`Failed to debug webhook status for session ${sessionId}:`, error);
-      return null;
-    }
-  }
+
 
   async getCurrentUserSubscription(): Promise<UserSubscription> {
     try {
@@ -3633,11 +3730,11 @@ class ApiService {
     for (let i = 0; i < maxAttempts; i++) {
       try {
         const subscription = await this.getSubscriptionStatus(sessionId);
-        
+
         if (subscription.status === 'ACTIVE') {
           return subscription;
         }
-        
+
         // Wait 2 seconds before next attempt
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
@@ -3650,12 +3747,12 @@ class ApiService {
   async pollForPaymentNotifications(userId: string): Promise<Notification[]> {
     try {
       const notifications = await this.getRecentNotifications(userId);
-      
+
       // Filter for payment notifications
       const paymentNotifications = notifications.filter(
         n => n.category === 'PAYMENT'
       );
-      
+
       return paymentNotifications;
     } catch (error) {
       console.error('Error fetching payment notifications:', error);
@@ -3918,8 +4015,10 @@ export const getUserActivityAuditLogs = () => apiService.getUserActivityAuditLog
 export const getRecentNotifications = (userId: string) => apiService.getRecentNotifications(userId);
 // DEPRECATED: getSubscriptionStatus is deprecated, use handleCheckoutSuccess instead
 // export const getSubscriptionStatus = (sessionId: string) => apiService.getSubscriptionStatus(sessionId);
-export const checkWebhookStatus = (sessionId: string) => apiService.checkWebhookStatus(sessionId);
-export const debugWebhookStatus = (sessionId: string) => apiService.debugWebhookStatus(sessionId);
+export const debugCheckoutSuccess = (sessionId: string, userId: string) => apiService.debugCheckoutSuccess(sessionId, userId);
 export const pollForSubscriptionActivation = (sessionId: string, maxAttempts?: number) => apiService.pollForSubscriptionActivation(sessionId, maxAttempts);
 export const pollForPaymentNotifications = (userId: string) => apiService.pollForPaymentNotifications(userId);
+
+// Export utility functions for session ID handling
+export { cleanSessionId, isValidSessionId } from '../utils/paymentUtils';
 
